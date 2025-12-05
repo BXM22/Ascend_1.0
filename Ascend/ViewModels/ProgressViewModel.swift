@@ -197,5 +197,80 @@ class ProgressViewModel: ObservableObject {
             updateSelectedExerciseIfNeeded()
         }
     }
+    
+    // MARK: - Trend Data for Graphs
+    
+    // Weekly volume data for the last 8 weeks
+    var weeklyVolumeData: [VolumeDataPoint] {
+        let calendar = Calendar.current
+        let today = Date()
+        var data: [VolumeDataPoint] = []
+        
+        // Generate data for last 8 weeks
+        for weekOffset in (0..<8).reversed() {
+            let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
+            let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
+            
+            // Calculate volume for this week (sample data - replace with actual workout volume)
+            // For now, generate sample data based on workout dates
+            let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStartOfWeek) ?? weekStartOfWeek
+            let workoutsInWeek = workoutDates.filter { date in
+                let dayStart = calendar.startOfDay(for: date)
+                return dayStart >= weekStartOfWeek && dayStart <= weekEnd
+            }.count
+            
+            // Sample volume calculation (replace with actual volume from workouts)
+            let volume = workoutsInWeek * 2000 + Int.random(in: 1000...3000)
+            
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M/d"
+            let weekLabel = formatter.string(from: weekStartOfWeek)
+            
+            data.append(VolumeDataPoint(week: weekOffset, weekLabel: weekLabel, volume: volume))
+        }
+        
+        return data
+    }
+    
+    // Weekly workout frequency for the last 8 weeks
+    var weeklyWorkoutFrequency: [FrequencyDataPoint] {
+        let calendar = Calendar.current
+        let today = Date()
+        var data: [FrequencyDataPoint] = []
+        
+        // Generate data for last 8 weeks
+        for weekOffset in (0..<8).reversed() {
+            let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
+            let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
+            
+            // Count workouts in this week
+            let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStartOfWeek) ?? weekStartOfWeek
+            let workoutsInWeek = workoutDates.filter { date in
+                let dayStart = calendar.startOfDay(for: date)
+                return dayStart >= weekStartOfWeek && dayStart <= weekEnd
+            }.count
+            
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M/d"
+            let weekLabel = formatter.string(from: weekStartOfWeek)
+            
+            data.append(FrequencyDataPoint(week: weekOffset, weekLabel: weekLabel, count: workoutsInWeek))
+        }
+        
+        return data
+    }
+}
+
+// MARK: - Data Point Models for Graphs
+struct VolumeDataPoint {
+    let week: Int
+    let weekLabel: String
+    let volume: Int
+}
+
+struct FrequencyDataPoint {
+    let week: Int
+    let weekLabel: String
+    let count: Int
 }
 

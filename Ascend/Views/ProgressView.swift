@@ -30,6 +30,10 @@ struct ProgressView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     
+                    // Trend Graphs (Horizontal Scrolling)
+                    TrendGraphsView(viewModel: viewModel)
+                        .padding(.top, 8)
+                    
                     // Exercise PR Tracker
                     ExercisePRTrackerView(viewModel: viewModel)
                         .padding(.horizontal, 20)
