@@ -66,6 +66,56 @@ class SettingsManager: ObservableObject {
             self.customTheme = theme
         }
     }
+    
+    // MARK: - Reset Data
+    
+    /// Reset all app data with a completion handler
+    func resetAllData(
+        progressViewModel: ProgressViewModel,
+        templatesViewModel: TemplatesViewModel,
+        programViewModel: WorkoutProgramViewModel,
+        themeManager: ThemeManager
+    ) {
+        // Clear all UserDefaults keys
+        let keysToRemove = [
+            "restTimerDuration",
+            "customColorTheme",
+            "themeMode",
+            "savedWorkoutPrograms",
+            "activeWorkoutProgram",
+            "savedWorkoutTemplates"
+        ]
+        
+        for key in keysToRemove {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+        
+        // Reset SettingsManager properties
+        self.restTimerDuration = 90
+        self.customTheme = nil
+        
+        // Reset ThemeManager
+        themeManager.themeMode = .system
+        
+        // Reset ProgressViewModel
+        progressViewModel.prs = []
+        progressViewModel.workoutDates = []
+        progressViewModel.currentStreak = 0
+        progressViewModel.longestStreak = 0
+        progressViewModel.totalVolume = 0
+        progressViewModel.workoutCount = 0
+        progressViewModel.selectedExercise = ""
+        
+        // Reset TemplatesViewModel
+        templatesViewModel.templates = []
+        templatesViewModel.loadSampleTemplates()
+        templatesViewModel.loadCalisthenicsTemplates()
+        
+        // Reset WorkoutProgramViewModel
+        programViewModel.programs = []
+        programViewModel.activeProgram = nil
+        programViewModel.loadDefaultPrograms()
+    }
 }
 
 // MARK: - Color Theme Errors

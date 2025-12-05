@@ -48,6 +48,12 @@ struct ContentView: View {
                         .id(AppColors.themeID)
                     case .workout:
                         WorkoutView(viewModel: workoutViewModel)
+                            .onAppear {
+                                workoutViewModel.progressViewModel = progressViewModel
+                                workoutViewModel.programViewModel = programViewModel
+                                workoutViewModel.templatesViewModel = templatesViewModel
+                                workoutViewModel.themeManager = themeManager
+                            }
                             .id(AppColors.themeID)
                     case .progress:
                         ProgressView(viewModel: progressViewModel)
@@ -70,6 +76,8 @@ struct ContentView: View {
                     workoutViewModel.progressViewModel = progressViewModel
                     workoutViewModel.settingsManager = settingsManager
                     workoutViewModel.programViewModel = programViewModel
+                    workoutViewModel.templatesViewModel = templatesViewModel
+                    workoutViewModel.themeManager = themeManager
                 }
                 .environmentObject(settingsManager)
                 .environmentObject(ColorThemeProvider.shared)

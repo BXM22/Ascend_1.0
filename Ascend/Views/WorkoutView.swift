@@ -127,8 +127,18 @@ struct WorkoutView: View {
             )
         }
         .sheet(isPresented: $viewModel.showSettingsSheet) {
-            if let settingsManager = viewModel.settingsManager {
-                SettingsView(settingsManager: settingsManager)
+            if let settingsManager = viewModel.settingsManager,
+               let progressViewModel = viewModel.progressViewModel,
+               let templatesViewModel = viewModel.templatesViewModel,
+               let programViewModel = viewModel.programViewModel,
+               let themeManager = viewModel.themeManager {
+                SettingsView(
+                    settingsManager: settingsManager,
+                    progressViewModel: progressViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    themeManager: themeManager
+                )
             }
         }
     }
@@ -588,7 +598,12 @@ struct ExerciseNavigationView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @ObservedObject var settingsManager: SettingsManager
+    @ObservedObject var progressViewModel: ProgressViewModel
+    @ObservedObject var templatesViewModel: TemplatesViewModel
+    @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var themeManager: ThemeManager
     @Environment(\.dismiss) var dismiss
+    @State private var showResetWarning = false
     
     private let restTimerOptions: [Int] = [30, 45, 60, 90, 120, 180, 240, 300]
     
@@ -696,6 +711,38 @@ struct SettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
                     .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    
+                    // Reset Data Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Data Management")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                        
+                        Text("Reset all app data including workouts, templates, programs, and progress. This action cannot be undone.")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Button(action: {
+                            showResetWarning = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Reset All Data")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)
@@ -710,6 +757,19 @@ struct SettingsView: View {
                     }
                     .foregroundColor(AppColors.primary)
                 }
+            }
+            .alert("Reset All Data", isPresented: $showResetWarning) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    settingsManager.resetAllData(
+                        progressViewModel: progressViewModel,
+                        templatesViewModel: templatesViewModel,
+                        programViewModel: programViewModel,
+                        themeManager: themeManager
+                    )
+                }
+            } message: {
+                Text("This will permanently delete all your workout data, templates, programs, progress, and settings. This action cannot be undone. Are you sure you want to continue?")
             }
         }
     }

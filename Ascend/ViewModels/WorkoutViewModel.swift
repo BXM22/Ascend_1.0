@@ -16,6 +16,8 @@ class WorkoutViewModel: ObservableObject {
     var settingsManager: SettingsManager?
     var progressViewModel: ProgressViewModel?
     var programViewModel: WorkoutProgramViewModel?
+    var templatesViewModel: TemplatesViewModel?
+    var themeManager: ThemeManager?
     
     private var timer: Timer?
     private var restTimer: Timer?
