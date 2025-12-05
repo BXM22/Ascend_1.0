@@ -7,7 +7,7 @@ struct TrendGraphsView: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
+            LazyHStack(spacing: 16) {
                 // PR Trend Graph
                 if !viewModel.selectedExercise.isEmpty && !viewModel.selectedExercisePRs.isEmpty {
                     PRTrendGraphView(viewModel: viewModel)

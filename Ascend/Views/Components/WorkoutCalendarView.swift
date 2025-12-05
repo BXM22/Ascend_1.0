@@ -28,7 +28,7 @@ struct WorkoutCalendarView: View {
                 // Month Navigation
                 HStack(spacing: AppSpacing.md) {
                     Button(action: {
-                        withAnimation {
+                        withAnimation(AppAnimations.standard) {
                             currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
                         }
                     }) {
@@ -43,7 +43,7 @@ struct WorkoutCalendarView: View {
                         .frame(minWidth: 120)
                     
                     Button(action: {
-                        withAnimation {
+                        withAnimation(AppAnimations.standard) {
                             currentMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
                         }
                     }) {

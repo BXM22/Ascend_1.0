@@ -30,6 +30,9 @@ struct ContentView: View {
             AppColors.background
                 .ignoresSafeArea()
                 .id(AppColors.themeID)
+                .onTapGesture {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
             
             VStack(spacing: 0) {
                 // Main Content
@@ -42,35 +45,44 @@ struct ContentView: View {
                             templatesViewModel: templatesViewModel,
                             programViewModel: programViewModel,
                             onStartWorkout: {
-                                selectedTab = .workout
+                                withAnimation(AppAnimations.standard) {
+                                    selectedTab = .workout
+                                }
                             }
                         )
                         .id(AppColors.themeID)
+                        .transition(.smoothFade)
                     case .workout:
                         WorkoutView(viewModel: workoutViewModel)
-                            .onAppear {
-                                workoutViewModel.progressViewModel = progressViewModel
-                                workoutViewModel.programViewModel = programViewModel
-                                workoutViewModel.templatesViewModel = templatesViewModel
-                                workoutViewModel.themeManager = themeManager
-                            }
+                        .onAppear {
+                            workoutViewModel.progressViewModel = progressViewModel
+                            workoutViewModel.programViewModel = programViewModel
+                            workoutViewModel.templatesViewModel = templatesViewModel
+                            workoutViewModel.themeManager = themeManager
+                        }
                             .id(AppColors.themeID)
+                            .transition(.smoothFade)
                     case .progress:
                         ProgressView(viewModel: progressViewModel)
                             .id(AppColors.themeID)
+                            .transition(.smoothFade)
                     case .templates:
                         TemplatesView(
                             viewModel: templatesViewModel,
                             workoutViewModel: workoutViewModel,
                             programViewModel: programViewModel,
                             onStartTemplate: {
-                                selectedTab = .workout
+                                withAnimation(AppAnimations.standard) {
+                                    selectedTab = .workout
+                                }
                             }
                         )
                         .id(AppColors.themeID)
+                        .transition(.smoothFade)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(AppAnimations.standard, value: selectedTab)
                 .onAppear {
                     // Connect ViewModels
                     workoutViewModel.progressViewModel = progressViewModel
@@ -153,7 +165,9 @@ struct BottomNavigationBar: View {
                     title: "Home",
                     isSelected: selectedTab == .dashboard
                 ) {
-                    selectedTab = .dashboard
+                    withAnimation(AppAnimations.quick) {
+                        selectedTab = .dashboard
+                    }
                 }
                 
                 Spacer()
@@ -163,7 +177,9 @@ struct BottomNavigationBar: View {
                     title: "Workout",
                     isSelected: selectedTab == .workout
                 ) {
-                    selectedTab = .workout
+                    withAnimation(AppAnimations.quick) {
+                        selectedTab = .workout
+                    }
                 }
                 
                 Spacer()
@@ -173,7 +189,9 @@ struct BottomNavigationBar: View {
                     title: "Progress",
                     isSelected: selectedTab == .progress
                 ) {
-                    selectedTab = .progress
+                    withAnimation(AppAnimations.quick) {
+                        selectedTab = .progress
+                    }
                 }
                 
                 Spacer()
@@ -183,14 +201,16 @@ struct BottomNavigationBar: View {
                     title: "Templates",
                     isSelected: selectedTab == .templates
                 ) {
-                    selectedTab = .templates
+                    withAnimation(AppAnimations.quick) {
+                        selectedTab = .templates
+                    }
                 }
                 
                 Spacer()
                 
                 // Theme Toggle Button
                 Button(action: {
-                    withAnimation {
+                    withAnimation(AppAnimations.standard) {
                         showThemePicker.toggle()
                     }
                 }) {
@@ -256,7 +276,7 @@ struct ThemePickerView: View {
                 
                 if !showColorImport {
                     Button(action: {
-                        withAnimation {
+                        withAnimation(AppAnimations.standard) {
                             showColorImport = true
                         }
                     }) {
@@ -309,7 +329,7 @@ struct ThemePickerView: View {
                             }
                             
                             Button(action: {
-                                withAnimation {
+                                withAnimation(AppAnimations.standard) {
                                     showColorImport = false
                                     colorURLText = ""
                                     importError = nil
@@ -350,7 +370,7 @@ struct ThemePickerView: View {
             importSuccess = true
             // Clear text after successful import
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
+                withAnimation(AppAnimations.standard) {
                     showColorImport = false
                     colorURLText = ""
                     importSuccess = false
@@ -427,8 +447,8 @@ struct NavButton: View {
                 Image(systemName: icon)
                     .font(AppTypography.heading3)
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
-                    .scaleEffect(isSelected ? 1.1 : 1.0)
-                    .animation(.spring(response: 0.3), value: isSelected)
+                    .scaleEffect(isSelected ? 1.08 : 1.0)
+                    .animation(AppAnimations.selection, value: isSelected)
                 
                 Text(title)
                     .font(AppTypography.captionMedium)

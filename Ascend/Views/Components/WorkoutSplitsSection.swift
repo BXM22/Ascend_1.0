@@ -63,7 +63,7 @@ struct WorkoutSplitsSection: View {
                         onStartWorkout: onStartWorkout,
                         isExpanded: expandedProgramId == program.id,
                         onToggleExpand: {
-                            withAnimation {
+                            withAnimation(AppAnimations.standard) {
                                 expandedProgramId = expandedProgramId == program.id ? nil : program.id
                             }
                         },
@@ -500,6 +500,9 @@ struct CreateWorkoutProgramView: View {
                     }
                     .foregroundColor(AppColors.accent)
                 }
+            }
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
         }
     }

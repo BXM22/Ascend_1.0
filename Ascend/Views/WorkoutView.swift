@@ -12,20 +12,24 @@ struct WorkoutView: View {
     @State private var weight: String = "185"
     @State private var reps: String = "8"
     @State private var holdDuration: String = "30"
+    @State private var showFinishConfirmation = false
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 // Header
                 WorkoutHeader(
                     title: viewModel.currentWorkout?.name ?? "Workout",
                     onPause: { viewModel.pauseWorkout() },
-                    onFinish: { viewModel.finishWorkout() },
+                    onFinish: { showFinishConfirmation = true },
                     onSettings: { viewModel.showSettingsSheet = true }
                 )
                 
                 // Workout Timer
-                WorkoutTimerBar(time: viewModel.formatTime(viewModel.elapsedTime))
+                WorkoutTimerBar(
+                    time: viewModel.formatTime(viewModel.elapsedTime),
+                    onAbort: { viewModel.abortWorkoutTimer() }
+                )
                 
                 // Exercise Navigation
                 if let workout = viewModel.currentWorkout, workout.exercises.count > 1 {
@@ -69,24 +73,10 @@ struct WorkoutView: View {
                                 viewModel.switchToAlternative(alternativeName: alternativeName)
                             }
                         )
-                        
-                        // Alternative Exercises Section
-                        let alternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
-                        if !alternatives.isEmpty {
-                            AlternativeExercisesView(
-                                exerciseName: exercise.name,
-                                alternatives: alternatives,
-                                onSelectAlternative: { alternativeName in
-                                    viewModel.switchToAlternative(alternativeName: alternativeName)
-                                }
-                            )
-                            .padding(.horizontal, AppSpacing.lg)
-                            .padding(.top, AppSpacing.md)
-                        }
                     }
                 }
                 
-                // Rest Timer
+                // Rest Timer (appears above alternative exercises)
                 if viewModel.restTimerActive {
                     RestTimerView(
                         timeRemaining: viewModel.restTimeRemaining,
@@ -95,6 +85,22 @@ struct WorkoutView: View {
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                }
+                
+                // Alternative Exercises Section (appears after rest timer)
+                if let exercise = viewModel.currentExercise, exercise.type != .hold {
+                    let alternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
+                    if !alternatives.isEmpty {
+                        AlternativeExercisesView(
+                            exerciseName: exercise.name,
+                            alternatives: alternatives,
+                            onSelectAlternative: { alternativeName in
+                                viewModel.switchToAlternative(alternativeName: alternativeName)
+                            }
+                        )
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, 20)
+                    }
                 }
                 
                 // Previous Sets
@@ -115,6 +121,17 @@ struct WorkoutView: View {
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .alert("Finish Workout?", isPresented: $showFinishConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Finish", role: .destructive) {
+                viewModel.finishWorkout()
+            }
+        } message: {
+            Text("Are you sure you want to finish this workout? This action cannot be undone.")
+        }
         .sheet(isPresented: $viewModel.showAddExerciseSheet) {
             AddExerciseView(
                 onAdd: { name, sets, type, holdDuration in
@@ -125,6 +142,8 @@ struct WorkoutView: View {
                     viewModel.showAddExerciseSheet = false
                 }
             )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showSettingsSheet) {
             if let settingsManager = viewModel.settingsManager,
@@ -201,9 +220,10 @@ struct WorkoutHeader: View {
 
 struct WorkoutTimerBar: View {
     let time: String
+    let onAbort: () -> Void
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image(systemName: "timer")
                 .font(.system(size: 16))
                 .foregroundColor(AppColors.mutedForeground)
@@ -211,6 +231,26 @@ struct WorkoutTimerBar: View {
             Text(time)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(AppColors.mutedForeground)
+            
+            Spacer()
+            
+            Button(action: onAbort) {
+                HStack(spacing: 6) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Reset")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundColor(AppColors.destructive)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(AppColors.destructive.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
@@ -279,7 +319,7 @@ struct ExerciseCard: View {
                 // PR Badge
                 if showPRBadge {
                     PRBadge(message: prMessage)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(.smoothSlide)
                 }
                 
                 // Weight Input
@@ -523,8 +563,8 @@ struct InputField: View {
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.3), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(AppAnimations.buttonPress, value: configuration.isPressed)
     }
 }
 
@@ -559,10 +599,12 @@ struct ExerciseNavigationView: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            LazyHStack(spacing: 12) {
                 ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
                     Button(action: {
-                        onSelect(index)
+                        withAnimation(AppAnimations.quick) {
+                            onSelect(index)
+                        }
                     }) {
                         VStack(spacing: 4) {
                             Text(exercise.name)
@@ -586,6 +628,7 @@ struct ExerciseNavigationView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(index == currentIndex ? Color.clear : AppColors.border, lineWidth: 1)
                         )
+                        .animation(AppAnimations.selection, value: currentIndex)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }

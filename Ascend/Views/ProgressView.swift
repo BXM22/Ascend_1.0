@@ -13,7 +13,7 @@ struct ProgressView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 // Header
                 ProgressHeader(
                     selectedView: $viewModel.selectedView,

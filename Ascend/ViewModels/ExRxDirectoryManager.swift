@@ -137,5 +137,10 @@ class ExRxDirectoryManager {
     func getExRxURL(for exerciseName: String) -> String? {
         return findExercise(name: exerciseName)?.url
     }
+    
+    // Get all exercise names for autocomplete
+    func getAllExerciseNames() -> [String] {
+        return exercises.map { $0.name }
+    }
 }
 

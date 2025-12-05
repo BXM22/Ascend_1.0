@@ -267,6 +267,15 @@ class WorkoutViewModel: ObservableObject {
         restTimeRemaining = 0
     }
     
+    func abortWorkoutTimer() {
+        // Reset the workout timer to 0
+        timer?.invalidate()
+        timer = nil
+        workoutStartTime = Date()
+        elapsedTime = 0
+        startTimer()
+    }
+    
     func formatTime(_ seconds: Int) -> String {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60

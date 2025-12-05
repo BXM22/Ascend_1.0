@@ -16,7 +16,7 @@ struct TemplatesView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 // Header
                 TemplatesHeader(
                     onCreate: {
@@ -72,6 +72,9 @@ struct TemplatesView: View {
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .sheet(isPresented: $viewModel.showEditTemplate) {
             if let template = viewModel.editingTemplate {
                 TemplateEditView(
@@ -235,24 +238,18 @@ struct AddExerciseView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Exercise Name")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    TextField("e.g., Bench Press", text: $exerciseName)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(AppColors.foreground)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(AppColors.input)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
+            ScrollView {
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Exercise Name")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        ExerciseAutocompleteField(
+                            text: $exerciseName,
+                            placeholder: "e.g., Bench Press"
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
+                    }
                 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Exercise Type")
@@ -364,8 +361,9 @@ struct AddExerciseView: View {
                     .disabled(exerciseName.isEmpty)
                     .opacity(exerciseName.isEmpty ? 0.6 : 1.0)
                 }
+                }
+                .padding(24)
             }
-            .padding(24)
             .background(AppColors.background)
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -453,17 +451,11 @@ struct TemplateEditView: View {
                         
                         // Add Exercise Input
                         HStack(spacing: 12) {
-                            TextField("Exercise name", text: $newExerciseName)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(AppColors.foreground)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
-                                .background(AppColors.input)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(AppColors.border, lineWidth: 2)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            ExerciseAutocompleteField(
+                                text: $newExerciseName,
+                                placeholder: "Exercise name",
+                                fontSize: 16
+                            )
                             
                             Button(action: {
                                 if !newExerciseName.isEmpty {
@@ -524,6 +516,9 @@ struct TemplateEditView: View {
             .background(AppColors.background)
             .navigationTitle(templateName.isEmpty ? "New Template" : "Edit Template")
             .navigationBarTitleDisplayMode(.inline)
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
