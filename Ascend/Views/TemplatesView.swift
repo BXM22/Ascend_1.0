@@ -233,6 +233,8 @@ struct AddExerciseView: View {
     @State private var targetSets: Int = 4
     @State private var exerciseType: ExerciseType = .weightReps
     @State private var holdDuration: Int = 30
+    @State private var showAddCustomExercise = false
+    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     let onAdd: (String, Int, ExerciseType, Int) -> Void
     let onCancel: () -> Void
     
@@ -241,9 +243,25 @@ struct AddExerciseView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Exercise Name")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+                        HStack {
+                            Text("Exercise Name")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                showAddCustomExercise = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 14))
+                                    Text("Create Custom")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundColor(AppColors.primary)
+                            }
+                        }
                         
                         ExerciseAutocompleteField(
                             text: $exerciseName,
@@ -367,6 +385,15 @@ struct AddExerciseView: View {
             .background(AppColors.background)
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showAddCustomExercise) {
+                AddCustomExerciseView { exercise in
+                    exerciseDataManager.addCustomExercise(exercise)
+                    // Pre-fill the exercise name if it was already typed
+                    if exerciseName.isEmpty {
+                        exerciseName = exercise.name
+                    }
+                }
+            }
         }
     }
 }
@@ -377,6 +404,8 @@ struct TemplateEditView: View {
     @State private var exercises: [String]
     @State private var estimatedDuration: Int
     @State private var newExerciseName: String = ""
+    @State private var showAddCustomExercise = false
+    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     
     private let originalTemplate: WorkoutTemplate?
     let onSave: (WorkoutTemplate) -> Void
@@ -450,24 +479,46 @@ struct TemplateEditView: View {
                         }
                         
                         // Add Exercise Input
-                        HStack(spacing: 12) {
-                            ExerciseAutocompleteField(
-                                text: $newExerciseName,
-                                placeholder: "Exercise name",
-                                fontSize: 16
-                            )
-                            
-                            Button(action: {
-                                if !newExerciseName.isEmpty {
-                                    exercises.append(newExerciseName)
-                                    newExerciseName = ""
-                                }
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 32))
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Exercise Name")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    showAddCustomExercise = true
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 12))
+                                        Text("Create Custom")
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
                                     .foregroundColor(AppColors.primary)
+                                }
                             }
-                            .disabled(newExerciseName.isEmpty)
+                            
+                            HStack(spacing: 12) {
+                                ExerciseAutocompleteField(
+                                    text: $newExerciseName,
+                                    placeholder: "Exercise name",
+                                    fontSize: 16
+                                )
+                                
+                                Button(action: {
+                                    if !newExerciseName.isEmpty {
+                                        exercises.append(newExerciseName)
+                                        newExerciseName = ""
+                                    }
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(AppColors.primary)
+                                }
+                                .disabled(newExerciseName.isEmpty)
+                            }
                         }
                     }
                     
@@ -518,6 +569,15 @@ struct TemplateEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            .sheet(isPresented: $showAddCustomExercise) {
+                AddCustomExerciseView { exercise in
+                    exerciseDataManager.addCustomExercise(exercise)
+                    // Pre-fill the exercise name if it was already typed
+                    if newExerciseName.isEmpty {
+                        newExerciseName = exercise.name
+                    }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

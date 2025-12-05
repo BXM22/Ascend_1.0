@@ -645,8 +645,11 @@ struct SettingsView: View {
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var themeManager: ThemeManager
+    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     @Environment(\.dismiss) var dismiss
     @State private var showResetWarning = false
+    @State private var showAddCustomExercise = false
+    @State private var showCustomExercisesList = false
     
     private let restTimerOptions: [Int] = [30, 45, 60, 90, 120, 180, 240, 300]
     
@@ -786,6 +789,58 @@ struct SettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
                     .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    
+                    // Custom Exercises Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Custom Exercises")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                        
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                showAddCustomExercise = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 20))
+                                    Text("Add Custom Exercise")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(AppColors.alabasterGrey)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(LinearGradient.primaryGradient)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
+                            
+                            if !exerciseDataManager.customExercises.isEmpty {
+                                Button(action: {
+                                    showCustomExercisesList = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "list.bullet")
+                                            .font(.system(size: 20))
+                                        Text("View Custom Exercises (\(exerciseDataManager.customExercises.count))")
+                                            .font(.system(size: 16, weight: .semibold))
+                                    }
+                                    .foregroundColor(AppColors.foreground)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(AppColors.secondary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(AppColors.border, lineWidth: 2)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)
@@ -800,6 +855,14 @@ struct SettingsView: View {
                     }
                     .foregroundColor(AppColors.primary)
                 }
+            }
+            .sheet(isPresented: $showAddCustomExercise) {
+                AddCustomExerciseView { exercise in
+                    exerciseDataManager.addCustomExercise(exercise)
+                }
+            }
+            .sheet(isPresented: $showCustomExercisesList) {
+                CustomExercisesListView()
             }
             .alert("Reset All Data", isPresented: $showResetWarning) {
                 Button("Cancel", role: .cancel) { }

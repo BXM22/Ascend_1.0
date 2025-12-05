@@ -7,6 +7,7 @@ struct ExerciseAutocompleteField: View {
     @State private var showSuggestions = false
     @State private var filteredSuggestions: [String] = []
     @FocusState private var isFocused: Bool
+    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     
     // Cache exercise list for better performance - computed once
     private static var cachedExercises: [String] = {
@@ -30,7 +31,14 @@ struct ExerciseAutocompleteField: View {
     }()
     
     private var allExercises: [String] {
-        Self.cachedExercises
+        var exercises = Self.cachedExercises
+        
+        // Add custom exercises
+        let customExercises = ExerciseDataManager.shared.customExercises.map { $0.name }
+        exercises.append(contentsOf: customExercises)
+        
+        // Remove duplicates and sort
+        return Array(Set(exercises)).sorted()
     }
     
     // Optimized filtering function - uses early exit and single pass where possible

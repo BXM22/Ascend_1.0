@@ -1,7 +1,14 @@
 import Foundation
+import Combine
 
-class ExerciseDataManager {
+class ExerciseDataManager: ObservableObject {
     static let shared = ExerciseDataManager()
+    
+    // UserDefaults key for custom exercises
+    private let customExercisesKey = "customExercises"
+    
+    // Custom exercises stored persistently
+    @Published private(set) var customExercises: [CustomExercise] = []
     
     // Exercise database with alternatives and video URLs
     private let exerciseDatabase: [String: ExerciseInfo] = [
@@ -81,12 +88,79 @@ class ExerciseDataManager {
         )
     ]
     
-    private init() {}
+    private init() {
+        loadCustomExercises()
+    }
+    
+    // MARK: - Custom Exercise Management
+    
+    /// Load custom exercises from UserDefaults
+    private func loadCustomExercises() {
+        if let data = UserDefaults.standard.data(forKey: customExercisesKey),
+           let exercises = try? JSONDecoder().decode([CustomExercise].self, from: data) {
+            customExercises = exercises
+        }
+    }
+    
+    /// Save custom exercises to UserDefaults
+    private func saveCustomExercises() {
+        if let data = try? JSONEncoder().encode(customExercises) {
+            UserDefaults.standard.set(data, forKey: customExercisesKey)
+        }
+    }
+    
+    /// Add a custom exercise
+    func addCustomExercise(_ exercise: CustomExercise) {
+        // Check if exercise with same name already exists
+        if !customExercises.contains(where: { $0.name.lowercased() == exercise.name.lowercased() }) {
+            customExercises.append(exercise)
+            saveCustomExercises()
+        }
+    }
+    
+    /// Update a custom exercise
+    func updateCustomExercise(_ exercise: CustomExercise) {
+        if let index = customExercises.firstIndex(where: { $0.id == exercise.id }) {
+            customExercises[index] = exercise
+            saveCustomExercises()
+        }
+    }
+    
+    /// Delete a custom exercise
+    func deleteCustomExercise(_ exercise: CustomExercise) {
+        customExercises.removeAll { $0.id == exercise.id }
+        saveCustomExercises()
+    }
+    
+    /// Get custom exercise by name
+    func getCustomExercise(name: String) -> CustomExercise? {
+        return customExercises.first { $0.name.lowercased() == name.lowercased() }
+    }
+    
+    /// Get all muscle groups for an exercise (from custom or database)
+    func getMuscleGroups(for exerciseName: String) -> (primary: [String], secondary: [String]) {
+        // Check custom exercises first
+        if let custom = getCustomExercise(name: exerciseName) {
+            return (custom.primaryMuscleGroups, custom.secondaryMuscleGroups)
+        }
+        
+        // Check ExRx directory
+        if let exRx = ExRxDirectoryManager.shared.findExercise(name: exerciseName) {
+            return ([exRx.muscleGroup], [])
+        }
+        
+        return ([], [])
+    }
     
     func getAlternatives(for exerciseName: String) -> [String] {
         var alternatives: [String] = []
         
-        // Check exact match first in local database
+        // Check custom exercises first
+        if let custom = getCustomExercise(name: exerciseName) {
+            alternatives.append(contentsOf: custom.alternatives)
+        }
+        
+        // Check exact match in local database
         if let info = exerciseDatabase[exerciseName] {
             alternatives.append(contentsOf: info.alternatives)
         }
@@ -116,6 +190,11 @@ class ExerciseDataManager {
     }
     
     func getVideoURL(for exerciseName: String) -> String? {
+        // Check custom exercises first
+        if let custom = getCustomExercise(name: exerciseName) {
+            return custom.videoURL
+        }
+        
         // Check exact match first
         if let info = exerciseDatabase[exerciseName] {
             return info.videoURL
@@ -174,6 +253,15 @@ class ExerciseDataManager {
 struct ExerciseInfo {
     let alternatives: [String]
     let videoURL: String?
+    let primaryMuscleGroups: [String]?
+    let secondaryMuscleGroups: [String]?
+    
+    init(alternatives: [String], videoURL: String? = nil, primaryMuscleGroups: [String]? = nil, secondaryMuscleGroups: [String]? = nil) {
+        self.alternatives = alternatives
+        self.videoURL = videoURL
+        self.primaryMuscleGroups = primaryMuscleGroups
+        self.secondaryMuscleGroups = secondaryMuscleGroups
+    }
 }
 
 
