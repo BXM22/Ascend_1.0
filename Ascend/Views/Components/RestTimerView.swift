@@ -43,7 +43,10 @@ struct RestTimerView: View {
                     .trim(from: 0, to: progress)
                     .stroke(
                         LinearGradient(
-                            colors: [AppColors.prussianBlue, AppColors.duskBlue],
+                            colors: [
+                                Color(light: AppColors.prussianBlue, dark: Color(hex: "2c2c2e")),
+                                Color(light: AppColors.duskBlue, dark: Color(hex: "3a3a3c"))
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -51,7 +54,7 @@ struct RestTimerView: View {
                     )
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: AppColors.prussianBlue.opacity(0.5), radius: 8)
+                    .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.5), radius: 8)
                 
                 // Time text
                 Text(String(format: "%02d:%02d", minutes, seconds))

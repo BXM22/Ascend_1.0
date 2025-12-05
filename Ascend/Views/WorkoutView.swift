@@ -240,7 +240,11 @@ struct ExerciseCard: View {
             // Top gradient bar
             Rectangle()
                 .fill(LinearGradient(
-                    colors: [AppColors.prussianBlue, AppColors.duskBlue, AppColors.dustyDenim],
+                    colors: [
+                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
+                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+                    ],
                     startPoint: .leading,
                     endPoint: .trailing
                 ))
@@ -328,7 +332,11 @@ struct HoldExerciseCard: View {
             // Top gradient bar
             Rectangle()
                 .fill(LinearGradient(
-                    colors: [AppColors.prussianBlue, AppColors.duskBlue, AppColors.dustyDenim],
+                    colors: [
+                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
+                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+                    ],
                     startPoint: .leading,
                     endPoint: .trailing
                 ))
@@ -454,13 +462,17 @@ struct PRBadge: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background(LinearGradient(
-            colors: [AppColors.prussianBlue, AppColors.duskBlue, AppColors.dustyDenim],
+            colors: [
+                Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
+                Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+            ],
             startPoint: .leading,
             endPoint: .trailing
         ))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.prussianBlue.opacity(0.4), radius: 20, x: 0, y: 8)
-        .shadow(color: AppColors.prussianBlue.opacity(0.2), radius: 8, x: 0, y: 4)
+        .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.4), radius: 20, x: 0, y: 8)
+        .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.2), radius: 8, x: 0, y: 4)
     }
 }
 

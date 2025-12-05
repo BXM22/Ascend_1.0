@@ -89,7 +89,7 @@ struct AppColors {
             lightIndex: 4, // Use last color (usually lightest) for light mode
             darkIndex: 0,  // Use first color (usually darkest) for dark mode
             defaultLight: alabasterGrey,
-            defaultDark: inkBlack
+            defaultDark: Color(hex: "000000") // True black for dark mode
         )
     }
     
@@ -98,7 +98,7 @@ struct AppColors {
             lightIndex: 0, // Dark text on light background
             darkIndex: 4,  // Light text on dark background
             defaultLight: inkBlack,
-            defaultDark: Color(hex: "e8eaed")
+            defaultDark: Color(hex: "ffffff") // White text for dark mode
         )
     }
     
@@ -107,7 +107,7 @@ struct AppColors {
             lightIndex: 4, // Light card in light mode
             darkIndex: 1,  // Second color for card in dark mode
             defaultLight: .white,
-            defaultDark: prussianBlue
+            defaultDark: Color(hex: "1c1c1e") // iOS system dark gray for cards
         )
     }
     
@@ -120,7 +120,7 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1e2936")
+            defaultDark: Color(hex: "1f1f1f") // Dark gray for secondary elements
         )
     }
     
@@ -129,7 +129,7 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f0f0f0"),
-            defaultDark: Color(hex: "2a3847")
+            defaultDark: Color(hex: "2c2c2e") // Slightly lighter gray for muted elements
         )
     }
     
@@ -138,7 +138,7 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "a8b8cc")
+            defaultDark: Color(hex: "a1a1a6") // Light gray for secondary text
         )
     }
     
@@ -147,7 +147,7 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 2,
             defaultLight: dustyDenim,
-            defaultDark: duskBlue
+            defaultDark: Color(hex: "3a3a3c") // Medium gray for borders
         )
     }
     
@@ -156,7 +156,7 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1e2936")
+            defaultDark: Color(hex: "1c1c1e") // Dark gray for input fields
         )
     }
     
@@ -191,7 +191,7 @@ struct AppColors {
             lightIndex: 1,
             darkIndex: 3,
             defaultLight: prussianBlue,
-            defaultDark: dustyDenim
+            defaultDark: Color(hex: "1c1c1e") // Dark gray gradient start
         )
     }
     
@@ -200,7 +200,7 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: duskBlue,
-            defaultDark: Color(hex: "9fb5d1")
+            defaultDark: Color(hex: "2c2c2e") // Slightly lighter gray gradient end
         )
     }
 }
@@ -272,7 +272,10 @@ extension LinearGradient {
     
     static var accentGradient: LinearGradient {
         LinearGradient(
-            colors: [AppColors.duskBlue, AppColors.dustyDenim],
+            colors: [
+                Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
