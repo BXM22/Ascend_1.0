@@ -430,6 +430,8 @@ You need screenshots for at least one device size. Apple requires:
 - Same dimensions as screenshots
 - Can significantly improve conversion rates
 
+**📸 For detailed instructions on adding screenshots and previews, see `APP_STORE_PREVIEWS_GUIDE.md`**
+
 **3.3: App Description**
 - **Name**: Ascend (or your chosen name, max 30 characters)
 - **Subtitle**: Short tagline (max 30 characters, optional)
