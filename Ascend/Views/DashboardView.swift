@@ -53,19 +53,23 @@ struct DashboardView: View {
                         longestStreak: progressViewModel.longestStreak
                     )
                     .padding(.horizontal, AppSpacing.lg)
+                    .animateOnAppear(delay: 0.2, animation: AppAnimations.smooth)
                     
                     // Recent Activity
                     RecentActivityCard(progressViewModel: progressViewModel)
                         .padding(.horizontal, AppSpacing.lg)
+                        .animateOnAppear(delay: 0.25)
                     
                     // Top Exercises
                     TopExercisesCard(progressViewModel: progressViewModel)
                         .padding(.horizontal, AppSpacing.lg)
+                        .animateOnAppear(delay: 0.3)
                     
                     // Weekly Summary
                     WeeklySummaryCard(progressViewModel: progressViewModel)
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.bottom, 100)
+                        .animateOnAppear(delay: 0.35, animation: AppAnimations.smooth)
                 }
             }
         }
@@ -115,6 +119,7 @@ struct QuickStatsGrid: View {
                     label: "Day Streak",
                     color: AppColors.primary
                 )
+                .animateOnAppear(delay: 0.0)
                 
                 IconStatCard(
                     icon: "chart.bar.fill",
@@ -122,6 +127,7 @@ struct QuickStatsGrid: View {
                     label: "Total Volume",
                     color: AppColors.accent
                 )
+                .animateOnAppear(delay: 0.05)
             }
             
             HStack(spacing: AppSpacing.md) {
@@ -131,6 +137,7 @@ struct QuickStatsGrid: View {
                     label: "Workouts",
                     color: AppColors.primary
                 )
+                .animateOnAppear(delay: 0.1)
                 
                 IconStatCard(
                     icon: "clock.fill",
@@ -138,6 +145,7 @@ struct QuickStatsGrid: View {
                     label: "Minutes",
                     color: AppColors.accent
                 )
+                .animateOnAppear(delay: 0.15)
             }
         }
     }
@@ -155,6 +163,8 @@ struct IconStatCard: View {
     let value: String
     let label: String
     let color: Color
+    @State private var animatedValue: String = "0"
+    @State private var scale: CGFloat = 1.0
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -162,13 +172,17 @@ struct IconStatCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 20))
                     .foregroundColor(color)
+                    .scaleEffect(scale)
+                    .animation(AppAnimations.quick, value: scale)
                 
                 Spacer()
             }
             
-            Text(value)
+            Text(animatedValue)
                 .font(AppTypography.heading2)
                 .foregroundColor(AppColors.textPrimary)
+                .contentTransition(.numericText())
+                .animation(AppAnimations.smooth, value: animatedValue)
             
             Text(label)
                 .font(AppTypography.caption)
@@ -179,6 +193,27 @@ struct IconStatCard: View {
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .onAppear {
+            // Animate number counting
+            animateValue(from: "0", to: value)
+            // Pulse icon
+            withAnimation(
+                Animation.easeInOut(duration: 0.3)
+                    .repeatCount(1, autoreverses: true)
+            ) {
+                scale = 1.1
+            }
+        }
+        .onChange(of: value) { newValue in
+            animateValue(from: animatedValue, to: newValue)
+        }
+    }
+    
+    private func animateValue(from: String, to: String) {
+        // Simple animation - just update with smooth transition
+        withAnimation(AppAnimations.smooth) {
+            animatedValue = to
+        }
     }
 }
 
@@ -216,8 +251,9 @@ struct RecentActivityCard: View {
                 .padding(.vertical, AppSpacing.xl)
             } else {
                 VStack(spacing: AppSpacing.sm) {
-                    ForEach(recentPRs) { pr in
+                    ForEach(Array(recentPRs.enumerated()), id: \.element.id) { index, pr in
                         PRRow(pr: pr)
+                            .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
                     }
                 }
             }
@@ -305,6 +341,7 @@ struct TopExercisesCard: View {
                             name: exercise.0,
                             count: exercise.1
                         )
+                        .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
                     }
                 }
             }
@@ -467,6 +504,8 @@ struct QuickStartTemplatesSection: View {
         }
     }
     
+    @State private var selectedItem: QuickStartItem?
+    
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -479,18 +518,50 @@ struct QuickStartTemplatesSection: View {
                 Spacer()
             }
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.md) {
+            if featuredTemplates.isEmpty {
+                Text("No templates available")
+                    .font(AppTypography.body)
+                    .foregroundColor(AppColors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, AppSpacing.md)
+            } else {
+                Menu {
                     ForEach(Array(featuredTemplates.enumerated()), id: \.offset) { index, item in
-                        QuickStartButton(
-                            item: item,
-                            onTap: {
-                                startWorkout(for: item)
+                        Button(action: {
+                            HapticManager.selection()
+                            startWorkout(for: item)
+                        }) {
+                            HStack {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 16))
+                                Text(item.name)
+                                    .font(AppTypography.bodyMedium)
                             }
-                        )
+                        }
                     }
+                } label: {
+                    HStack {
+                        Image(systemName: selectedItem?.icon ?? "dumbbell.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.accentForeground)
+                        
+                        Text(selectedItem?.name ?? "Select a workout...")
+                            .font(AppTypography.bodyMedium)
+                            .foregroundColor(selectedItem == nil ? AppColors.textSecondary : AppColors.textPrimary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(LinearGradient.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .padding(.horizontal, AppSpacing.lg)
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(AppSpacing.md)

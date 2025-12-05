@@ -56,6 +56,7 @@ struct WorkoutView: View {
                                 }
                             }
                         )
+                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
                     } else {
                         ExerciseCard(
                             exercise: exercise,
@@ -73,6 +74,7 @@ struct WorkoutView: View {
                                 viewModel.switchToAlternative(alternativeName: alternativeName)
                             }
                         )
+                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
                     }
                 }
                 
@@ -178,7 +180,10 @@ struct WorkoutHeader: View {
             Spacer()
             
             HStack(spacing: AppSpacing.md) {
-                Button(action: onSettings) {
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onSettings()
+                }) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
@@ -186,17 +191,27 @@ struct WorkoutHeader: View {
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .buttonStyle(ScaleButtonStyle())
                 
-                Button(action: onPause) {
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onPause()
+                }) {
                     Image(systemName: "pause.fill")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
                         .frame(width: 40, height: 40)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .rotationEffect(.degrees(0))
+                        .animation(AppAnimations.quick, value: UUID())
                 }
+                .buttonStyle(ScaleButtonStyle())
                 
-                Button(action: onFinish) {
+                Button(action: {
+                    HapticManager.success()
+                    onFinish()
+                }) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
@@ -204,6 +219,7 @@ struct WorkoutHeader: View {
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .buttonStyle(ScaleButtonStyle())
             }
         }
         .padding(.horizontal, AppSpacing.lg)
@@ -231,6 +247,8 @@ struct WorkoutTimerBar: View {
             Text(time)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(AppColors.mutedForeground)
+                .contentTransition(.numericText())
+                .animation(AppAnimations.quick, value: time)
             
             Spacer()
             
@@ -319,7 +337,8 @@ struct ExerciseCard: View {
                 // PR Badge
                 if showPRBadge {
                     PRBadge(message: prMessage)
-                        .transition(.smoothSlide)
+                        .transition(.scaleWithFade)
+                        .zIndex(10)
                 }
                 
                 // Weight Input
@@ -498,31 +517,106 @@ struct HoldExerciseCard: View {
 
 struct PRBadge: View {
     let message: String
+    @State private var scale: CGFloat = 0.8
+    @State private var rotation: Double = -5
+    @State private var glowIntensity: Double = 0
+    @State private var showConfetti = false
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "trophy.fill")
-                .font(.system(size: 16))
-            Text("PR! \(message)")
-                .font(.system(size: 15, weight: .bold))
-                .textCase(.uppercase)
-                .tracking(0.5)
+        ZStack {
+            // Confetti effect using SF Symbols
+            if showConfetti {
+                HStack(spacing: 8) {
+                    ForEach(0..<5) { index in
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
+                            .foregroundColor(.yellow)
+                            .offset(
+                                x: CGFloat.random(in: -20...20),
+                                y: CGFloat.random(in: -30...10)
+                            )
+                            .opacity(showConfetti ? 1 : 0)
+                    }
+                }
+                .animation(
+                    Animation.easeOut(duration: 0.6)
+                        .delay(0.1),
+                    value: showConfetti
+                )
+            }
+            
+            // Main badge
+            HStack(spacing: 8) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 16))
+                    .rotationEffect(.degrees(rotation))
+                Text("PR! \(message)")
+                    .font(.system(size: 15, weight: .bold))
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+            }
+            .foregroundColor(AppColors.alabasterGrey)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(LinearGradient(
+                colors: [
+                    Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
+                    Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                    Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            ))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .scaleEffect(scale)
+            .shadow(
+                color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.4 + glowIntensity),
+                radius: 20 + (glowIntensity * 10),
+                x: 0,
+                y: 8
+            )
+            .shadow(
+                color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.2 + glowIntensity),
+                radius: 8 + (glowIntensity * 5),
+                x: 0,
+                y: 4
+            )
         }
-        .foregroundColor(AppColors.alabasterGrey)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(LinearGradient(
-            colors: [
-                Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
-                Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        ))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.4), radius: 20, x: 0, y: 8)
-        .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.2), radius: 8, x: 0, y: 4)
+        .onAppear {
+            // Trigger haptic feedback
+            HapticManager.success()
+            
+            // Celebration animation sequence
+            withAnimation(AppAnimations.celebration) {
+                scale = 1.1
+                rotation = 5
+                glowIntensity = 0.3
+                showConfetti = true
+            }
+            
+            // Settle animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(AppAnimations.celebration) {
+                    scale = 1.0
+                    rotation = 0
+                }
+            }
+            
+            // Pulse glow effect
+            withAnimation(
+                Animation.easeInOut(duration: 0.8)
+                    .repeatCount(3, autoreverses: true)
+            ) {
+                glowIntensity = 0.2
+            }
+            
+            // Hide confetti after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                withAnimation {
+                    showConfetti = false
+                }
+            }
+        }
     }
 }
 
@@ -563,8 +657,20 @@ struct InputField: View {
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .shadow(
+                color: configuration.isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2),
+                radius: configuration.isPressed ? 4 : 8,
+                x: 0,
+                y: configuration.isPressed ? 2 : 4
+            )
             .animation(AppAnimations.buttonPress, value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { isPressed in
+                if isPressed {
+                    HapticManager.impact(style: .light)
+                }
+            }
     }
 }
 

@@ -52,7 +52,7 @@ struct TemplatesView: View {
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.lg)
                         
-                        ForEach(viewModel.templates.filter { !$0.name.contains("Progression") }) { template in
+                        ForEach(Array(viewModel.templates.filter { !$0.name.contains("Progression") }.enumerated()), id: \.element.id) { index, template in
                             TemplateCard(
                                 template: template,
                                 onStart: {
@@ -64,6 +64,7 @@ struct TemplatesView: View {
                                 }
                             )
                             .padding(.horizontal, AppSpacing.lg)
+                            .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
                         }
                     }
                     .padding(.bottom, 100)

@@ -9,8 +9,9 @@ struct PreviousSetsView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(AppColors.foreground)
             
-            ForEach(sets) { set in
+            ForEach(Array(sets.enumerated()), id: \.element.id) { index, set in
                 SetRow(set: set)
+                    .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
             }
         }
         .padding(20)

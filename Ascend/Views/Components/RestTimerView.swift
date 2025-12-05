@@ -11,6 +11,9 @@ struct RestTimerView: View {
     let timeRemaining: Int
     let onSkip: () -> Void
     let onComplete: () -> Void
+    @State private var progressValue: Double = 0
+    @State private var scale: CGFloat = 0.9
+    @State private var opacity: Double = 0
     
     private var minutes: Int {
         timeRemaining / 60
@@ -23,6 +26,16 @@ struct RestTimerView: View {
     private var progress: Double {
         let total = 90.0
         return 1.0 - (Double(timeRemaining) / total)
+    }
+    
+    private var timerColor: Color {
+        if timeRemaining > 30 {
+            return Color(light: AppColors.prussianBlue, dark: Color(hex: "2c2c2e"))
+        } else if timeRemaining > 10 {
+            return Color(light: AppColors.warning, dark: Color(hex: "d97706"))
+        } else {
+            return Color(light: AppColors.destructive, dark: Color(hex: "dc2626"))
+        }
     }
     
     var body: some View {
@@ -40,12 +53,12 @@ struct RestTimerView: View {
                 
                 // Progress circle
                 Circle()
-                    .trim(from: 0, to: progress)
+                    .trim(from: 0, to: progressValue)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color(light: AppColors.prussianBlue, dark: Color(hex: "2c2c2e")),
-                                Color(light: AppColors.duskBlue, dark: Color(hex: "3a3a3c"))
+                                timerColor,
+                                timerColor.opacity(0.7)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -54,17 +67,23 @@ struct RestTimerView: View {
                     )
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.5), radius: 8)
+                    .shadow(color: timerColor.opacity(0.5), radius: 8)
+                    .animation(AppAnimations.smooth, value: progressValue)
+                    .animation(AppAnimations.smooth, value: timerColor)
                 
                 // Time text
                 Text(String(format: "%02d:%02d", minutes, seconds))
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundColor(AppColors.foreground)
+                    .contentTransition(.numericText())
             }
             
             // Action buttons
             HStack(spacing: 12) {
-                Button(action: onSkip) {
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onSkip()
+                }) {
                     Text("Skip")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(AppColors.foreground)
@@ -77,8 +96,12 @@ struct RestTimerView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(ScaleButtonStyle())
                 
-                Button(action: onComplete) {
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onComplete()
+                }) {
                     Text("Complete Rest")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(AppColors.foreground)
@@ -91,6 +114,7 @@ struct RestTimerView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(ScaleButtonStyle())
             }
         }
         .padding(24)
@@ -98,6 +122,32 @@ struct RestTimerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .scaleEffect(scale)
+        .opacity(opacity)
+        .onAppear {
+            // Entrance animation
+            withAnimation(AppAnimations.smooth) {
+                scale = 1.0
+                opacity = 1.0
+            }
+            // Animate progress
+            withAnimation(AppAnimations.smooth) {
+                progressValue = progress
+            }
+        }
+        .onChange(of: timeRemaining) { _ in
+            // Smooth progress updates
+            withAnimation(AppAnimations.smooth) {
+                progressValue = progress
+            }
+            
+            // Warning haptic when time is running out
+            if timeRemaining == 10 {
+                HapticManager.warning()
+            } else if timeRemaining == 0 {
+                HapticManager.success()
+            }
+        }
     }
 }
 

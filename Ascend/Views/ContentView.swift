@@ -51,7 +51,7 @@ struct ContentView: View {
                             }
                         )
                         .id(AppColors.themeID)
-                        .transition(.smoothFade)
+                        .transition(.slideFromBottom)
                     case .workout:
                         WorkoutView(viewModel: workoutViewModel)
                         .onAppear {
@@ -61,11 +61,11 @@ struct ContentView: View {
                             workoutViewModel.themeManager = themeManager
                         }
                             .id(AppColors.themeID)
-                            .transition(.smoothFade)
+                            .transition(.slideFromBottom)
                     case .progress:
                         ProgressView(viewModel: progressViewModel)
                             .id(AppColors.themeID)
-                            .transition(.smoothFade)
+                            .transition(.slideFromBottom)
                     case .templates:
                         TemplatesView(
                             viewModel: templatesViewModel,
@@ -78,7 +78,7 @@ struct ContentView: View {
                             }
                         )
                         .id(AppColors.themeID)
-                        .transition(.smoothFade)
+                        .transition(.slideFromBottom)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -165,6 +165,7 @@ struct BottomNavigationBar: View {
                     title: "Home",
                     isSelected: selectedTab == .dashboard
                 ) {
+                    HapticManager.selection()
                     withAnimation(AppAnimations.quick) {
                         selectedTab = .dashboard
                     }
@@ -177,6 +178,7 @@ struct BottomNavigationBar: View {
                     title: "Workout",
                     isSelected: selectedTab == .workout
                 ) {
+                    HapticManager.selection()
                     withAnimation(AppAnimations.quick) {
                         selectedTab = .workout
                     }
@@ -189,6 +191,7 @@ struct BottomNavigationBar: View {
                     title: "Progress",
                     isSelected: selectedTab == .progress
                 ) {
+                    HapticManager.selection()
                     withAnimation(AppAnimations.quick) {
                         selectedTab = .progress
                     }
@@ -201,6 +204,7 @@ struct BottomNavigationBar: View {
                     title: "Templates",
                     isSelected: selectedTab == .templates
                 ) {
+                    HapticManager.selection()
                     withAnimation(AppAnimations.quick) {
                         selectedTab = .templates
                     }
@@ -447,12 +451,19 @@ struct NavButton: View {
                 Image(systemName: icon)
                     .font(AppTypography.heading3)
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
-                    .scaleEffect(isSelected ? 1.08 : 1.0)
+                    .scaleEffect(isSelected ? 1.1 : 1.0)
                     .animation(AppAnimations.selection, value: isSelected)
                 
                 Text(title)
                     .font(AppTypography.captionMedium)
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
+                
+                // Selection indicator
+                Rectangle()
+                    .fill(isSelected ? AppColors.primary : Color.clear)
+                    .frame(height: 2)
+                    .frame(maxWidth: isSelected ? nil : 0)
+                    .animation(AppAnimations.selection, value: isSelected)
             }
             .frame(maxWidth: .infinity)
         }
