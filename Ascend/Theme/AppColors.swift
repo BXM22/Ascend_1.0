@@ -112,7 +112,12 @@ struct AppColors {
     }
     
     static var primary: Color {
-        colorFromTheme(index: 2, defaultColor: prussianBlue)
+        adaptiveColor(
+            lightIndex: 2,
+            darkIndex: 2,
+            defaultLight: prussianBlue,
+            defaultDark: Color(hex: "5a9eff") // Bright blue for dark mode - ensures visibility
+        )
     }
     
     static var secondary: Color {
@@ -138,7 +143,7 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "a1a1a6") // Light gray for secondary text
+            defaultDark: Color(hex: "c7c7cc") // Brighter gray for secondary text in dark mode
         )
     }
     
@@ -161,7 +166,12 @@ struct AppColors {
     }
     
     static var accent: Color {
-        colorFromTheme(index: 3, defaultColor: duskBlue)
+        adaptiveColor(
+            lightIndex: 3,
+            darkIndex: 3,
+            defaultLight: duskBlue,
+            defaultDark: Color(hex: "7ab8ff") // Lighter blue for dark mode - ensures visibility
+        )
     }
     
     static var accentForeground: Color {
@@ -169,14 +179,29 @@ struct AppColors {
             lightIndex: 0,
             darkIndex: 4,
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "f0f2f5")
+            defaultDark: Color(hex: "ffffff") // White for dark mode - ensures visibility
+        )
+    }
+    
+    // Adaptive color for text on gradient/primary backgrounds
+    static var onPrimary: Color {
+        adaptiveColor(
+            lightIndex: 4,
+            darkIndex: 4,
+            defaultLight: alabasterGrey,
+            defaultDark: Color(hex: "ffffff") // White for dark mode - ensures visibility on dark gradients
         )
     }
     
     static let destructive = Color(hex: "dc2626")
     
     static var success: Color {
-        colorFromTheme(index: 3, defaultColor: duskBlue)
+        adaptiveColor(
+            lightIndex: 3,
+            darkIndex: 3,
+            defaultLight: duskBlue,
+            defaultDark: Color(hex: "34c759") // iOS green for success in dark mode
+        )
     }
     
     static let warning = Color(hex: "d97706")
@@ -191,7 +216,7 @@ struct AppColors {
             lightIndex: 1,
             darkIndex: 3,
             defaultLight: prussianBlue,
-            defaultDark: Color(hex: "1c1c1e") // Dark gray gradient start
+            defaultDark: Color(hex: "5a9eff") // Bright blue gradient start for dark mode
         )
     }
     
@@ -200,7 +225,7 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: duskBlue,
-            defaultDark: Color(hex: "2c2c2e") // Slightly lighter gray gradient end
+            defaultDark: Color(hex: "7ab8ff") // Lighter blue gradient end for dark mode
         )
     }
 }
