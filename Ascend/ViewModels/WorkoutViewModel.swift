@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 class WorkoutViewModel: ObservableObject {
     @Published var currentWorkout: Workout?
@@ -22,6 +25,9 @@ class WorkoutViewModel: ObservableObject {
     private var timer: Timer?
     private var restTimer: Timer?
     private var workoutStartTime: Date?
+    private var restTimerStartTime: Date?
+    private var restTimerOriginalDuration: Int = 0
+    private var backgroundTime: Date?
     
     var currentExercise: Exercise? {
         guard let workout = currentWorkout,
@@ -33,6 +39,67 @@ class WorkoutViewModel: ObservableObject {
     
     init(settingsManager: SettingsManager? = nil) {
         self.settingsManager = settingsManager ?? SettingsManager()
+        setupAppLifecycleObservers()
+    }
+    
+    private func setupAppLifecycleObservers() {
+        #if canImport(UIKit)
+        // Listen for app going to background
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppBackgrounded()
+        }
+        
+        // Listen for app coming to foreground
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppForegrounded()
+        }
+        #endif
+    }
+    
+    private func handleAppBackgrounded() {
+        backgroundTime = Date()
+        // No need to store anything - we'll calculate from restTimerStartTime when foregrounding
+    }
+    
+    private func handleAppForegrounded() {
+        guard backgroundTime != nil else { return }
+        self.backgroundTime = nil
+        
+        // Update workout timer - recalculate from start time
+        if let startTime = workoutStartTime {
+            elapsedTime = Int(Date().timeIntervalSince(startTime))
+            // Restart timer if it was running
+            if timer == nil && currentWorkout != nil {
+                startTimer()
+            }
+        }
+        
+        // Update rest timer - calculate based on time elapsed since timer started
+        if restTimerActive, let restStart = restTimerStartTime {
+            // Calculate total elapsed time since timer started
+            let totalElapsed = Int(Date().timeIntervalSince(restStart))
+            let newRemaining = max(0, restTimerOriginalDuration - totalElapsed)
+            
+            restTimeRemaining = newRemaining
+            
+            if newRemaining <= 0 {
+                // Timer completed while in background
+                completeRest()
+            } else {
+                // Restart timer with remaining time - reset start time to now
+                // The timer will continue counting down from the updated restTimeRemaining
+                restTimerStartTime = Date()
+                restartRestTimer()
+            }
+        }
     }
     
     func startWorkoutFromTemplate(_ template: WorkoutTemplate) {
@@ -257,11 +324,23 @@ class WorkoutViewModel: ObservableObject {
         guard let settingsManager = settingsManager else { return }
         
         restTimerActive = true
-        restTimeRemaining = settingsManager.restTimerDuration
+        restTimerOriginalDuration = settingsManager.restTimerDuration
+        restTimeRemaining = restTimerOriginalDuration
+        restTimerStartTime = Date()
         
         // Schedule notification for when rest timer completes
         NotificationManager.shared.scheduleRestTimerNotification(duration: restTimeRemaining)
         
+        startRestTimerTick()
+    }
+    
+    private func restartRestTimer() {
+        restTimerStartTime = Date()
+        startRestTimerTick()
+    }
+    
+    private func startRestTimerTick() {
+        restTimer?.invalidate()
         restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
@@ -278,6 +357,8 @@ class WorkoutViewModel: ObservableObject {
         restTimer = nil
         restTimerActive = false
         restTimeRemaining = 0
+        restTimerStartTime = nil
+        restTimerOriginalDuration = 0
         
         // Cancel notification since timer was skipped
         NotificationManager.shared.cancelRestTimerNotification()
@@ -288,8 +369,10 @@ class WorkoutViewModel: ObservableObject {
         restTimer = nil
         restTimerActive = false
         restTimeRemaining = 0
+        restTimerStartTime = nil
+        restTimerOriginalDuration = 0
         
-        // Cancel notification since timer completed manually
+        // Cancel notification since timer completed
         NotificationManager.shared.cancelRestTimerNotification()
     }
     
@@ -343,5 +426,6 @@ class WorkoutViewModel: ObservableObject {
     deinit {
         timer?.invalidate()
         restTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
     }
 }
