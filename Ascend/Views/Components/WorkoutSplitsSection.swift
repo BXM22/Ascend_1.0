@@ -364,7 +364,7 @@ struct TemplatePickerView: View {
                                 Text(template.name)
                                     .font(AppTypography.bodyMedium)
                                     .foregroundColor(AppColors.textPrimary)
-                                Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min")
+                                Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min\(template.intensity != nil ? " • \(template.intensity!.rawValue)" : "")")
                                     .font(AppTypography.caption)
                                     .foregroundColor(AppColors.textSecondary)
                             }
@@ -402,6 +402,8 @@ struct CreateWorkoutProgramView: View {
     @State private var programName: String = ""
     @State private var programDescription: String = ""
     @State private var selectedSplitType: WorkoutSplitType = .pushPullLegs
+    @State private var customDayNames: [String] = ["Day 1", "Day 2", "Rest"]
+    @State private var newDayName: String = ""
     
     var body: some View {
         NavigationView {
@@ -463,14 +465,78 @@ struct CreateWorkoutProgramView: View {
                         }
                     }
                     
+                    // Custom Split Days Editor
+                    if selectedSplitType == .custom {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Custom Days")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                            
+                            ForEach(Array(customDayNames.enumerated()), id: \.offset) { index, dayName in
+                                HStack {
+                                    TextField("Day name", text: Binding(
+                                        get: { customDayNames[index] },
+                                        set: { customDayNames[index] = $0 }
+                                    ))
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.foreground)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(AppColors.input)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    
+                                    Button(action: {
+                                        customDayNames.remove(at: index)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(AppColors.destructive)
+                                    }
+                                }
+                            }
+                            
+                            HStack {
+                                TextField("New day name", text: $newDayName)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.foreground)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(AppColors.input)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                
+                                Button(action: {
+                                    if !newDayName.isEmpty {
+                                        customDayNames.append(newDayName)
+                                        newDayName = ""
+                                    }
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(AppColors.primary)
+                                }
+                                .disabled(newDayName.isEmpty)
+                            }
+                        }
+                        .padding(16)
+                        .background(AppColors.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    
                     // Create Button
                     Button(action: {
                         if !programName.isEmpty {
-                            _ = programViewModel.createProgram(
-                                name: programName,
-                                description: programDescription,
-                                splitType: selectedSplitType
-                            )
+                            if selectedSplitType == .custom {
+                                _ = programViewModel.createCustomProgram(
+                                    name: programName,
+                                    description: programDescription,
+                                    dayNames: customDayNames
+                                )
+                            } else {
+                                _ = programViewModel.createProgram(
+                                    name: programName,
+                                    description: programDescription,
+                                    splitType: selectedSplitType
+                                )
+                            }
                             onDismiss()
                             dismiss()
                         }

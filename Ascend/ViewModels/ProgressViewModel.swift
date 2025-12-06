@@ -205,22 +205,15 @@ class ProgressViewModel: ObservableObject {
         let calendar = Calendar.current
         let today = Date()
         var data: [VolumeDataPoint] = []
+        let historyManager = WorkoutHistoryManager.shared
         
         // Generate data for last 8 weeks
         for weekOffset in (0..<8).reversed() {
             let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
             let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
             
-            // Calculate volume for this week (sample data - replace with actual workout volume)
-            // For now, generate sample data based on workout dates
-            let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStartOfWeek) ?? weekStartOfWeek
-            let workoutsInWeek = workoutDates.filter { date in
-                let dayStart = calendar.startOfDay(for: date)
-                return dayStart >= weekStartOfWeek && dayStart <= weekEnd
-            }.count
-            
-            // Sample volume calculation (replace with actual volume from workouts)
-            let volume = workoutsInWeek * 2000 + Int.random(in: 1000...3000)
+            // Calculate actual volume from completed workouts
+            let volume = historyManager.getWeeklyVolume(for: weekStartOfWeek)
             
             let formatter = DateFormatter()
             formatter.dateFormat = "M/d"

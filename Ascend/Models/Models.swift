@@ -60,18 +60,69 @@ struct Exercise: Identifiable, Equatable {
     }
 }
 
+// MARK: - Template Exercise
+struct TemplateExercise: Identifiable, Codable {
+    let id: UUID
+    let name: String
+    var sets: Int
+    var reps: String // Can be "6-8", "10-12", "AMRAP", etc.
+    var dropsets: Bool
+    var exerciseType: ExerciseType
+    var targetHoldDuration: Int?
+    
+    init(id: UUID = UUID(), name: String, sets: Int = 3, reps: String = "8-10", dropsets: Bool = false, exerciseType: ExerciseType = .weightReps, targetHoldDuration: Int? = nil) {
+        self.id = id
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.dropsets = dropsets
+        self.exerciseType = exerciseType
+        self.targetHoldDuration = targetHoldDuration
+    }
+}
+
 // MARK: - Workout Template
 struct WorkoutTemplate: Identifiable, Codable {
     let id: UUID
     let name: String
-    let exercises: [String]
+    var exercises: [TemplateExercise] // Changed from [String] to [TemplateExercise]
     let estimatedDuration: Int
+    var intensity: WorkoutIntensity? // Optional intensity level
     
+    // Legacy initializer for backward compatibility
     init(id: UUID = UUID(), name: String, exercises: [String], estimatedDuration: Int) {
+        self.id = id
+        self.name = name
+        self.estimatedDuration = estimatedDuration
+        self.intensity = nil
+        // Convert old format to new format
+        self.exercises = exercises.map { TemplateExercise(name: $0) }
+    }
+    
+    // New initializer with TemplateExercise array
+    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil) {
         self.id = id
         self.name = name
         self.exercises = exercises
         self.estimatedDuration = estimatedDuration
+        self.intensity = intensity
+    }
+}
+
+// MARK: - Workout Intensity
+enum WorkoutIntensity: String, Codable, CaseIterable {
+    case light = "Light"
+    case moderate = "Moderate"
+    case intense = "Intense"
+    case extreme = "Extreme"
+    
+    var description: String {
+        switch self {
+        case .light: return "Easy recovery day"
+        case .moderate: return "Standard training"
+        case .intense: return "High effort workout"
+        case .extreme: return "Maximum intensity"
+        }
     }
 }
 

@@ -146,6 +146,29 @@ class WorkoutProgramViewModel: ObservableObject {
         return program
     }
     
+    func createCustomProgram(name: String, description: String, dayNames: [String]) -> WorkoutProgram {
+        let days = dayNames.enumerated().map { index, dayName in
+            WorkoutDay(
+                dayNumber: index + 1,
+                name: dayName,
+                description: dayName.lowercased().contains("rest") ? "Rest day" : "\(dayName) workout day",
+                isRestDay: dayName.lowercased().contains("rest")
+            )
+        }
+        
+        let program = WorkoutProgram(
+            name: name,
+            description: description.isEmpty ? "Custom split program" : description,
+            days: days,
+            frequency: "Follow the custom split schedule",
+            category: .split,
+            splitType: .custom
+        )
+        
+        programs.append(program)
+        return program
+    }
+    
     func updateProgram(_ program: WorkoutProgram) {
         if let index = programs.firstIndex(where: { $0.id == program.id }) {
             programs[index] = program

@@ -13,6 +13,7 @@ struct TemplatesView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartTemplate: () -> Void
     @State private var showGenerateSheet = false
+    @State private var searchText: String = ""
     
     var body: some View {
         ScrollView {
@@ -29,6 +30,21 @@ struct TemplatesView: View {
                         viewModel.showGenerationSettings = true
                     }
                 )
+                
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.mutedForeground)
+                    TextField("Search templates...", text: $searchText)
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.foreground)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(AppColors.input)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.md)
                 
                 VStack(spacing: AppSpacing.lg) {
                     // Workout Programs Section
@@ -52,7 +68,14 @@ struct TemplatesView: View {
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.lg)
                         
-                        ForEach(Array(viewModel.templates.filter { !$0.name.contains("Progression") }.enumerated()), id: \.element.id) { index, template in
+                        let filteredTemplates = viewModel.templates.filter { template in
+                            if template.name.contains("Progression") { return false }
+                            if searchText.isEmpty { return true }
+                            return template.name.localizedCaseInsensitiveContains(searchText) ||
+                                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
+                        }
+                        
+                        ForEach(Array(filteredTemplates.enumerated()), id: \.element.id) { index, template in
                             TemplateCard(
                                 template: template,
                                 onStart: {
@@ -186,9 +209,21 @@ struct TemplateCard: View {
             }
             
             // Template Info
-            Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(AppColors.mutedForeground)
+            HStack {
+                Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                if let intensity = template.intensity {
+                    Text("• \(intensity.rawValue)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppColors.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
             
             // Action Buttons
             HStack(spacing: 12) {
@@ -402,9 +437,15 @@ struct AddExerciseView: View {
 // MARK: - Template Edit View
 struct TemplateEditView: View {
     @State private var templateName: String
-    @State private var exercises: [String]
+    @State private var exercises: [TemplateExercise]
     @State private var estimatedDuration: Int
+    @State private var intensity: WorkoutIntensity?
     @State private var newExerciseName: String = ""
+    @State private var newExerciseSets: Int = 3
+    @State private var newExerciseReps: String = "8-10"
+    @State private var newExerciseDropsets: Bool = false
+    @State private var newExerciseType: ExerciseType = .weightReps
+    @State private var newExerciseHoldDuration: Int = 30
     @State private var showAddCustomExercise = false
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     
@@ -419,10 +460,12 @@ struct TemplateEditView: View {
             _templateName = State(initialValue: template.name)
             _exercises = State(initialValue: template.exercises)
             _estimatedDuration = State(initialValue: template.estimatedDuration)
+            _intensity = State(initialValue: template.intensity)
         } else {
             _templateName = State(initialValue: "")
             _exercises = State(initialValue: [])
             _estimatedDuration = State(initialValue: 60)
+            _intensity = State(initialValue: nil)
         }
         self.onSave = onSave
         self.onCancel = onCancel
@@ -452,37 +495,47 @@ struct TemplateEditView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     
+                    // Intensity Selection
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Intensity (Optional)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Picker("Intensity", selection: $intensity) {
+                            Text("None").tag(WorkoutIntensity?.none)
+                            ForEach(WorkoutIntensity.allCases, id: \.self) { intensityOption in
+                                Text(intensityOption.rawValue).tag(WorkoutIntensity?.some(intensityOption))
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(AppColors.input)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    
                     // Exercises List
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Exercises")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(AppColors.mutedForeground)
                         
-                        ForEach(Array(exercises.enumerated()), id: \.offset) { index, exercise in
-                            HStack {
-                                Text("\(index + 1). \(exercise)")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(AppColors.foreground)
-                                
-                                Spacer()
-                                
-                                Button(action: {
+                        ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
+                            TemplateExerciseEditView(
+                                exercise: Binding(
+                                    get: { exercises[index] },
+                                    set: { exercises[index] = $0 }
+                                ),
+                                onDelete: {
                                     exercises.remove(at: index)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(AppColors.destructive)
                                 }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            )
                         }
                         
                         // Add Exercise Input
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("Exercise Name")
+                                Text("Add Exercise")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(AppColors.mutedForeground)
                                 
@@ -501,26 +554,84 @@ struct TemplateEditView: View {
                                 }
                             }
                             
+                            ExerciseAutocompleteField(
+                                text: $newExerciseName,
+                                placeholder: "Exercise name",
+                                fontSize: 16
+                            )
+                            
                             HStack(spacing: 12) {
-                                ExerciseAutocompleteField(
-                                    text: $newExerciseName,
-                                    placeholder: "Exercise name",
-                                    fontSize: 16
-                                )
-                                
-                                Button(action: {
-                                    if !newExerciseName.isEmpty {
-                                        exercises.append(newExerciseName)
-                                        newExerciseName = ""
+                                // Sets
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Sets")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                    Stepper(value: $newExerciseSets, in: 1...10) {
+                                        Text("\(newExerciseSets)")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(AppColors.foreground)
                                     }
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(AppColors.primary)
                                 }
-                                .disabled(newExerciseName.isEmpty)
+                                
+                                // Reps
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Reps")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                    TextField("8-10", text: $newExerciseReps)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(AppColors.foreground)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 6)
+                                        .background(AppColors.input)
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
+                                
+                                // Dropsets
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Dropsets")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                    Toggle("", isOn: $newExerciseDropsets)
+                                        .toggleStyle(SwitchToggleStyle(tint: AppColors.accent))
+                                }
                             }
+                            
+                            Button(action: {
+                                if !newExerciseName.isEmpty {
+                                    let newExercise = TemplateExercise(
+                                        name: newExerciseName,
+                                        sets: newExerciseSets,
+                                        reps: newExerciseReps,
+                                        dropsets: newExerciseDropsets,
+                                        exerciseType: newExerciseType,
+                                        targetHoldDuration: newExerciseType == .hold ? newExerciseHoldDuration : nil
+                                    )
+                                    exercises.append(newExercise)
+                                    newExerciseName = ""
+                                    newExerciseSets = 3
+                                    newExerciseReps = "8-10"
+                                    newExerciseDropsets = false
+                                    newExerciseType = .weightReps
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Add Exercise")
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(AppColors.alabasterGrey)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(LinearGradient.primaryGradient)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            .disabled(newExerciseName.isEmpty)
+                            .opacity(newExerciseName.isEmpty ? 0.6 : 1.0)
                         }
+                        .padding(16)
+                        .background(AppColors.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
                     // Estimated Duration
@@ -595,14 +706,16 @@ struct TemplateEditView: View {
                                 id: original.id,
                                 name: templateName,
                                 exercises: exercises,
-                                estimatedDuration: estimatedDuration
+                                estimatedDuration: estimatedDuration,
+                                intensity: intensity
                             )
                         } else {
                             // New template gets new ID
                             template = WorkoutTemplate(
                                 name: templateName,
                                 exercises: exercises,
-                                estimatedDuration: estimatedDuration
+                                estimatedDuration: estimatedDuration,
+                                intensity: intensity
                             )
                         }
                         onSave(template)

@@ -36,16 +36,26 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func startWorkoutFromTemplate(_ template: WorkoutTemplate) {
-        let exercises = template.exercises.map { exerciseName in
-            let alternatives = ExerciseDataManager.shared.getAlternatives(for: exerciseName)
-            let videoURL = ExerciseDataManager.shared.getVideoURL(for: exerciseName)
+        let exercises = template.exercises.map { templateExercise in
+            let alternatives = ExerciseDataManager.shared.getAlternatives(for: templateExercise.name)
+            let videoURL = ExerciseDataManager.shared.getVideoURL(for: templateExercise.name)
             
-            // Check if this is a calisthenics skill progression exercise
-            let (exerciseType, holdDuration) = determineExerciseType(for: exerciseName)
+            // Use exercise type from template, or determine if not set
+            let exerciseType: ExerciseType
+            let holdDuration: Int?
+            
+            if templateExercise.exerciseType != .weightReps {
+                exerciseType = templateExercise.exerciseType
+                holdDuration = templateExercise.targetHoldDuration
+            } else {
+                let determined = determineExerciseType(for: templateExercise.name)
+                exerciseType = determined.0
+                holdDuration = determined.1
+            }
             
             return Exercise(
-                name: exerciseName,
-                targetSets: 3,
+                name: templateExercise.name,
+                targetSets: templateExercise.sets,
                 exerciseType: exerciseType,
                 holdDuration: holdDuration,
                 alternatives: alternatives,
@@ -100,6 +110,11 @@ class WorkoutViewModel: ObservableObject {
     
     func finishWorkout() {
         pauseWorkout()
+        
+        // Save completed workout
+        if let workout = currentWorkout {
+            WorkoutHistoryManager.shared.addCompletedWorkout(workout)
+        }
         
         // Add workout date to progress tracking
         if let progressVM = progressViewModel {

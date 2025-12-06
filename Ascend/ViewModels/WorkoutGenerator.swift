@@ -25,15 +25,39 @@ class WorkoutGenerator {
             exercisesByMuscleGroup[exercise.muscleGroup]?.append(exercise)
         }
         
-        // Select exercises based on settings
+        // Select exercises based on settings with better variety
+        var usedExercises: Set<String> = []
+        var lastUsedExercises: [String: [String]] = [:] // Track recently used exercises per muscle group
+        
         for (muscleGroup, count) in settings.exercisesPerMuscleGroup {
             guard let exercises = exercisesByMuscleGroup[muscleGroup],
                   count > 0 else { continue }
             
+            // Filter out already selected exercises
+            let available = exercises.filter { !usedExercises.contains($0.name) }
+            
+            // Get recently used exercises for this muscle group
+            let recent = lastUsedExercises[muscleGroup] ?? []
+            
+            // Prioritize exercises not recently used
+            let prioritized = available.sorted { ex1, ex2 in
+                let ex1Recent = recent.contains(ex1.name)
+                let ex2Recent = recent.contains(ex2.name)
+                if ex1Recent != ex2Recent {
+                    return !ex1Recent // Prefer non-recent
+                }
+                return false // Otherwise random order
+            }
+            
             // Shuffle and take the requested number
-            let shuffled = exercises.shuffled()
+            let shuffled = prioritized.shuffled()
             let selected = Array(shuffled.prefix(count))
-            selectedExercises.append(contentsOf: selected.map { $0.name })
+            let selectedNames = selected.map { $0.name }
+            selectedExercises.append(contentsOf: selectedNames)
+            usedExercises.formUnion(selectedNames)
+            
+            // Update recently used exercises
+            lastUsedExercises[muscleGroup] = selectedNames
         }
         
         // Add calisthenics if enabled
@@ -68,9 +92,38 @@ class WorkoutGenerator {
         // Generate workout name if not provided
         let workoutName = name ?? generateWorkoutName(settings: settings)
         
+        // Convert exercise names to TemplateExercise format with intelligent defaults
+        let templateExercises = selectedExercises.enumerated().map { index, exerciseName in
+            // Vary sets and reps based on exercise position and type
+            let sets: Int
+            let reps: String
+            
+            // First exercise: more sets for main compound movement
+            if index == 0 {
+                sets = 4
+                reps = "5-8"
+            } else if index < 3 {
+                // Second and third: moderate sets
+                sets = 3
+                reps = "8-10"
+            } else {
+                // Later exercises: fewer sets, higher reps
+                sets = 3
+                reps = "10-12"
+            }
+            
+            return TemplateExercise(
+                name: exerciseName,
+                sets: sets,
+                reps: reps,
+                dropsets: index >= selectedExercises.count - 2, // Allow dropsets on last 2 exercises
+                exerciseType: .weightReps
+            )
+        }
+        
         return WorkoutTemplate(
             name: workoutName,
-            exercises: selectedExercises,
+            exercises: templateExercises,
             estimatedDuration: estimatedDuration
         )
     }

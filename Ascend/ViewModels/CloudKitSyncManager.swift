@@ -1,0 +1,216 @@
+import Foundation
+import CloudKit
+import Combine
+
+class CloudKitSyncManager: ObservableObject {
+    static let shared = CloudKitSyncManager()
+    
+    @Published var isSyncing = false
+    @Published var lastSyncDate: Date?
+    @Published var syncError: Error?
+    
+    private let container: CKContainer
+    private let privateDatabase: CKDatabase
+    
+    // Record types
+    private let workoutRecordType = "Workout"
+    private let templateRecordType = "WorkoutTemplate"
+    private let programRecordType = "WorkoutProgram"
+    private let customExerciseRecordType = "CustomExercise"
+    
+    private init() {
+        container = CKContainer(identifier: "iCloud.com.app.com.Ascend")
+        privateDatabase = container.privateCloudDatabase
+    }
+    
+    // MARK: - Sync Workouts
+    
+    func syncWorkouts() async throws {
+        await MainActor.run { isSyncing = true }
+        defer { Task { @MainActor in isSyncing = false } }
+        
+        let historyManager = WorkoutHistoryManager.shared
+        
+        // Fetch workouts from CloudKit
+        let query = CKQuery(recordType: workoutRecordType, predicate: NSPredicate(value: true))
+        let (matchResults, _) = try await privateDatabase.records(matching: query)
+        
+        // Convert CloudKit records to Workout objects
+        var cloudWorkouts: [Workout] = []
+        for (_, result) in matchResults {
+            switch result {
+            case .success(let record):
+                if let workout = workoutFromRecord(record) {
+                    cloudWorkouts.append(workout)
+                }
+            case .failure(let error):
+                print("Error fetching workout: \(error)")
+            }
+        }
+        
+        // Merge with local workouts
+        let localWorkouts = historyManager.completedWorkouts
+        var mergedWorkouts = localWorkouts
+        
+        // Add workouts from cloud that don't exist locally
+        for cloudWorkout in cloudWorkouts {
+            if !mergedWorkouts.contains(where: { $0.id == cloudWorkout.id }) {
+                mergedWorkouts.append(cloudWorkout)
+            }
+        }
+        
+        // Update local storage
+        historyManager.completedWorkouts = mergedWorkouts
+        
+        // Upload local workouts to cloud
+        for workout in localWorkouts {
+            try await uploadWorkout(workout)
+        }
+        
+        await MainActor.run {
+            lastSyncDate = Date()
+        }
+    }
+    
+    // MARK: - Sync Templates
+    
+    func syncTemplates(templatesViewModel: TemplatesViewModel) async throws {
+        await MainActor.run { isSyncing = true }
+        defer { Task { @MainActor in isSyncing = false } }
+        
+        // Fetch templates from CloudKit
+        let query = CKQuery(recordType: templateRecordType, predicate: NSPredicate(value: true))
+        let (matchResults, _) = try await privateDatabase.records(matching: query)
+        
+        // Convert CloudKit records to WorkoutTemplate objects
+        var cloudTemplates: [WorkoutTemplate] = []
+        for (_, result) in matchResults {
+            switch result {
+            case .success(let record):
+                if let template = templateFromRecord(record) {
+                    cloudTemplates.append(template)
+                }
+            case .failure(let error):
+                print("Error fetching template: \(error)")
+            }
+        }
+        
+        // Merge with local templates
+        let localTemplates = templatesViewModel.templates.filter { !$0.name.contains("Progression") }
+        var mergedTemplates = localTemplates
+        
+        // Add templates from cloud that don't exist locally
+        for cloudTemplate in cloudTemplates {
+            if !mergedTemplates.contains(where: { $0.id == cloudTemplate.id }) {
+                mergedTemplates.append(cloudTemplate)
+            }
+        }
+        
+        // Update local storage
+        templatesViewModel.templates = mergedTemplates
+        
+        // Upload local templates to cloud
+        for template in localTemplates {
+            try await uploadTemplate(template)
+        }
+        
+        await MainActor.run {
+            lastSyncDate = Date()
+        }
+    }
+    
+    // MARK: - Upload Functions
+    
+    private func uploadWorkout(_ workout: Workout) async throws {
+        let record = recordFromWorkout(workout)
+        _ = try await privateDatabase.save(record)
+    }
+    
+    private func uploadTemplate(_ template: WorkoutTemplate) async throws {
+        let record = recordFromTemplate(template)
+        _ = try await privateDatabase.save(record)
+    }
+    
+    // MARK: - Conversion Functions
+    
+    private func recordFromWorkout(_ workout: Workout) -> CKRecord {
+        let record = CKRecord(recordType: workoutRecordType, recordID: CKRecord.ID(recordName: workout.id.uuidString))
+        record["name"] = workout.name
+        record["startDate"] = workout.startDate
+        
+        // Encode exercises as JSON
+        if let exercisesData = try? JSONEncoder().encode(workout.exercises) {
+            record["exercises"] = String(data: exercisesData, encoding: .utf8)
+        }
+        
+        return record
+    }
+    
+    private func workoutFromRecord(_ record: CKRecord) -> Workout? {
+        guard let name = record["name"] as? String,
+              let startDate = record["startDate"] as? Date else {
+            return nil
+        }
+        
+        var exercises: [Exercise] = []
+        if let exercisesString = record["exercises"] as? String,
+           let exercisesData = exercisesString.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([Exercise].self, from: exercisesData) {
+            exercises = decoded
+        }
+        
+        var workout = Workout(name: name, exercises: exercises)
+        // Note: Workout.id is let, so we can't change it. This is a limitation.
+        return workout
+    }
+    
+    private func recordFromTemplate(_ template: WorkoutTemplate) -> CKRecord {
+        let record = CKRecord(recordType: templateRecordType, recordID: CKRecord.ID(recordName: template.id.uuidString))
+        record["name"] = template.name
+        record["estimatedDuration"] = template.estimatedDuration
+        
+        // Encode exercises as JSON
+        if let exercisesData = try? JSONEncoder().encode(template.exercises) {
+            record["exercises"] = String(data: exercisesData, encoding: .utf8)
+        }
+        
+        if let intensity = template.intensity {
+            record["intensity"] = intensity.rawValue
+        }
+        
+        return record
+    }
+    
+    private func templateFromRecord(_ record: CKRecord) -> WorkoutTemplate? {
+        guard let name = record["name"] as? String,
+              let estimatedDuration = record["estimatedDuration"] as? Int else {
+            return nil
+        }
+        
+        var exercises: [TemplateExercise] = []
+        if let exercisesString = record["exercises"] as? String,
+           let exercisesData = exercisesString.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([TemplateExercise].self, from: exercisesData) {
+            exercises = decoded
+        }
+        
+        var intensity: WorkoutIntensity? = nil
+        if let intensityString = record["intensity"] as? String {
+            intensity = WorkoutIntensity(rawValue: intensityString)
+        }
+        
+        return WorkoutTemplate(
+            name: name,
+            exercises: exercises,
+            estimatedDuration: estimatedDuration,
+            intensity: intensity
+        )
+    }
+    
+    // MARK: - Account Status
+    
+    func checkAccountStatus() async throws -> CKAccountStatus {
+        return try await container.accountStatus()
+    }
+}
+

@@ -6,6 +6,7 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
     case chestBackLegsShouldersArms = "Chest & Back/Legs/Shoulders & Arms"
     case backBicepsChestTricepsLegsShoulders = "Back & Biceps/Chest & Triceps/Legs/Shoulders"
     case chestBackLegsShouldersArms4Day = "Chest/Back/Legs/Shoulders & Arms"
+    case custom = "Custom"
     
     var dayNames: [String] {
         switch self {
@@ -17,6 +18,8 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return ["Back & Biceps", "Chest & Triceps", "Legs", "Shoulders", "Rest", "Rest", "Rest"]
         case .chestBackLegsShouldersArms4Day:
             return ["Chest", "Back", "Legs", "Shoulders & Arms", "Rest", "Rest", "Rest"]
+        case .custom:
+            return [] // Custom splits define their own days
         }
     }
     
@@ -30,6 +33,8 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return 4
         case .chestBackLegsShouldersArms4Day:
             return 4
+        case .custom:
+            return 0 // Custom splits define their own count
         }
     }
     
@@ -43,6 +48,8 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return "4-day split: Back & Biceps, Chest & Triceps, Legs, Shoulders"
         case .chestBackLegsShouldersArms4Day:
             return "4-day split: Chest, Back, Legs, Shoulders & Arms"
+        case .custom:
+            return "Custom split with your own day structure"
         }
     }
 }
@@ -70,18 +77,29 @@ struct WorkoutSplit: Identifiable, Codable {
     var days: [WorkoutSplitDay]
     var startDate: Date?
     
-    init(id: UUID = UUID(), name: String, splitType: WorkoutSplitType, startDate: Date? = nil) {
+    init(id: UUID = UUID(), name: String, splitType: WorkoutSplitType, startDate: Date? = nil, customDays: [String]? = nil) {
         self.id = id
         self.name = name
         self.splitType = splitType
         self.startDate = startDate
         
         // Initialize days based on split type
-        self.days = splitType.dayNames.map { dayName in
-            WorkoutSplitDay(
-                dayName: dayName,
-                isRestDay: dayName == "Rest"
-            )
+        if splitType == .custom, let customDays = customDays {
+            // Use custom days if provided
+            self.days = customDays.map { dayName in
+                WorkoutSplitDay(
+                    dayName: dayName,
+                    isRestDay: dayName.lowercased().contains("rest")
+                )
+            }
+        } else {
+            // Use predefined days for standard splits
+            self.days = splitType.dayNames.map { dayName in
+                WorkoutSplitDay(
+                    dayName: dayName,
+                    isRestDay: dayName == "Rest"
+                )
+            }
         }
     }
     
