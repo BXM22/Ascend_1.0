@@ -119,6 +119,8 @@ class WorkoutViewModel: ObservableObject {
         // Add workout date to progress tracking
         if let progressVM = progressViewModel {
             progressVM.addWorkoutDate()
+            // Invalidate volume cache since new workout was added
+            progressVM.invalidateVolumeCache()
         }
         
         // Advance program day if workout was from a program
@@ -257,6 +259,9 @@ class WorkoutViewModel: ObservableObject {
         restTimerActive = true
         restTimeRemaining = settingsManager.restTimerDuration
         
+        // Schedule notification for when rest timer completes
+        NotificationManager.shared.scheduleRestTimerNotification(duration: restTimeRemaining)
+        
         restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
@@ -273,6 +278,9 @@ class WorkoutViewModel: ObservableObject {
         restTimer = nil
         restTimerActive = false
         restTimeRemaining = 0
+        
+        // Cancel notification since timer was skipped
+        NotificationManager.shared.cancelRestTimerNotification()
     }
     
     func completeRest() {
@@ -280,6 +288,9 @@ class WorkoutViewModel: ObservableObject {
         restTimer = nil
         restTimerActive = false
         restTimeRemaining = 0
+        
+        // Cancel notification since timer completed manually
+        NotificationManager.shared.cancelRestTimerNotification()
     }
     
     func abortWorkoutTimer() {

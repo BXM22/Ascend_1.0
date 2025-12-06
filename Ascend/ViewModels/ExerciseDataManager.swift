@@ -102,10 +102,12 @@ class ExerciseDataManager: ObservableObject {
         }
     }
     
-    /// Save custom exercises to UserDefaults
+    /// Save custom exercises to UserDefaults (debounced)
     private func saveCustomExercises() {
-        if let data = try? JSONEncoder().encode(customExercises) {
-            UserDefaults.standard.set(data, forKey: customExercisesKey)
+        PerformanceOptimizer.shared.debouncedSave {
+            if let data = try? JSONEncoder().encode(self.customExercises) {
+                UserDefaults.standard.set(data, forKey: self.customExercisesKey)
+            }
         }
     }
     

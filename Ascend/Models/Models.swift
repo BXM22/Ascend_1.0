@@ -2,14 +2,15 @@ import Foundation
 import SwiftUI
 
 // MARK: - Exercise Set
-struct ExerciseSet: Identifiable, Equatable {
-    let id = UUID()
+struct ExerciseSet: Identifiable, Equatable, Codable {
+    let id: UUID
     let setNumber: Int
     let weight: Double
     let reps: Int
     let holdDuration: Int?
     
     init(setNumber: Int, weight: Double, reps: Int, holdDuration: Int? = nil) {
+        self.id = UUID()
         self.setNumber = setNumber
         self.weight = weight
         self.reps = reps
@@ -28,8 +29,8 @@ enum ExerciseType: Codable {
 }
 
 // MARK: - Exercise
-struct Exercise: Identifiable, Equatable {
-    let id = UUID()
+struct Exercise: Identifiable, Equatable, Codable {
+    let id: UUID
     let name: String
     var sets: [ExerciseSet]
     var currentSet: Int
@@ -45,6 +46,7 @@ struct Exercise: Identifiable, Equatable {
     }
     
     init(name: String, targetSets: Int, exerciseType: ExerciseType, holdDuration: Int? = nil, alternatives: [String] = [], videoURL: String? = nil) {
+        self.id = UUID()
         self.name = name
         self.sets = []
         self.currentSet = 1
@@ -127,7 +129,7 @@ enum WorkoutIntensity: String, Codable, CaseIterable {
 }
 
 // MARK: - Workout
-struct Workout: Identifiable, Equatable {
+struct Workout: Identifiable, Equatable, Codable {
     let id: UUID
     let name: String
     var exercises: [Exercise]

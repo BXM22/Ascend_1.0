@@ -6,26 +6,48 @@ class WorkoutHistoryManager: ObservableObject {
     
     @Published var completedWorkouts: [Workout] = [] {
         didSet {
-            saveWorkouts()
+            // Debounce saves to avoid excessive UserDefaults writes
+            PerformanceOptimizer.shared.debouncedSave {
+                self.saveWorkouts()
+            }
         }
     }
     
     private let workoutsKey = "completedWorkouts"
+    private var volumeCache: [String: Int] = [:] // Cache volume calculations
+    private var volumeCacheDate: Date?
+    private let cacheValidityDuration: TimeInterval = 60 // Cache for 60 seconds
     
     private init() {
         loadWorkouts()
     }
     
     func loadWorkouts() {
-        if let data = UserDefaults.standard.data(forKey: workoutsKey),
-           let decoded = try? JSONDecoder().decode([Workout].self, from: data) {
-            completedWorkouts = decoded
+        // Load synchronously on init, but use background queue for decoding
+        if let data = UserDefaults.standard.data(forKey: workoutsKey) {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self else { return }
+                if let decoded = try? JSONDecoder().decode([Workout].self, from: data) {
+                    DispatchQueue.main.async {
+                        self.completedWorkouts = decoded
+                    }
+                }
+            }
         }
     }
     
     private func saveWorkouts() {
-        if let encoded = try? JSONEncoder().encode(completedWorkouts) {
-            UserDefaults.standard.set(encoded, forKey: workoutsKey)
+        // Save on background queue
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            if let encoded = try? JSONEncoder().encode(self.completedWorkouts) {
+                UserDefaults.standard.set(encoded, forKey: self.workoutsKey)
+                // Invalidate cache when workouts change
+                DispatchQueue.main.async {
+                    self.volumeCache.removeAll()
+                    self.volumeCacheDate = nil
+                }
+            }
         }
     }
     
@@ -40,8 +62,19 @@ class WorkoutHistoryManager: ObservableObject {
     }
     
     func getTotalVolume(for dateRange: DateInterval) -> Int {
+        // Create cache key
+        let cacheKey = "\(dateRange.start.timeIntervalSince1970)-\(dateRange.end.timeIntervalSince1970)"
+        
+        // Check cache validity
+        if let cacheDate = volumeCacheDate,
+           Date().timeIntervalSince(cacheDate) < cacheValidityDuration,
+           let cached = volumeCache[cacheKey] {
+            return cached
+        }
+        
+        // Calculate volume on background queue
         let workouts = getWorkouts(in: dateRange)
-        return workouts.reduce(0) { total, workout in
+        let volume = workouts.reduce(0) { total, workout in
             let workoutVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
                 let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
                     return setTotal + Int(set.weight * Double(set.reps))
@@ -50,6 +83,12 @@ class WorkoutHistoryManager: ObservableObject {
             }
             return total + workoutVolume
         }
+        
+        // Cache the result
+        volumeCache[cacheKey] = volume
+        volumeCacheDate = Date()
+        
+        return volume
     }
     
     func getWeeklyVolume(for weekStart: Date) -> Int {

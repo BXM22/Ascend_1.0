@@ -135,16 +135,16 @@ struct RestTimerView: View {
                 progressValue = progress
             }
         }
-        .onChange(of: timeRemaining) { _ in
+        .onChange(of: timeRemaining) { oldValue, newValue in
             // Smooth progress updates
             withAnimation(AppAnimations.smooth) {
                 progressValue = progress
             }
             
             // Warning haptic when time is running out
-            if timeRemaining == 10 {
+            if newValue == 10 {
                 HapticManager.warning()
-            } else if timeRemaining == 0 {
+            } else if newValue == 0 {
                 HapticManager.success()
             }
         }

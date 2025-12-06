@@ -16,9 +16,24 @@ class ProgressViewModel: ObservableObject {
         case week, month
     }
     
-    // Get all unique exercise names from PRs
+    // Cache for available exercises
+    private var cachedAvailableExercises: [String]?
+    
+    // Get all unique exercise names from PRs (cached)
     var availableExercises: [String] {
-        Array(Set(prs.map { $0.exercise })).sorted()
+        if let cached = cachedAvailableExercises {
+            return cached
+        }
+        let exercises = Array(Set(prs.map { $0.exercise })).sorted()
+        cachedAvailableExercises = exercises
+        return exercises
+    }
+    
+    // Invalidate exercise cache
+    private func invalidateExerciseCache() {
+        cachedAvailableExercises = nil
+        cachedSelectedPRs = nil
+        cachedSelectedExercise = nil
     }
     
     // Update selected exercise when PRs change
@@ -31,11 +46,28 @@ class ProgressViewModel: ObservableObject {
         }
     }
     
-    // Get PRs for the selected exercise, sorted by date (newest first)
+    // Cache for selected exercise PRs
+    private var cachedSelectedPRs: [PersonalRecord]?
+    private var cachedSelectedExercise: String?
+    
+    // Get PRs for the selected exercise, sorted by date (newest first) - cached
     var selectedExercisePRs: [PersonalRecord] {
         guard !selectedExercise.isEmpty else { return [] }
-        return prs.filter { $0.exercise == selectedExercise }
+        
+        // Return cached if exercise hasn't changed
+        if let cached = cachedSelectedPRs, cachedSelectedExercise == selectedExercise {
+            return cached
+        }
+        
+        // Filter and sort
+        let filtered = prs.filter { $0.exercise == selectedExercise }
             .sorted { $0.date > $1.date }
+        
+        // Cache the result
+        cachedSelectedPRs = filtered
+        cachedSelectedExercise = selectedExercise
+        
+        return filtered
     }
     
     // Get current PR for selected exercise
@@ -151,6 +183,8 @@ class ProgressViewModel: ObservableObject {
     
     // Add or update a PR for an exercise
     func addOrUpdatePR(exercise: String, weight: Double, reps: Int, date: Date = Date()) -> Bool {
+        // Invalidate cache when PRs change
+        invalidateExerciseCache()
         // Check if this is a new PR (better than existing)
         let existingPRs = prs.filter { $0.exercise == exercise }
         let isNewPR: Bool
@@ -192,6 +226,7 @@ class ProgressViewModel: ObservableObject {
     func addInitialExerciseEntry(exercise: String, weight: Double, reps: Int, date: Date = Date()) {
         // Check if exercise already exists
         if !availableExercises.contains(exercise) {
+            invalidateExerciseCache() // Invalidate before adding
             let newPR = PersonalRecord(exercise: exercise, weight: weight, reps: reps, date: date)
             prs.append(newPR)
             updateSelectedExerciseIfNeeded()
@@ -200,8 +235,21 @@ class ProgressViewModel: ObservableObject {
     
     // MARK: - Trend Data for Graphs
     
+    // Cache for volume data
+    private var cachedVolumeData: [VolumeDataPoint] = []
+    private var volumeDataCacheDate: Date?
+    private let volumeCacheValidity: TimeInterval = 300 // 5 minutes
+    
     // Weekly volume data for the last 8 weeks
     var weeklyVolumeData: [VolumeDataPoint] {
+        // Return cached data if valid
+        if let cacheDate = volumeDataCacheDate,
+           Date().timeIntervalSince(cacheDate) < volumeCacheValidity,
+           !cachedVolumeData.isEmpty {
+            return cachedVolumeData
+        }
+        
+        // Calculate on background queue
         let calendar = Calendar.current
         let today = Date()
         var data: [VolumeDataPoint] = []
@@ -222,7 +270,17 @@ class ProgressViewModel: ObservableObject {
             data.append(VolumeDataPoint(week: weekOffset, weekLabel: weekLabel, volume: volume))
         }
         
+        // Update cache
+        cachedVolumeData = data
+        volumeDataCacheDate = Date()
+        
         return data
+    }
+    
+    // Invalidate volume cache when workouts change
+    func invalidateVolumeCache() {
+        cachedVolumeData = []
+        volumeDataCacheDate = nil
     }
     
     // Weekly workout frequency for the last 8 weeks

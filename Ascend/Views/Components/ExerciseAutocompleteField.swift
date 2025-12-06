@@ -8,6 +8,7 @@ struct ExerciseAutocompleteField: View {
     @State private var filteredSuggestions: [String] = []
     @FocusState private var isFocused: Bool
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
+    @State private var debounceTask: Task<Void, Never>?
     
     // Cache exercise list for better performance - computed once
     private static var cachedExercises: [String] = {
@@ -92,15 +93,26 @@ struct ExerciseAutocompleteField: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .focused($isFocused)
-                .onChange(of: text) { newValue in
-                    // Update filtered suggestions immediately but efficiently
-                    let newFiltered = filterExercises(newValue)
-                    filteredSuggestions = newFiltered
+                .onChange(of: text) { oldValue, newValue in
+                    // Cancel previous debounce task
+                    debounceTask?.cancel()
                     
-                    let shouldShow = !newValue.isEmpty && !newFiltered.isEmpty
-                    if shouldShow != showSuggestions {
-                        withAnimation(AppAnimations.standard) {
-                            showSuggestions = shouldShow
+                    // Debounce filtering for better performance
+                    debounceTask = Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 150_000_000) // 0.15 second debounce
+                        
+                        // Check if task was cancelled or text changed
+                        guard !Task.isCancelled, text == newValue else { return }
+                        
+                        // Update filtered suggestions efficiently
+                        let newFiltered = filterExercises(newValue)
+                        filteredSuggestions = newFiltered
+                        
+                        let shouldShow = !newValue.isEmpty && !newFiltered.isEmpty
+                        if shouldShow != showSuggestions {
+                            withAnimation(AppAnimations.standard) {
+                                showSuggestions = shouldShow
+                            }
                         }
                     }
                 }

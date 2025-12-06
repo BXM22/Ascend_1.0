@@ -5,7 +5,10 @@ import Combine
 class TemplatesViewModel: ObservableObject {
     @Published var templates: [WorkoutTemplate] = [] {
         didSet {
-            saveTemplates()
+            // Debounce saves to avoid excessive UserDefaults writes
+            PerformanceOptimizer.shared.debouncedSave {
+                self.saveTemplates()
+            }
         }
     }
     @Published var generationSettings = WorkoutGenerationSettings()

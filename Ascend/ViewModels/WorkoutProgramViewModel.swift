@@ -5,13 +5,19 @@ import Combine
 class WorkoutProgramViewModel: ObservableObject {
     @Published var programs: [WorkoutProgram] = [] {
         didSet {
-            savePrograms()
+            // Debounce saves to avoid excessive UserDefaults writes
+            PerformanceOptimizer.shared.debouncedSave {
+                self.savePrograms()
+            }
         }
     }
     
     @Published var activeProgram: ActiveProgram? {
         didSet {
-            saveActiveProgram()
+            // Debounce saves to avoid excessive UserDefaults writes
+            PerformanceOptimizer.shared.debouncedSave {
+                self.saveActiveProgram()
+            }
         }
     }
     
