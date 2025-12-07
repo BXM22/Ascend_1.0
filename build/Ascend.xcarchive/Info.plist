@@ -6,17 +6,25 @@
 	<dict>
 		<key>ApplicationPath</key>
 		<string>Applications/Ascend.app</string>
+		<key>Architectures</key>
+		<array>
+			<string>arm64</string>
+		</array>
 		<key>CFBundleIdentifier</key>
 		<string>com.app.com.Ascend</string>
 		<key>CFBundleShortVersionString</key>
-		<string>1.0</string>
+		<string>1.0.1</string>
 		<key>CFBundleVersion</key>
-		<string>3</string>
+		<string>2</string>
+		<key>SigningIdentity</key>
+		<string>Apple Development: ashtondarryl@gmail.com (Q5D7W797QZ)</string>
+		<key>Team</key>
+		<string>ZNNWAD9F59</string>
 	</dict>
 	<key>ArchiveVersion</key>
 	<integer>2</integer>
 	<key>CreationDate</key>
-	<date>2025-12-07T22:18:00Z</date>
+	<date>2025-12-07T22:37:55Z</date>
 	<key>Name</key>
 	<string>Ascend</string>
 	<key>SchemeName</key>
