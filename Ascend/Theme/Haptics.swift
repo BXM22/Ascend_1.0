@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 // MARK: - Haptic Feedback Manager
@@ -42,5 +43,5 @@ struct HapticManager {
         impact(style: .heavy)
     }
 }
-
+#endif
 
