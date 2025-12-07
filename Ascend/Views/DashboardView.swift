@@ -68,13 +68,8 @@ struct DashboardView: View {
                     // Top Exercises
                     TopExercisesCard(progressViewModel: progressViewModel)
                         .padding(.horizontal, AppSpacing.lg)
-                        .animateOnAppear(delay: 0.3)
-                    
-                    // Weekly Summary
-                    WeeklySummaryCard(progressViewModel: progressViewModel)
-                        .padding(.horizontal, AppSpacing.lg)
                         .padding(.bottom, 100)
-                        .animateOnAppear(delay: 0.35, animation: AppAnimations.smooth)
+                        .animateOnAppear(delay: 0.3)
                 }
             }
         }
@@ -382,26 +377,51 @@ struct ExerciseRow: View {
 
 struct WeeklySummaryCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
+    @ObservedObject private var workoutHistoryManager = WorkoutHistoryManager.shared
     
-    private let workoutHistoryManager = WorkoutHistoryManager.shared
-    
-    var weeklyWorkouts: Int {
+    private var weeklyWorkouts: Int {
         let calendar = Calendar.current
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         return progressViewModel.workoutDates.filter { $0 >= weekAgo }.count
     }
     
-    var weeklyVolume: Int {
+    private var weeklyVolume: Int {
         // Calculate actual weekly volume from WorkoutHistoryManager
+        // Calculate directly from workouts to avoid cache issues
         let calendar = Calendar.current
-        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         let today = Date()
-        let dateRange = DateInterval(start: weekAgo, end: today)
-        return workoutHistoryManager.getTotalVolume(for: dateRange)
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        
+        // Filter workouts directly using startOfDay for accurate date comparison
+        // This ensures we include all workouts from the last 7 days including today
+        let workouts = workoutHistoryManager.completedWorkouts.filter { workout in
+            let workoutDate = calendar.startOfDay(for: workout.startDate)
+            let rangeStart = calendar.startOfDay(for: weekAgo)
+            let rangeEnd = calendar.startOfDay(for: today)
+            return workoutDate >= rangeStart && workoutDate <= rangeEnd
+        }
+        
+        return workouts.reduce(0) { total, workout in
+            let workoutVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
+                let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
+                    return setTotal + Int(set.weight * Double(set.reps))
+                }
+                return exerciseTotal + exerciseVolume
+            }
+            return total + workoutVolume
+        }
+    }
+    
+    // Force view update when workouts change
+    private var workoutCount: Int {
+        workoutHistoryManager.completedWorkouts.count
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        let volume = weeklyVolume // Calculate once per render
+        let workouts = weeklyWorkouts
+        
+        return VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
                 Image(systemName: "chart.bar.fill")
                     .font(.system(size: 20))
@@ -414,7 +434,7 @@ struct WeeklySummaryCard: View {
             
             HStack(spacing: AppSpacing.lg) {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("\(weeklyWorkouts)")
+                    Text("\(workouts)")
                         .font(AppTypography.heading2)
                         .foregroundStyle(LinearGradient.primaryGradient)
                     
@@ -425,7 +445,7 @@ struct WeeklySummaryCard: View {
                 .frame(maxWidth: .infinity)
                 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text(formatVolume(weeklyVolume))
+                    Text(formatVolume(volume))
                         .font(AppTypography.heading2)
                         .foregroundStyle(LinearGradient.accentGradient)
                     
@@ -447,6 +467,7 @@ struct WeeklySummaryCard: View {
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .id("weekly-card-\(workoutCount)") // Force view update when workouts change
     }
     
     private func formatVolume(_ volume: Int) -> String {

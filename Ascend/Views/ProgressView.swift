@@ -33,6 +33,7 @@ struct ProgressView: View {
                     // Trend Graphs (Horizontal Scrolling)
                     TrendGraphsView(viewModel: viewModel)
                         .padding(.top, 8)
+                        .frame(maxWidth: .infinity)
                     
                     // Exercise PR Tracker
                     ExercisePRTrackerView(viewModel: viewModel)
@@ -84,7 +85,7 @@ struct ProgressHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial)
+        .background(AppColors.card)
         .overlay(
             Rectangle()
                 .frame(height: 1)

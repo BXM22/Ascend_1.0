@@ -124,8 +124,10 @@ class SettingsManager: ObservableObject {
         progressViewModel.workoutCount = 0
         progressViewModel.selectedExercise = ""
         
-        // Reset TemplatesViewModel
+        // Reset TemplatesViewModel - but preserve default templates
         templatesViewModel.templates = []
+        // Reload default templates after reset
+        templatesViewModel.loadDefaultTemplates()
         templatesViewModel.loadCalisthenicsTemplates()
         
         // Reset WorkoutProgramViewModel

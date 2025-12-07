@@ -7,14 +7,13 @@ struct TrendGraphsView: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 16) {
+            HStack(spacing: 16) {
+                Spacer(minLength: 0)
+                
                 // PR Trend Graph
                 if !viewModel.selectedExercise.isEmpty && !viewModel.selectedExercisePRs.isEmpty {
                     PRTrendGraphView(viewModel: viewModel)
                 }
-                
-                // Volume Trend Graph
-                VolumeTrendGraphView(viewModel: viewModel)
                 
                 // Workout Frequency Graph
                 WorkoutFrequencyGraphView(viewModel: viewModel)
@@ -23,6 +22,8 @@ struct TrendGraphsView: View {
                 if !viewModel.selectedExercise.isEmpty && !viewModel.selectedExercisePRs.isEmpty {
                     RepTrendGraphView(viewModel: viewModel)
                 }
+                
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 20)
         }
