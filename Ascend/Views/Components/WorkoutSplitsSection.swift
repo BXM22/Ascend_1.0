@@ -364,7 +364,7 @@ struct TemplatePickerView: View {
                                 Text(template.name)
                                     .font(AppTypography.bodyMedium)
                                     .foregroundColor(AppColors.textPrimary)
-                                Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min\(template.intensity != nil ? " • \(template.intensity!.rawValue)" : "")")
+                                Text("\(template.exercises.count) exercises\(template.intensity != nil ? " • \(template.intensity!.rawValue)" : "")")
                                     .font(AppTypography.caption)
                                     .foregroundColor(AppColors.textSecondary)
                             }

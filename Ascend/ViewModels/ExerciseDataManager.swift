@@ -5,7 +5,7 @@ class ExerciseDataManager: ObservableObject {
     static let shared = ExerciseDataManager()
     
     // UserDefaults key for custom exercises
-    private let customExercisesKey = "customExercises"
+    private let customExercisesKey = AppConstants.UserDefaultsKeys.customExercises
     
     // Custom exercises stored persistently
     @Published private(set) var customExercises: [CustomExercise] = []

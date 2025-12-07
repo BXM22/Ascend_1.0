@@ -7,8 +7,9 @@ class ProgressViewModel: ObservableObject {
     @Published var currentStreak: Int = 0
     @Published var longestStreak: Int = 0
     @Published var workoutDates: [Date] = []
-    @Published var totalVolume: Int = 15000
-    @Published var workoutCount: Int = 12
+    @Published var restDays: [Date] = [] // Track rest days separately
+    @Published var totalVolume: Int = AppConstants.Progress.defaultTotalVolume
+    @Published var workoutCount: Int = AppConstants.Progress.defaultWorkoutCount
     @Published var selectedView: ProgressViewType = .week
     @Published var selectedExercise: String = ""
     
@@ -75,82 +76,196 @@ class ProgressViewModel: ObservableObject {
         selectedExercisePRs.first
     }
     
+    private var cancellables = Set<AnyCancellable>()
+    private let workoutHistoryManager = WorkoutHistoryManager.shared
+    
+    // Performance optimizations
+    private var cachedSortedDates: [Date]?
+    private var cachedStreakCalculation: (current: Int, longest: Int)?
+    private var lastStreakCalculationDate: Date?
+    private let streakCacheValidity: TimeInterval = 60 // 1 minute
+    private let processingQueue = DispatchQueue(label: "com.ascend.streakProcessing", qos: .utility)
+    
+    // Flag to prevent saves during initial load
+    private var isInitialLoad = true
+    
     init() {
+        // Set up observers first (they check isInitialLoad flag)
+        setupObservers()
+        
+        // Load persisted data (won't trigger saves because isInitialLoad is true)
+        loadPRs()
+        loadWorkoutDates()
+        loadRestDays()
+        
+        // Mark initial load as complete - now changes will save
+        isInitialLoad = false
+        
         calculateStreaks()
+        updateVolumeAndCount()
         // Set initial selected exercise if available
         if !availableExercises.isEmpty {
             selectedExercise = availableExercises[0]
         }
     }
     
-    func loadSampleData() {
-        // Sample PR data with history for each exercise
-        let calendar = Calendar.current
-        let today = Date()
+    private func setupObservers() {
+        // Observe WorkoutHistoryManager for real-time updates
+        workoutHistoryManager.$completedWorkouts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateVolumeAndCount()
+            }
+            .store(in: &cancellables)
         
-        prs = [
-            // Bench Press PRs (newest to oldest)
-            PersonalRecord(exercise: "Bench Press", weight: 200, reps: 5, date: today),
-            PersonalRecord(exercise: "Bench Press", weight: 195, reps: 5, date: calendar.date(byAdding: .day, value: -7, to: today) ?? today),
-            PersonalRecord(exercise: "Bench Press", weight: 190, reps: 5, date: calendar.date(byAdding: .day, value: -14, to: today) ?? today),
-            PersonalRecord(exercise: "Bench Press", weight: 185, reps: 5, date: calendar.date(byAdding: .day, value: -21, to: today) ?? today),
-            
-            // Squat PRs
-            PersonalRecord(exercise: "Squat", weight: 275, reps: 3, date: calendar.date(byAdding: .day, value: -2, to: today) ?? today),
-            PersonalRecord(exercise: "Squat", weight: 270, reps: 3, date: calendar.date(byAdding: .day, value: -9, to: today) ?? today),
-            PersonalRecord(exercise: "Squat", weight: 265, reps: 3, date: calendar.date(byAdding: .day, value: -16, to: today) ?? today),
-            
-            // Deadlift PRs
-            PersonalRecord(exercise: "Deadlift", weight: 315, reps: 1, date: calendar.date(byAdding: .day, value: -3, to: today) ?? today),
-            PersonalRecord(exercise: "Deadlift", weight: 310, reps: 1, date: calendar.date(byAdding: .day, value: -10, to: today) ?? today),
-        ]
+        // Save PRs when they change (skip during initial load)
+        $prs
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, !self.isInitialLoad else { return }
+                self.savePRs()
+            }
+            .store(in: &cancellables)
         
-        // Sample workout dates for streak calculation
-        workoutDates = [
-            today, // Today
-            calendar.date(byAdding: .day, value: -1, to: today) ?? today, // Yesterday
-            calendar.date(byAdding: .day, value: -2, to: today) ?? today, // 2 days ago
-            calendar.date(byAdding: .day, value: -3, to: today) ?? today, // 3 days ago
-            calendar.date(byAdding: .day, value: -5, to: today) ?? today, // 5 days ago
-            calendar.date(byAdding: .day, value: -6, to: today) ?? today, // 6 days ago
-            calendar.date(byAdding: .day, value: -7, to: today) ?? today, // 7 days ago
-        ]
+        // Save workout dates when they change (skip during initial load)
+        $workoutDates
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, !self.isInitialLoad else { return }
+                self.invalidateStreakCache()
+                self.saveWorkoutDates()
+            }
+            .store(in: &cancellables)
+        
+        // Save rest days when they change (skip during initial load)
+        $restDays
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, !self.isInitialLoad else { return }
+                self.invalidateStreakCache()
+                self.saveRestDays()
+            }
+            .store(in: &cancellables)
     }
     
+    private func invalidateStreakCache() {
+        cachedSortedDates = nil
+        cachedStreakCalculation = nil
+        lastStreakCalculationDate = nil
+    }
+    
+    func updateVolumeAndCount() {
+        // Update count immediately
+        workoutCount = workoutHistoryManager.completedWorkouts.count
+        
+        // For immediate updates after workout completion, calculate synchronously
+        // This ensures dashboard updates in real-time
+        if workoutCount <= 100 {
+            // Small dataset - calculate synchronously for immediate update
+            totalVolume = workoutHistoryManager.getAllTimeVolume()
+        } else {
+            // Large dataset - still calculate synchronously for immediate update
+            // The cache will handle performance
+            totalVolume = workoutHistoryManager.getAllTimeVolume()
+        }
+    }
+    
+    /// Calculates workout streaks from workout dates and rest days
+    /// 
+    /// Algorithm:
+    /// 1. Current Streak: Counts consecutive days from today backwards
+    ///    - Includes both workout days and rest days
+    ///    - Starts from today and works backwards
+    ///    - Breaks when a day is missing
+    /// 2. Longest Streak: Finds the longest consecutive sequence in all dates
+    ///    - Combines workout dates and rest days
+    ///    - Iterates through sorted dates and counts consecutive sequences
+    ///    - Tracks the maximum consecutive count found
+    ///
+    /// Time Complexity: O(n log n) for initial sort, O(n) for subsequent calls with cache
     func calculateStreaks() {
+        // Check cache validity
+        if let cacheDate = lastStreakCalculationDate,
+           let cached = cachedStreakCalculation,
+           Date().timeIntervalSince(cacheDate) < streakCacheValidity {
+            currentStreak = cached.current
+            longestStreak = cached.longest
+            return
+        }
+        
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
-        // Get unique dates and sort in descending order
-        let uniqueDates = Array(Set(workoutDates.map { calendar.startOfDay(for: $0) }))
-        let sortedDates = uniqueDates.sorted(by: >)
+        // Use cached sorted dates if available, otherwise calculate
+        let sortedDates: [Date]
+        if let cached = cachedSortedDates {
+            sortedDates = cached
+        } else {
+            // Combine workout dates and rest days
+            let allDates = workoutDates + restDays
+            let uniqueDates = Array(Set(allDates.map { calendar.startOfDay(for: $0) }))
+            sortedDates = uniqueDates.sorted(by: >)
+            cachedSortedDates = sortedDates
+        }
         
         guard !sortedDates.isEmpty else {
             currentStreak = 0
             longestStreak = 0
+            cachedStreakCalculation = (0, 0)
+            lastStreakCalculationDate = Date()
             return
         }
         
+        // For large datasets, calculate on background queue
+        if sortedDates.count > 100 {
+            processingQueue.async { [weak self] in
+                guard let self = self else { return }
+                let streaks = self.calculateStreaksSync(sortedDates: sortedDates, today: today, calendar: calendar)
+                DispatchQueue.main.async {
+                    self.currentStreak = streaks.current
+                    self.longestStreak = streaks.longest
+                    self.cachedStreakCalculation = streaks
+                    self.lastStreakCalculationDate = Date()
+                }
+            }
+            return
+        }
+        
+        // For small datasets, calculate synchronously
+        let streaks = calculateStreaksSync(sortedDates: sortedDates, today: today, calendar: calendar)
+        currentStreak = streaks.current
+        longestStreak = streaks.longest
+        cachedStreakCalculation = streaks
+        lastStreakCalculationDate = Date()
+    }
+    
+    private func calculateStreaksSync(sortedDates: [Date], today: Date, calendar: Calendar) -> (current: Int, longest: Int) {
         // Calculate current streak (consecutive days from today backwards)
         var streak = 0
         var checkDate = today
+        
+        // Check if today is in the list
+        if sortedDates.first == today {
+            streak = 1
+            checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
+        }
         
         for date in sortedDates {
             let daysDiff = calendar.dateComponents([.day], from: date, to: checkDate).day ?? Int.max
             
             if daysDiff == 0 || daysDiff == 1 {
-                streak += 1
                 if daysDiff == 1 {
+                    streak += 1
                     checkDate = date
-                } else {
+                } else if daysDiff == 0 && streak == 0 {
+                    // Today is in the list but we haven't started counting
+                    streak = 1
                     checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
                 }
-            } else {
+            } else if daysDiff > 1 {
                 break
             }
         }
-        
-        currentStreak = streak
         
         // Calculate longest streak
         var longestStreakCount = 1
@@ -167,7 +282,7 @@ class ProgressViewModel: ObservableObject {
             }
         }
         
-        longestStreak = longestStreakCount
+        return (current: streak, longest: longestStreakCount)
     }
     
     func addWorkoutDate(_ date: Date = Date()) {
@@ -177,11 +292,46 @@ class ProgressViewModel: ObservableObject {
         // Only add if not already in the list
         if !workoutDates.contains(where: { calendar.startOfDay(for: $0) == dayStart }) {
             workoutDates.append(date)
+            // Invalidate streak cache to force recalculation
+            invalidateStreakCache()
+            // Calculate streaks immediately and synchronously
             calculateStreaks()
         }
     }
     
-    // Add or update a PR for an exercise
+    /// Marks a rest day, which increments the streak but doesn't count as a workout
+    func markRestDay(_ date: Date = Date()) {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        
+        // Only add if not already in the list (either as workout or rest day)
+        let isWorkoutDay = workoutDates.contains(where: { calendar.startOfDay(for: $0) == dayStart })
+        let isRestDay = restDays.contains(where: { calendar.startOfDay(for: $0) == dayStart })
+        
+        if !isWorkoutDay && !isRestDay {
+            restDays.append(date)
+            calculateStreaks()
+        }
+    }
+    
+    /// Adds or updates a Personal Record (PR) for an exercise
+    ///
+    /// PR Detection Algorithm:
+    /// - A new PR is detected when:
+    ///   1. It's the first PR for the exercise, OR
+    ///   2. The weight is higher than the current best PR, OR
+    ///   3. The weight equals the current best PR but reps are higher
+    ///
+    /// PR Comparison Logic:
+    /// - Primary: Compare by weight (higher is better)
+    /// - Secondary: If weights are equal, compare by reps (higher is better)
+    ///
+    /// - Parameters:
+    ///   - exercise: Name of the exercise
+    ///   - weight: Weight lifted (in lbs)
+    ///   - reps: Number of repetitions
+    ///   - date: Date of the PR (defaults to now)
+    /// - Returns: `true` if this is a new PR, `false` otherwise
     func addOrUpdatePR(exercise: String, weight: Double, reps: Int, date: Date = Date()) -> Bool {
         // Invalidate cache when PRs change
         invalidateExerciseCache()
@@ -238,7 +388,7 @@ class ProgressViewModel: ObservableObject {
     // Cache for volume data
     private var cachedVolumeData: [VolumeDataPoint] = []
     private var volumeDataCacheDate: Date?
-    private let volumeCacheValidity: TimeInterval = 300 // 5 minutes
+    private let volumeCacheValidity: TimeInterval = AppConstants.Cache.volumeCacheValidity
     
     // Weekly volume data for the last 8 weeks
     var weeklyVolumeData: [VolumeDataPoint] {
@@ -249,14 +399,47 @@ class ProgressViewModel: ObservableObject {
             return cachedVolumeData
         }
         
-        // Calculate on background queue
+        // Calculate on background queue for better performance
         let calendar = Calendar.current
         let today = Date()
-        var data: [VolumeDataPoint] = []
         let historyManager = WorkoutHistoryManager.shared
         
-        // Generate data for last 8 weeks
-        for weekOffset in (0..<8).reversed() {
+        // For large datasets, calculate asynchronously
+        if historyManager.completedWorkouts.count > 50 {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self else { return }
+                var data: [VolumeDataPoint] = []
+                
+                // Generate data for last N weeks
+                for weekOffset in (0..<AppConstants.Progress.weeksToDisplay).reversed() {
+                    let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
+                    let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
+                    
+                    // Calculate actual volume from completed workouts
+                    let volume = historyManager.getWeeklyVolume(for: weekStartOfWeek)
+                    
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "M/d"
+                    let weekLabel = formatter.string(from: weekStartOfWeek)
+                    
+                    data.append(VolumeDataPoint(week: weekOffset, weekLabel: weekLabel, volume: volume))
+                }
+                
+                DispatchQueue.main.async {
+                    self.cachedVolumeData = data
+                    self.volumeDataCacheDate = Date()
+                }
+            }
+            
+            // Return empty array initially, will update when calculation completes
+            return cachedVolumeData
+        }
+        
+        // For small datasets, calculate synchronously
+        var data: [VolumeDataPoint] = []
+        
+        // Generate data for last N weeks
+        for weekOffset in (0..<AppConstants.Progress.weeksToDisplay).reversed() {
             let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
             let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
             
@@ -283,14 +466,103 @@ class ProgressViewModel: ObservableObject {
         volumeDataCacheDate = nil
     }
     
-    // Weekly workout frequency for the last 8 weeks
+    // MARK: - Persistence
+    
+    private func savePRs() {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let encoded = try JSONEncoder().encode(self.prs)
+                UserDefaults.standard.set(encoded, forKey: AppConstants.UserDefaultsKeys.personalRecords)
+                Logger.debug("Saved \(self.prs.count) PRs", category: .persistence)
+            } catch {
+                Logger.error("Failed to save PRs", error: error, category: .persistence)
+            }
+        }
+    }
+    
+    private func loadPRs() {
+        guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.personalRecords) else {
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([PersonalRecord].self, from: data)
+            prs = decoded
+            Logger.debug("Loaded \(decoded.count) PRs", category: .persistence)
+        } catch {
+            Logger.error("Failed to load PRs", error: error, category: .persistence)
+            // Clear invalid data
+            UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.personalRecords)
+        }
+    }
+    
+    private func saveWorkoutDates() {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let encoded = try JSONEncoder().encode(self.workoutDates)
+                UserDefaults.standard.set(encoded, forKey: AppConstants.UserDefaultsKeys.workoutDates)
+                Logger.debug("Saved \(self.workoutDates.count) workout dates", category: .persistence)
+            } catch {
+                Logger.error("Failed to save workout dates", error: error, category: .persistence)
+            }
+        }
+    }
+    
+    private func loadWorkoutDates() {
+        guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.workoutDates) else {
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([Date].self, from: data)
+            workoutDates = decoded
+            Logger.debug("Loaded \(decoded.count) workout dates", category: .persistence)
+        } catch {
+            Logger.error("Failed to load workout dates", error: error, category: .persistence)
+            // Clear invalid data
+            UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutDates)
+        }
+    }
+    
+    private func saveRestDays() {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let encoded = try JSONEncoder().encode(self.restDays)
+                UserDefaults.standard.set(encoded, forKey: AppConstants.UserDefaultsKeys.restDays)
+                Logger.debug("Saved \(self.restDays.count) rest days", category: .persistence)
+            } catch {
+                Logger.error("Failed to save rest days", error: error, category: .persistence)
+            }
+        }
+    }
+    
+    private func loadRestDays() {
+        guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.restDays) else {
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([Date].self, from: data)
+            restDays = decoded
+            Logger.debug("Loaded \(decoded.count) rest days", category: .persistence)
+        } catch {
+            Logger.error("Failed to load rest days", error: error, category: .persistence)
+            // Clear invalid data
+            UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restDays)
+        }
+    }
+    
+    // Weekly workout frequency for the last N weeks
     var weeklyWorkoutFrequency: [FrequencyDataPoint] {
         let calendar = Calendar.current
         let today = Date()
         var data: [FrequencyDataPoint] = []
         
-        // Generate data for last 8 weeks
-        for weekOffset in (0..<8).reversed() {
+        // Generate data for last N weeks
+        for weekOffset in (0..<AppConstants.Progress.weeksToDisplay).reversed() {
             let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today) ?? today
             let weekStartOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
             

@@ -171,13 +171,6 @@ struct DayDetailsView: View {
                     .font(AppTypography.body)
                     .foregroundColor(AppColors.textSecondary)
                 
-                HStack {
-                    Image(systemName: "clock")
-                        .foregroundColor(AppColors.accent)
-                    Text("~\(day.estimatedDuration) min")
-                        .font(AppTypography.captionMedium)
-                        .foregroundColor(AppColors.textSecondary)
-                }
             }
             
             // Exercises List
@@ -248,7 +241,7 @@ struct ProgramExerciseRow: View {
     NavigationView {
         WorkoutProgramView(
             program: WorkoutProgramManager.shared.programs[0],
-            workoutViewModel: WorkoutViewModel()
+            workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager())
         )
     }
 }

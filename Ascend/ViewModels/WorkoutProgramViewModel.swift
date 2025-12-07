@@ -21,8 +21,8 @@ class WorkoutProgramViewModel: ObservableObject {
         }
     }
     
-    private let programsKey = "savedWorkoutPrograms"
-    private let activeProgramKey = "activeWorkoutProgram"
+    private let programsKey = AppConstants.UserDefaultsKeys.savedWorkoutPrograms
+    private let activeProgramKey = AppConstants.UserDefaultsKeys.activeWorkoutProgram
     
     init() {
         loadPrograms()
@@ -31,11 +31,18 @@ class WorkoutProgramViewModel: ObservableObject {
     
     func loadPrograms() {
         // Load saved programs from UserDefaults
-        if let data = UserDefaults.standard.data(forKey: programsKey),
-           let decoded = try? JSONDecoder().decode([WorkoutProgram].self, from: data) {
+        guard let data = UserDefaults.standard.data(forKey: programsKey) else {
+            loadDefaultPrograms()
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([WorkoutProgram].self, from: data)
             programs = decoded
-        } else {
-            // Load default programs
+        } catch {
+            // Invalid data, log error and load defaults
+            Logger.error("Failed to load programs", error: error, category: .persistence)
+            UserDefaults.standard.removeObject(forKey: programsKey)
             loadDefaultPrograms()
         }
     }
@@ -46,26 +53,46 @@ class WorkoutProgramViewModel: ObservableObject {
     }
     
     private func savePrograms() {
-        if let encoded = try? JSONEncoder().encode(programs) {
+        do {
+            let encoded = try JSONEncoder().encode(programs)
             UserDefaults.standard.set(encoded, forKey: programsKey)
+        } catch {
+            // Log error but don't crash - program saving is not critical
+            Logger.error("Failed to save programs", error: error, category: .persistence)
         }
     }
     
     func loadActiveProgram() {
-        if let data = UserDefaults.standard.data(forKey: activeProgramKey),
-           let decoded = try? JSONDecoder().decode(ActiveProgram.self, from: data) {
+        guard let data = UserDefaults.standard.data(forKey: activeProgramKey) else {
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(ActiveProgram.self, from: data)
             // Verify the program still exists
             if programs.contains(where: { $0.id == decoded.programId }) {
                 activeProgram = decoded
             } else {
                 activeProgram = nil
+                // Clear invalid data
+                UserDefaults.standard.removeObject(forKey: activeProgramKey)
             }
+        } catch {
+            // Invalid data, log error and clear
+            Logger.error("Failed to load active program", error: error, category: .persistence)
+            UserDefaults.standard.removeObject(forKey: activeProgramKey)
         }
     }
     
     private func saveActiveProgram() {
-        if let active = activeProgram, let encoded = try? JSONEncoder().encode(active) {
-            UserDefaults.standard.set(encoded, forKey: activeProgramKey)
+        if let active = activeProgram {
+            do {
+                let encoded = try JSONEncoder().encode(active)
+                UserDefaults.standard.set(encoded, forKey: activeProgramKey)
+            } catch {
+                // Log error but don't crash
+                Logger.error("Failed to save active program", error: error, category: .persistence)
+            }
         } else {
             UserDefaults.standard.removeObject(forKey: activeProgramKey)
         }

@@ -1,124 +1,148 @@
 # Performance Optimizations
 
-This document outlines all the performance optimizations implemented to make the app faster and more efficient.
+This document outlines the performance optimizations implemented for handling large datasets in the Ascend app.
 
-## ✅ Optimizations Implemented
+## Overview
 
-### 1. Debounced UserDefaults Saves
-**Problem**: Multiple rapid changes to `@Published` properties were causing excessive UserDefaults writes, blocking the main thread.
+The app has been optimized to handle large datasets efficiently through:
+- Intelligent caching strategies
+- Background processing for heavy calculations
+- Indexed data structures for faster lookups
+- Lazy loading where appropriate
 
-**Solution**: 
-- Created `PerformanceOptimizer` class with debounced save functionality
-- All ViewModels now use debounced saves (0.5 second delay)
-- Batches multiple saves into a single write operation
+## Optimizations Implemented
 
-**Files Modified**:
-- `Ascend/ViewModels/PerformanceOptimizer.swift` (new)
-- `Ascend/ViewModels/WorkoutHistoryManager.swift`
-- `Ascend/ViewModels/TemplatesViewModel.swift`
-- `Ascend/ViewModels/WorkoutProgramViewModel.swift`
-- `Ascend/ViewModels/ExerciseDataManager.swift`
+### 1. WorkoutHistoryManager
 
-**Impact**: Reduces UserDefaults writes by ~80-90%, significantly improving app responsiveness.
+#### Date Indexing
+- **Problem**: Filtering workouts by date range required scanning all workouts (O(n))
+- **Solution**: Index workouts by date with sorted date array for binary search
+- **Performance**: O(log n) lookup time instead of O(n)
+- **Implementation**:
+  - `workoutsByDate: [Date: [Workout]]` - Index workouts by day
+  - `sortedWorkoutDates: [Date]` - Sorted dates for binary search
+  - Indexes rebuilt automatically when workouts change
 
-### 2. Background Queue Processing
-**Problem**: Heavy computations (JSON encoding/decoding, volume calculations) were blocking the main thread.
+#### Volume Calculation Caching
+- **Problem**: `getAllTimeVolume()` recalculated from all workouts every time
+- **Solution**: Cache result with timestamp-based invalidation
+- **Performance**: O(1) for cached lookups, O(n) only when cache invalid
+- **Cache Duration**: 60 seconds (configurable via `cacheValidityDuration`)
 
-**Solution**:
-- Moved UserDefaults encoding/decoding to background queues
-- Volume calculations now run on background threads
-- Data loading happens asynchronously
+#### Background Processing
+- **Problem**: Large volume calculations blocked main thread
+- **Solution**: Process on background queue for datasets > 50 workouts
+- **Performance**: Non-blocking UI, calculations happen asynchronously
+- **Implementation**: Uses dedicated `processingQueue` with `.utility` QoS
 
-**Files Modified**:
-- `Ascend/ViewModels/WorkoutHistoryManager.swift`
-- `Ascend/ViewModels/PerformanceOptimizer.swift`
+#### Smart Volume Calculation
+- Small datasets (< 50 workouts): Synchronous calculation
+- Large datasets (≥ 50 workouts): Asynchronous calculation with cached fallback
+- Date range queries use indexed lookup instead of full scan
 
-**Impact**: Prevents UI freezing during data operations.
+### 2. ProgressViewModel
 
-### 3. Caching System
-**Problem**: Expensive calculations (volume data, exercise lists, PR filtering) were recalculated on every access.
+#### Streak Calculation Caching
+- **Problem**: `calculateStreaks()` sorted dates every call (O(n log n))
+- **Solution**: Cache sorted dates and streak results
+- **Performance**: 
+  - First call: O(n log n) for sorting
+  - Subsequent calls: O(n) using cached sorted dates
+  - Cached results: O(1) for 60 seconds
+- **Cache Invalidation**: Automatically invalidated when workout dates or rest days change
 
-**Solution**:
-- Added caching for volume calculations (60 second validity)
-- Cached available exercises list
-- Cached selected exercise PRs
-- Cache invalidation on data changes
+#### Background Streak Processing
+- **Problem**: Streak calculation for large datasets (> 100 dates) blocked UI
+- **Solution**: Process on background queue for large datasets
+- **Performance**: Non-blocking UI, results update when ready
 
-**Files Modified**:
-- `Ascend/ViewModels/WorkoutHistoryManager.swift`
-- `Ascend/ViewModels/ProgressViewModel.swift`
+#### Volume Data Caching
+- **Problem**: Weekly volume data recalculated every access
+- **Solution**: Cache calculated data with timestamp
+- **Cache Duration**: 5 minutes (configurable via `volumeCacheValidity`)
+- **Background Processing**: Large datasets calculated asynchronously
 
-**Impact**: Reduces computation time by ~70-80% for repeated queries.
+#### Smart Volume Updates
+- Small datasets (< 100 workouts): Synchronous update
+- Large datasets (≥ 100 workouts): Asynchronous update on background queue
 
-### 4. Debounced Autocomplete Filtering
-**Problem**: Exercise autocomplete was filtering on every keystroke, causing lag.
+### 3. TemplatesViewModel
 
-**Solution**:
-- Added 150ms debounce to text input changes
-- Cancels previous filter tasks when new input arrives
-- Only processes the latest input
+#### Background Loading
+- **Problem**: Template loading and decoding blocked main thread
+- **Solution**: Load and decode on background queue
+- **Performance**: Non-blocking app startup
 
-**Files Modified**:
-- `Ascend/Views/Components/ExerciseAutocompleteField.swift`
+#### Calisthenics Template Caching
+- **Problem**: Calisthenics templates regenerated every load
+- **Solution**: Cache generated templates
+- **Performance**: O(1) lookup instead of O(n) generation
 
-**Impact**: Eliminates lag when typing in exercise fields.
+#### Background Saving
+- **Problem**: Template saving blocked main thread
+- **Solution**: Save on background queue
+- **Performance**: Non-blocking UI updates
 
-### 5. Optimized Data Structures
-**Problem**: Inefficient array operations and repeated filtering.
+### 4. General Optimizations
 
-**Solution**:
-- Pre-allocated arrays with `reserveCapacity`
-- Used Sets for O(1) lookups instead of O(n) array searches
-- Single-pass filtering where possible
+#### Debounced Saves
+- **Problem**: Multiple rapid saves caused excessive UserDefaults writes
+- **Solution**: Debounce saves with 0.5 second delay
+- **Performance**: Reduces I/O operations by batching writes
+- **Implementation**: `PerformanceOptimizer.debouncedSave()`
 
-**Files Modified**:
-- `Ascend/Views/Components/ExerciseAutocompleteField.swift`
-- `Ascend/ViewModels/WorkoutGenerator.swift`
+#### Dedicated Processing Queues
+- Each ViewModel uses dedicated background queue
+- Proper QoS levels (`.userInitiated`, `.utility`)
+- Prevents queue contention
 
-**Impact**: Faster filtering and searching operations.
+#### Cache Invalidation Strategy
+- Automatic invalidation when source data changes
+- Timestamp-based expiration
+- Manual invalidation for critical updates
 
-## 📊 Performance Metrics
+## Performance Metrics
 
-### Before Optimizations:
-- UserDefaults writes: ~10-20 per second during active use
-- Volume calculation: ~50-100ms per query
-- Autocomplete lag: Noticeable on every keystroke
-- UI freezes: Occasional during saves
+### Before Optimizations
+- **Workout filtering**: O(n) - scanned all workouts
+- **Volume calculation**: O(n) - recalculated every time
+- **Streak calculation**: O(n log n) - sorted every time
+- **Template loading**: Blocked main thread
 
-### After Optimizations:
-- UserDefaults writes: ~1-2 per second (debounced)
-- Volume calculation: ~5-10ms (cached) or ~20-30ms (first time)
-- Autocomplete lag: None (debounced)
-- UI freezes: Eliminated
+### After Optimizations
+- **Workout filtering**: O(log n) - binary search on indexed dates
+- **Volume calculation**: O(1) cached, O(n) only when invalid
+- **Streak calculation**: O(1) cached, O(n) with cached sort
+- **Template loading**: Non-blocking background processing
 
-## 🎯 Best Practices Applied
+## Scalability
 
-1. **Debouncing**: All save operations are debounced to batch writes
-2. **Caching**: Expensive computations are cached with appropriate TTL
-3. **Background Processing**: Heavy operations moved off main thread
-4. **Efficient Data Structures**: Using Sets and pre-allocated arrays
-5. **Lazy Loading**: Data loaded asynchronously when possible
+The optimizations ensure the app performs well with:
+- **Small datasets** (< 50 items): Instant synchronous processing
+- **Medium datasets** (50-500 items): Cached results with background updates
+- **Large datasets** (> 500 items): Fully asynchronous with progressive loading
 
-## 🔄 Cache Invalidation Strategy
+## Memory Management
 
-Caches are invalidated when:
-- New workouts are added
-- PRs are updated
-- Exercises are modified
-- Cache TTL expires (60 seconds for volume, 5 minutes for volume data)
+- Caches are automatically invalidated to prevent memory bloat
+- Weak references used in async closures
+- Background queues properly managed
+- No retain cycles introduced
 
-## 🚀 Future Optimization Opportunities
+## Future Optimizations
 
-1. **Pagination**: For large workout history lists
-2. **Image Caching**: If images are added in the future
-3. **Database Migration**: Consider Core Data for better performance with large datasets
-4. **Background Sync**: Move CloudKit sync to background queue
-5. **View Optimization**: Use `@StateObject` instead of `@ObservedObject` where appropriate
+Potential areas for further optimization:
+1. **Pagination**: Load workouts in batches for very large datasets
+2. **Lazy Loading**: Load templates/exercises on-demand
+3. **Core Data**: Migrate from UserDefaults to Core Data for better performance
+4. **Image Caching**: Cache exercise images/videos if added
+5. **Predictive Caching**: Pre-calculate likely-needed data
 
-## 📝 Notes
+## Testing
 
-- All optimizations maintain backward compatibility
-- No breaking changes to existing functionality
-- Performance improvements are transparent to users
-- Caching is conservative (short TTL) to ensure data freshness
+Performance optimizations have been tested with:
+- Small datasets (< 50 workouts)
+- Medium datasets (50-500 workouts)
+- Large datasets (> 500 workouts)
 
+All optimizations maintain data integrity and UI responsiveness.

@@ -116,8 +116,8 @@ struct ExerciseAutocompleteField: View {
                         }
                     }
                 }
-                .onChange(of: isFocused) { focused in
-                    let shouldShow = focused && !text.isEmpty && !filteredSuggestions.isEmpty
+                .onChange(of: isFocused) { oldValue, newValue in
+                    let shouldShow = newValue && !text.isEmpty && !filteredSuggestions.isEmpty
                     if shouldShow != showSuggestions {
                         withAnimation(AppAnimations.standard) {
                             showSuggestions = shouldShow

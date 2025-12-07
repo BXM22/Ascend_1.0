@@ -8,14 +8,40 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var workoutViewModel = WorkoutViewModel()
-    @StateObject private var progressViewModel = ProgressViewModel()
-    @StateObject private var templatesViewModel = TemplatesViewModel()
-    @StateObject private var programViewModel = WorkoutProgramViewModel()
-    @StateObject private var themeManager = ThemeManager()
-    @StateObject private var settingsManager = SettingsManager()
+    @StateObject private var progressViewModel: ProgressViewModel
+    @StateObject private var templatesViewModel: TemplatesViewModel
+    @StateObject private var programViewModel: WorkoutProgramViewModel
+    @StateObject private var themeManager: ThemeManager
+    @StateObject private var settingsManager: SettingsManager
+    @StateObject private var workoutViewModel: WorkoutViewModel
     @State private var selectedTab: Tab = .dashboard
     @Environment(\.colorScheme) var systemColorScheme
+    
+    init() {
+        // Create new ViewModel instances owned by this view
+        // This ensures proper lifecycle management with @StateObject
+        let progressVM = ProgressViewModel()
+        let templatesVM = TemplatesViewModel()
+        let programVM = WorkoutProgramViewModel()
+        let themeMgr = ThemeManager()
+        let settingsMgr = SettingsManager()
+        
+        // Initialize StateObjects with the new instances
+        _progressViewModel = StateObject(wrappedValue: progressVM)
+        _templatesViewModel = StateObject(wrappedValue: templatesVM)
+        _programViewModel = StateObject(wrappedValue: programVM)
+        _themeManager = StateObject(wrappedValue: themeMgr)
+        _settingsManager = StateObject(wrappedValue: settingsMgr)
+        
+        // Create WorkoutViewModel with injected dependencies from the newly created instances
+        _workoutViewModel = StateObject(wrappedValue: WorkoutViewModel(
+            settingsManager: settingsMgr,
+            progressViewModel: progressVM,
+            programViewModel: programVM,
+            templatesViewModel: templatesVM,
+            themeManager: themeMgr
+        ))
+    }
     
     enum Tab {
         case dashboard, workout, progress, templates
@@ -54,12 +80,6 @@ struct ContentView: View {
                         .transition(.slideFromBottom)
                     case .workout:
                         WorkoutView(viewModel: workoutViewModel)
-                        .onAppear {
-                            workoutViewModel.progressViewModel = progressViewModel
-                            workoutViewModel.programViewModel = programViewModel
-                            workoutViewModel.templatesViewModel = templatesViewModel
-                            workoutViewModel.themeManager = themeManager
-                        }
                             .id(AppColors.themeID)
                             .transition(.slideFromBottom)
                     case .progress:
@@ -83,14 +103,6 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(AppAnimations.standard, value: selectedTab)
-                .onAppear {
-                    // Connect ViewModels
-                    workoutViewModel.progressViewModel = progressViewModel
-                    workoutViewModel.settingsManager = settingsManager
-                    workoutViewModel.programViewModel = programViewModel
-                    workoutViewModel.templatesViewModel = templatesViewModel
-                    workoutViewModel.themeManager = themeManager
-                }
                 .environmentObject(settingsManager)
                 .environmentObject(ColorThemeProvider.shared)
                 
@@ -101,6 +113,25 @@ struct ContentView: View {
                     settingsManager: settingsManager
                 )
                 .id(AppColors.themeID)
+            }
+            
+            // Completion Modal - at ZStack level so it appears above everything
+            if workoutViewModel.showCompletionModal {
+                if let stats = workoutViewModel.completionStats {
+                    WorkoutCompletionModal(
+                        stats: stats,
+                        onDismiss: {
+                            // Clear workout state when modal is dismissed
+                            workoutViewModel.currentWorkout = nil
+                            workoutViewModel.currentExerciseIndex = 0
+                            workoutViewModel.elapsedTime = 0
+                            workoutViewModel.showCompletionModal = false
+                            workoutViewModel.completionStats = nil
+                        }
+                    )
+                    .zIndex(1000) // Ensure modal appears on top of everything
+                    .transition(.scale.combined(with: .opacity))
+                }
             }
         }
         .preferredColorScheme(themeManager.colorScheme)
@@ -213,16 +244,16 @@ struct BottomNavigationBar: View {
                 Spacer()
                 
                 // Theme Toggle Button
-                Button(action: {
-                    withAnimation(AppAnimations.standard) {
-                        showThemePicker.toggle()
+                ThemeToggleButton(
+                    isSelected: showThemePicker,
+                    iconName: showThemePicker ? "paintbrush.fill" : "paintbrush",
+                    action: {
+                        HapticManager.impact(style: .light)
+                        withAnimation(AppAnimations.standard) {
+                            showThemePicker.toggle()
+                        }
                     }
-                }) {
-                    Image(systemName: showThemePicker ? "paintbrush.fill" : "paintbrush")
-                        .font(AppTypography.heading3)
-                        .foregroundColor(selectedTab == .templates ? AppColors.primary : AppColors.textSecondary)
-                        .frame(width: 44, height: 44)
-                }
+                )
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.vertical, AppSpacing.md)
@@ -353,7 +384,7 @@ struct ThemePickerView: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .colorThemeDidChange)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: AppConstants.Notification.colorThemeDidChange)) { _ in
             // Refresh view when theme changes
         }
     }
@@ -389,6 +420,7 @@ struct ThemePickerView: View {
 struct ThemeButton: View {
     let mode: ThemeManager.ThemeMode
     @ObservedObject var themeManager: ThemeManager
+    @State private var isHovered = false
     
     private var iconName: String {
         switch mode {
@@ -421,6 +453,7 @@ struct ThemeButton: View {
     
     var body: some View {
         Button(action: {
+            HapticManager.selection()
             themeManager.themeMode = mode
         }) {
             HStack(spacing: 8) {
@@ -435,6 +468,37 @@ struct ThemeButton: View {
             .padding(.vertical, 8)
             .background(background)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .scaleEffect(isHovered && !isSelected ? 1.05 : 1.0)
+            .opacity(isHovered && !isSelected ? 0.9 : 1.0)
+            .animation(AppAnimations.quick, value: isHovered)
+            .animation(AppAnimations.selection, value: isSelected)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+struct ThemeToggleButton: View {
+    let isSelected: Bool
+    let iconName: String
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: iconName)
+                .font(AppTypography.heading3)
+                .foregroundColor(AppColors.textSecondary)
+                .frame(width: 44, height: 44)
+                .scaleEffect(isHovered ? 1.1 : 1.0)
+                .opacity(isHovered ? 0.8 : 1.0)
+                .animation(AppAnimations.quick, value: isHovered)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 }
@@ -444,6 +508,7 @@ struct NavButton: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
+    @State private var isHovered = false
     
     var body: some View {
         Button(action: action) {
@@ -451,12 +516,14 @@ struct NavButton: View {
                 Image(systemName: icon)
                     .font(AppTypography.heading3)
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
-                    .scaleEffect(isSelected ? 1.1 : 1.0)
+                    .scaleEffect(isSelected ? 1.1 : (isHovered ? 1.05 : 1.0))
                     .animation(AppAnimations.selection, value: isSelected)
+                    .animation(AppAnimations.quick, value: isHovered)
                 
                 Text(title)
                     .font(AppTypography.captionMedium)
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
+                    .opacity(isHovered && !isSelected ? 0.8 : 1.0)
                 
                 // Selection indicator
                 Rectangle()
@@ -466,8 +533,16 @@ struct NavButton: View {
                     .animation(AppAnimations.selection, value: isSelected)
             }
             .frame(maxWidth: .infinity)
+            .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
+            .animation(AppAnimations.quick, value: isHovered)
         }
         .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .accessibilityLabel(title)
+        .accessibilityHint(isSelected ? "Currently selected \(title) tab" : "Switch to \(title) tab")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

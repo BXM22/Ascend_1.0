@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RestTimerView: View {
     let timeRemaining: Int
+    let totalDuration: Int
     let onSkip: () -> Void
     let onComplete: () -> Void
     @State private var progressValue: Double = 0
@@ -16,16 +17,19 @@ struct RestTimerView: View {
     @State private var opacity: Double = 0
     
     private var minutes: Int {
-        timeRemaining / 60
+        max(0, timeRemaining) / 60
     }
     
     private var seconds: Int {
-        timeRemaining % 60
+        max(0, timeRemaining) % 60
     }
     
     private var progress: Double {
-        let total = 90.0
-        return 1.0 - (Double(timeRemaining) / total)
+        guard totalDuration > 0 else { return 0 }
+        // Ensure timeRemaining is never negative and doesn't exceed totalDuration
+        let remaining = max(0, min(Double(timeRemaining), Double(totalDuration)))
+        let total = Double(totalDuration)
+        return max(0, min(1.0, 1.0 - (remaining / total)))
     }
     
     private var timerColor: Color {
@@ -154,6 +158,7 @@ struct RestTimerView: View {
 #Preview {
     RestTimerView(
         timeRemaining: 45,
+        totalDuration: 90,
         onSkip: {},
         onComplete: {}
     )

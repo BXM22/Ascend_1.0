@@ -38,10 +38,10 @@ struct WorkoutView: View {
                         currentIndex: viewModel.currentExerciseIndex,
                         onSelect: { index in
                             viewModel.currentExerciseIndex = index
+                            viewModel.syncDropsetStateFromCurrentExercise()
                         }
                     )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(EdgeInsets(top: 16, leading: 20, bottom: 0, trailing: 20))
                 }
                 
                 // Exercise Card
@@ -64,7 +64,12 @@ struct WorkoutView: View {
                             reps: $reps,
                             showPRBadge: viewModel.showPRBadge,
                             prMessage: viewModel.prMessage,
+                            dropsetsEnabled: $viewModel.dropsetsEnabled,
+                            numberOfDropsets: $viewModel.numberOfDropsets,
+                            weightReductionPerDropset: $viewModel.weightReductionPerDropset,
+                            isCollapsed: viewModel.restTimerActive,
                             onCompleteSet: {
+                                viewModel.updateCurrentExerciseDropsetConfiguration()
                                 if let weightValue = Double(weight),
                                    let repsValue = Int(reps) {
                                     viewModel.completeSet(weight: weightValue, reps: repsValue)
@@ -75,13 +80,20 @@ struct WorkoutView: View {
                             }
                         )
                         .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                        .onAppear {
+                            viewModel.syncDropsetStateFromCurrentExercise()
+                        }
+                        .onChange(of: viewModel.currentExerciseIndex) { oldValue, newValue in
+                            viewModel.syncDropsetStateFromCurrentExercise()
+                        }
                     }
                 }
                 
                 // Rest Timer (appears above alternative exercises)
                 if viewModel.restTimerActive {
                     RestTimerView(
-                        timeRemaining: viewModel.restTimeRemaining,
+                        timeRemaining: max(0, viewModel.restTimeRemaining),
+                        totalDuration: max(1, viewModel.restTimerTotalDuration), // Ensure at least 1 to prevent division by zero
                         onSkip: { viewModel.skipRest() },
                         onComplete: { viewModel.completeRest() }
                     )
@@ -108,6 +120,7 @@ struct WorkoutView: View {
                 // Previous Sets
                 if let exercise = viewModel.currentExercise, !exercise.sets.isEmpty {
                     PreviousSetsView(sets: exercise.sets)
+                        .id("previous-sets-\(exercise.sets.count)-\(exercise.sets.last?.id.uuidString ?? "")")
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                 }
@@ -148,13 +161,12 @@ struct WorkoutView: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showSettingsSheet) {
-            if let settingsManager = viewModel.settingsManager,
-               let progressViewModel = viewModel.progressViewModel,
+            if let progressViewModel = viewModel.progressViewModel,
                let templatesViewModel = viewModel.templatesViewModel,
                let programViewModel = viewModel.programViewModel,
                let themeManager = viewModel.themeManager {
                 SettingsView(
-                    settingsManager: settingsManager,
+                    settingsManager: viewModel.settingsManager,
                     progressViewModel: progressViewModel,
                     templatesViewModel: templatesViewModel,
                     programViewModel: programViewModel,
@@ -187,11 +199,13 @@ struct WorkoutHeader: View {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
+                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Settings")
+                .accessibilityHint("Opens workout settings")
                 
                 Button(action: {
                     HapticManager.impact(style: .light)
@@ -200,13 +214,15 @@ struct WorkoutHeader: View {
                     Image(systemName: "pause.fill")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
+                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .rotationEffect(.degrees(0))
                         .animation(AppAnimations.quick, value: UUID())
                 }
                 .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Pause Workout")
+                .accessibilityHint("Pauses the current workout")
                 
                 Button(action: {
                     HapticManager.success()
@@ -215,11 +231,13 @@ struct WorkoutHeader: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
+                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Finish Workout")
+                .accessibilityHint("Completes and saves the current workout")
             }
         }
         .padding(.horizontal, AppSpacing.lg)
@@ -249,6 +267,8 @@ struct WorkoutTimerBar: View {
                 .foregroundColor(AppColors.mutedForeground)
                 .contentTransition(.numericText())
                 .animation(AppAnimations.quick, value: time)
+                .accessibilityLabel("Workout time: \(time)")
+                .accessibilityValue(time)
             
             Spacer()
             
@@ -269,6 +289,8 @@ struct WorkoutTimerBar: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
+            .accessibilityLabel("Reset Timer")
+            .accessibilityHint("Resets the workout timer to zero")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
@@ -289,6 +311,10 @@ struct ExerciseCard: View {
     @Binding var reps: String
     let showPRBadge: Bool
     let prMessage: String
+    @Binding var dropsetsEnabled: Bool
+    @Binding var numberOfDropsets: Int
+    @Binding var weightReductionPerDropset: Double
+    let isCollapsed: Bool
     let onCompleteSet: () -> Void
     let onSelectAlternative: ((String) -> Void)?
     
@@ -318,44 +344,195 @@ struct ExerciseCard: View {
                 ))
                 .frame(height: 4)
             
-            VStack(alignment: .leading, spacing: 20) {
-                // Exercise Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(exercise.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(AppColors.foreground)
+            if isCollapsed {
+                // Collapsed view - show only essential info
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(exercise.name)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppColors.foreground)
+                            .lineLimit(1)
+                        
+                        Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
                     
-                    Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(AppColors.secondary)
-                        .clipShape(Capsule())
+                    Spacer()
+                    
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.accent)
                 }
-                
-                // PR Badge
-                if showPRBadge {
-                    PRBadge(message: prMessage)
-                        .transition(.scaleWithFade)
-                        .zIndex(10)
+                .padding(16)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else {
+                // Expanded view - show all content
+                VStack(alignment: .leading, spacing: 20) {
+                    // Exercise Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(exercise.name)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                            .accessibilityAddTraits(.isHeader)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                        
+                        Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(AppColors.secondary)
+                            .clipShape(Capsule())
+                    }
+                    
+                    // PR Badge
+                    if showPRBadge {
+                        PRBadge(message: prMessage)
+                            .transition(.scaleWithFade)
+                            .zIndex(10)
+                    }
+                    
+                    // Weight Input
+                    InputField(
+                        label: "Weight",
+                        value: $weight,
+                        unit: "lbs",
+                        keyboardType: .decimalPad
+                    )
+                    
+                    // Reps Input
+                    InputField(
+                        label: "Reps",
+                        value: $reps,
+                        unit: "reps",
+                        keyboardType: .numberPad
+                    )
+                    
+                    // Dropset Configuration
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle(isOn: $dropsetsEnabled) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(dropsetsEnabled ? AppColors.accent : AppColors.mutedForeground)
+                            Text("Dropsets")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(AppColors.foreground)
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent))
+                    
+                    if dropsetsEnabled {
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Number of dropsets stepper
+                            HStack {
+                                Text("Number of dropsets")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                Spacer()
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        HapticManager.impact(style: .light)
+                                        withAnimation(AppAnimations.quick) {
+                                            if numberOfDropsets > 1 {
+                                                numberOfDropsets -= 1
+                                            }
+                                        }
+                                    }) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(numberOfDropsets > 1 ? AppColors.accent : AppColors.mutedForeground)
+                                    }
+                                    .disabled(numberOfDropsets <= 1)
+                                    .buttonStyle(SubtleButtonStyle())
+                                    
+                                    Text("\(numberOfDropsets)")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(AppColors.foreground)
+                                        .frame(minWidth: 30)
+                                        .contentTransition(.numericText())
+                                        .animation(AppAnimations.quick, value: numberOfDropsets)
+                                    
+                                    Button(action: {
+                                        HapticManager.impact(style: .light)
+                                        withAnimation(AppAnimations.quick) {
+                                            if numberOfDropsets < 5 {
+                                                numberOfDropsets += 1
+                                            }
+                                        }
+                                    }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(numberOfDropsets < 5 ? AppColors.accent : AppColors.mutedForeground)
+                                    }
+                                    .disabled(numberOfDropsets >= 5)
+                                    .buttonStyle(SubtleButtonStyle())
+                                }
+                            }
+                            
+                            // Weight reduction stepper
+                            HStack {
+                                Text("Weight reduction per dropset")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                Spacer()
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        HapticManager.impact(style: .light)
+                                        withAnimation(AppAnimations.quick) {
+                                            if weightReductionPerDropset > 5 {
+                                                weightReductionPerDropset -= 5
+                                            }
+                                        }
+                                    }) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(weightReductionPerDropset > 5 ? AppColors.accent : AppColors.mutedForeground)
+                                    }
+                                    .disabled(weightReductionPerDropset <= 5)
+                                    .buttonStyle(SubtleButtonStyle())
+                                    
+                                    Text("\(Int(weightReductionPerDropset)) lbs")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(AppColors.foreground)
+                                        .frame(minWidth: 50)
+                                        .contentTransition(.numericText())
+                                        .animation(AppAnimations.quick, value: weightReductionPerDropset)
+                                    
+                                    Button(action: {
+                                        HapticManager.impact(style: .light)
+                                        withAnimation(AppAnimations.quick) {
+                                            if weightReductionPerDropset < 50 {
+                                                weightReductionPerDropset += 5
+                                            }
+                                        }
+                                    }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(weightReductionPerDropset < 50 ? AppColors.accent : AppColors.mutedForeground)
+                                    }
+                                    .disabled(weightReductionPerDropset >= 50)
+                                    .buttonStyle(SubtleButtonStyle())
+                                }
+                            }
+                            
+                            // Preview text
+                            if let currentWeight = Double(weight) {
+                                Text("After main set: \(numberOfDropsets) dropset\(numberOfDropsets > 1 ? "s" : ""), reducing by \(Int(weightReductionPerDropset)) lbs each")
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                    .padding(.top, 4)
+                            }
+                        }
+                        .padding(.top, 8)
+                        .padding(.leading, 8)
+                    }
                 }
-                
-                // Weight Input
-                InputField(
-                    label: "Weight",
-                    value: $weight,
-                    unit: "lbs",
-                    keyboardType: .decimalPad
-                )
-                
-                // Reps Input
-                InputField(
-                    label: "Reps",
-                    value: $reps,
-                    unit: "reps",
-                    keyboardType: .numberPad
-                )
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .background(AppColors.secondary.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 // Video Tutorial Button
                 if videoURL != nil {
@@ -378,17 +555,18 @@ struct ExerciseCard: View {
                     .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
-            }
-            .padding(24)
-        }
+                } // Close inner VStack (expanded view content)
+            } // Close else block
+        } // Close outer VStack
+        .padding(24)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
         .padding(.horizontal, 20)
         .padding(.top, 20)
-    }
-}
+    } // Close body
+} // Close ExerciseCard struct
 
 // MARK: - Hold Exercise Card
 struct HoldExerciseCard: View {
@@ -645,6 +823,9 @@ struct InputField: View {
                             .stroke(AppColors.border, lineWidth: 2)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .accessibilityLabel(label)
+                    .accessibilityValue(value.isEmpty ? "No value" : "\(value) \(unit)")
+                    .accessibilityHint("Enter \(label.lowercased()) in \(unit)")
                 
                 Text(unit)
                     .font(.system(size: 14, weight: .medium))
@@ -655,19 +836,26 @@ struct InputField: View {
 }
 
 struct ScaleButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .brightness(configuration.isPressed ? -0.1 : 0)
+            .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.02 : 1.0))
+            .brightness(configuration.isPressed ? -0.05 : (isHovered ? 0.02 : 0))
             .shadow(
-                color: configuration.isPressed ? Color.black.opacity(0.1) : Color.black.opacity(0.2),
-                radius: configuration.isPressed ? 4 : 8,
+                color: configuration.isPressed ? Color.black.opacity(0.15) : (isHovered ? Color.black.opacity(0.25) : Color.black.opacity(0.2)),
+                radius: configuration.isPressed ? 6 : (isHovered ? 10 : 8),
                 x: 0,
-                y: configuration.isPressed ? 2 : 4
+                y: configuration.isPressed ? 3 : (isHovered ? 5 : 4)
             )
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(AppAnimations.buttonPress, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { isPressed in
-                if isPressed {
+            .animation(AppAnimations.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .onChange(of: configuration.isPressed) { oldValue, newValue in
+                if newValue {
                     HapticManager.impact(style: .light)
                 }
             }
@@ -757,7 +945,7 @@ struct SettingsView: View {
     @State private var showAddCustomExercise = false
     @State private var showCustomExercisesList = false
     
-    private let restTimerOptions: [Int] = [30, 45, 60, 90, 120, 180, 240, 300]
+    private let restTimerOptions: [Int] = AppConstants.restTimerOptions
     
     var body: some View {
         NavigationView {
@@ -1003,5 +1191,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    WorkoutView(viewModel: WorkoutViewModel())
+    WorkoutView(viewModel: WorkoutViewModel(settingsManager: SettingsManager()))
 }

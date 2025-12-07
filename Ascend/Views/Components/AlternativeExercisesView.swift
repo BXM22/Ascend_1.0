@@ -14,14 +14,14 @@ struct AlternativeExercisesView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundColor(AppColors.accent)
                 
                 Text("Alternative Exercises")
-                    .font(AppTypography.heading3)
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(AppColors.textPrimary)
                 
                 Spacer()
@@ -31,25 +31,25 @@ struct AlternativeExercisesView: View {
                     Button(action: {
                         openExRxURL()
                     }) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Image(systemName: "link")
-                                .font(.system(size: 12))
+                                .font(.system(size: 10))
                             Text("ExRx")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 10, weight: .medium))
                         }
                         .foregroundColor(AppColors.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
                         .background(AppColors.accent.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
                     }
                 }
             }
             
             if alternatives.isEmpty {
-                VStack(spacing: AppSpacing.sm) {
+                VStack(spacing: AppSpacing.xs) {
                     Text("No Equipment? Try these bodyweight options!")
-                        .font(AppTypography.bodyMedium)
+                        .font(.system(size: 13, weight: .regular))
                         .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                     
@@ -59,21 +59,22 @@ struct AlternativeExercisesView: View {
                     }) {
                         HStack {
                             Image(systemName: "magnifyingglass")
+                                .font(.system(size: 12))
                             Text("Browse ExRx Directory")
+                                .font(.system(size: 13, weight: .medium))
                         }
-                        .font(AppTypography.bodyMedium)
                         .foregroundColor(AppColors.accent)
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
                         .background(AppColors.accent.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .padding(.top, AppSpacing.md)
+                    .padding(.top, AppSpacing.sm)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.sm)
             } else {
-                VStack(spacing: AppSpacing.sm) {
+                VStack(spacing: AppSpacing.xs) {
                     ForEach(alternatives, id: \.self) { alternative in
                         AlternativeExerciseCard(
                             name: alternative,
@@ -90,22 +91,25 @@ struct AlternativeExercisesView: View {
                     }) {
                         HStack {
                             Image(systemName: "magnifyingglass")
+                                .font(.system(size: 12))
                             Text("Browse More Exercises")
+                                .font(.system(size: 13, weight: .medium))
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
+                                .font(.system(size: 10))
                         }
-                        .font(AppTypography.bodyMedium)
                         .foregroundColor(AppColors.accent)
-                        .padding(AppSpacing.md)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
                         .background(AppColors.accent.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .padding(.top, AppSpacing.xs)
+                    .padding(.top, 2)
                 }
             }
         }
-        .padding(AppSpacing.md)
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.sm)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
@@ -133,16 +137,20 @@ struct AlternativeExerciseCard: View {
     let exRxURL: String?
     let onTap: () -> Void
     @State private var showExRxInfo = false
+    @State private var isHovered = false
     
     var body: some View {
-        Button(action: onTap) {
-            HStack {
+        Button(action: {
+            HapticManager.selection()
+            onTap()
+        }) {
+            HStack(spacing: 8) {
                 Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 14))
                     .foregroundColor(AppColors.accent)
                 
                 Text(name)
-                    .font(AppTypography.bodyMedium)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(AppColors.textPrimary)
                 
                 Spacer()
@@ -152,24 +160,31 @@ struct AlternativeExerciseCard: View {
                         openExRxURL()
                     }) {
                         Image(systemName: "link")
-                            .font(.system(size: 12))
+                            .font(.system(size: 10))
                             .foregroundColor(AppColors.accent)
-                            .padding(6)
+                            .padding(4)
                             .background(AppColors.accent.opacity(0.1))
                             .clipShape(Circle())
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(SubtleButtonStyle())
                 }
                 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .foregroundColor(AppColors.textSecondary)
+                    .opacity(isHovered ? 0.7 : 1.0)
             }
-            .padding(AppSpacing.md)
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.vertical, AppSpacing.xs + 2)
             .background(AppColors.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .scaleEffect(isHovered ? 1.01 : 1.0)
+            .animation(AppAnimations.quick, value: isHovered)
         }
         .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
     
     private func openExRxURL() {
@@ -217,7 +232,7 @@ struct VideoTutorialButton: View {
             #endif
         } else {
             // Invalid URL - could show alert
-            print("Invalid YouTube URL: \(urlString)")
+            Logger.error("Invalid YouTube URL", category: .validation)
         }
     }
 }

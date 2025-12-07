@@ -120,7 +120,7 @@ struct CalisthenicsSkillCard: View {
 
 #Preview {
     CalisthenicsSkillsSection(
-        workoutViewModel: WorkoutViewModel(),
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         onStart: {}
     )
     .padding()

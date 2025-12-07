@@ -10,8 +10,9 @@ struct DashboardView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                // Header
+                // Header - extends to top of screen
                 DashboardHeader()
+                    .ignoresSafeArea(edges: .top)
                 
                 VStack(spacing: AppSpacing.lg) {
                     // Program Day Tracker
@@ -46,6 +47,10 @@ struct DashboardView: View {
                         workoutCount: progressViewModel.workoutCount
                     )
                     .padding(.horizontal, AppSpacing.lg)
+                    
+                    // Rest Day Button
+                    RestDayButton(progressViewModel: progressViewModel)
+                        .padding(.horizontal, AppSpacing.lg)
                     
                     // Workout Streak Card
                     WorkoutStreakCard(
@@ -138,14 +143,6 @@ struct QuickStatsGrid: View {
                     color: AppColors.primary
                 )
                 .animateOnAppear(delay: 0.1)
-                
-                IconStatCard(
-                    icon: "clock.fill",
-                    value: "\(workoutCount * 45)",
-                    label: "Minutes",
-                    color: AppColors.accent
-                )
-                .animateOnAppear(delay: 0.15)
             }
         }
     }
@@ -204,7 +201,7 @@ struct IconStatCard: View {
                 scale = 1.1
             }
         }
-        .onChange(of: value) { newValue in
+        .onChange(of: value) { oldValue, newValue in
             animateValue(from: animatedValue, to: newValue)
         }
     }
@@ -386,6 +383,8 @@ struct ExerciseRow: View {
 struct WeeklySummaryCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     
+    private let workoutHistoryManager = WorkoutHistoryManager.shared
+    
     var weeklyWorkouts: Int {
         let calendar = Calendar.current
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -393,9 +392,12 @@ struct WeeklySummaryCard: View {
     }
     
     var weeklyVolume: Int {
-        // Estimate based on total volume and workout count
-        let avgVolumePerWorkout = progressViewModel.totalVolume / max(progressViewModel.workoutCount, 1)
-        return weeklyWorkouts * avgVolumePerWorkout
+        // Calculate actual weekly volume from WorkoutHistoryManager
+        let calendar = Calendar.current
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let today = Date()
+        let dateRange = DateInterval(start: weekAgo, end: today)
+        return workoutHistoryManager.getTotalVolume(for: dateRange)
     }
     
     var body: some View {
@@ -606,6 +608,53 @@ struct QuickStartTemplatesSection: View {
     }
 }
 
+struct RestDayButton: View {
+    @ObservedObject var progressViewModel: ProgressViewModel
+    @State private var showConfirmation = false
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .medium)
+            showConfirmation = true
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppColors.accent)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Rest Day")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppColors.foreground)
+                    
+                    Text("Mark today as rest day")
+                        .font(.system(size: 13))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                
+                Spacer()
+            }
+            .padding(16)
+            .background(AppColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UI.smallCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.UI.smallCornerRadius)
+                    .stroke(AppColors.border, lineWidth: AppConstants.UI.borderWidth)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .alert("Mark Rest Day", isPresented: $showConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Mark Rest Day") {
+                progressViewModel.markRestDay()
+                HapticManager.success()
+            }
+        } message: {
+            Text("This will mark today as a rest day and increment your streak. You can still work out later today if needed.")
+        }
+    }
+}
+
 struct QuickStartButton: View {
     let item: QuickStartTemplatesSection.QuickStartItem
     let onTap: () -> Void
@@ -643,7 +692,7 @@ struct QuickStartButton: View {
 #Preview {
     DashboardView(
         progressViewModel: ProgressViewModel(),
-        workoutViewModel: WorkoutViewModel(),
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         templatesViewModel: TemplatesViewModel(),
         programViewModel: WorkoutProgramViewModel(),
         onStartWorkout: {}

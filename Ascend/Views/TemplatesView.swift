@@ -170,7 +170,10 @@ struct TemplatesHeader: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 
-                Button(action: onCreate) {
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onCreate()
+                }) {
                     Image(systemName: "plus")
                         .font(.system(size: 20))
                         .foregroundColor(AppColors.primary)
@@ -178,6 +181,7 @@ struct TemplatesHeader: View {
                         .background(AppColors.secondary)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .buttonStyle(SubtleButtonStyle())
             }
         }
         .padding(.horizontal, 20)
@@ -196,6 +200,7 @@ struct TemplateCard: View {
     let template: WorkoutTemplate
     let onStart: () -> Void
     let onEdit: () -> Void
+    @State private var isHovered = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -210,7 +215,7 @@ struct TemplateCard: View {
             
             // Template Info
             HStack {
-                Text("\(template.exercises.count) exercises • ~\(template.estimatedDuration) min")
+                Text("\(template.exercises.count) exercises")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(AppColors.mutedForeground)
                 
@@ -258,8 +263,13 @@ struct TemplateCard: View {
         .padding(24)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.08), radius: isHovered ? 24 : 20, x: 0, y: isHovered ? 6 : 4)
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .scaleEffect(isHovered ? 1.01 : 1.0)
+        .animation(AppAnimations.quick, value: isHovered)
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
 }
 
@@ -438,7 +448,6 @@ struct AddExerciseView: View {
 struct TemplateEditView: View {
     @State private var templateName: String
     @State private var exercises: [TemplateExercise]
-    @State private var estimatedDuration: Int
     @State private var intensity: WorkoutIntensity?
     @State private var newExerciseName: String = ""
     @State private var newExerciseSets: Int = 3
@@ -459,12 +468,10 @@ struct TemplateEditView: View {
         if let template = template {
             _templateName = State(initialValue: template.name)
             _exercises = State(initialValue: template.exercises)
-            _estimatedDuration = State(initialValue: template.estimatedDuration)
             _intensity = State(initialValue: template.intensity)
         } else {
             _templateName = State(initialValue: "")
             _exercises = State(initialValue: [])
-            _estimatedDuration = State(initialValue: 60)
             _intensity = State(initialValue: nil)
         }
         self.onSave = onSave
@@ -634,27 +641,6 @@ struct TemplateEditView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
-                    // Estimated Duration
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Estimated Duration (minutes)")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        Stepper(value: $estimatedDuration, in: 15...180, step: 5) {
-                            Text("\(estimatedDuration) min")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(AppColors.foreground)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(AppColors.input)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    
                     // Delete Button (only for editing)
                     if onDelete != nil {
                         Button(action: {
@@ -701,20 +687,20 @@ struct TemplateEditView: View {
                     Button("Save") {
                         let template: WorkoutTemplate
                         if let original = originalTemplate {
-                            // Preserve ID when editing
+                            // Preserve ID when editing, keep existing estimatedDuration
                             template = WorkoutTemplate(
                                 id: original.id,
                                 name: templateName,
                                 exercises: exercises,
-                                estimatedDuration: estimatedDuration,
+                                estimatedDuration: original.estimatedDuration,
                                 intensity: intensity
                             )
                         } else {
-                            // New template gets new ID
+                            // New template gets new ID, use default estimatedDuration
                             template = WorkoutTemplate(
                                 name: templateName,
                                 exercises: exercises,
-                                estimatedDuration: estimatedDuration,
+                                estimatedDuration: 60,
                                 intensity: intensity
                             )
                         }
@@ -730,7 +716,7 @@ struct TemplateEditView: View {
 #Preview {
     TemplatesView(
         viewModel: TemplatesViewModel(),
-        workoutViewModel: WorkoutViewModel(),
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         programViewModel: WorkoutProgramViewModel(),
         onStartTemplate: {}
     )

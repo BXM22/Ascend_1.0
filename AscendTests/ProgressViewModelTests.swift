@@ -245,7 +245,140 @@ final class ProgressViewModelTests: XCTestCase {
         // Then
         XCTAssertEqual(viewModel.selectedView, .month)
     }
+    
+    // MARK: - Rest Day Tests
+    
+    func testMarkRestDay() {
+        // Given
+        let initialRestDayCount = viewModel.restDays.count
+        let today = Date()
+        
+        // When
+        viewModel.markRestDay(today)
+        
+        // Then
+        XCTAssertEqual(viewModel.restDays.count, initialRestDayCount + 1)
+        let calendar = Calendar.current
+        XCTAssertTrue(viewModel.restDays.contains { calendar.isDate($0, inSameDayAs: today) })
+    }
+    
+    func testMarkRestDay_IncrementsStreak() {
+        // Given
+        let calendar = Calendar.current
+        let today = Date()
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        viewModel.workoutDates = [yesterday]
+        viewModel.calculateStreaks()
+        let initialStreak = viewModel.currentStreak
+        
+        // When
+        viewModel.markRestDay(today)
+        
+        // Then - streak should include rest day
+        XCTAssertGreaterThanOrEqual(viewModel.currentStreak, initialStreak)
+    }
+    
+    func testMarkRestDay_DuplicateDate() {
+        // Given
+        let date = Date()
+        viewModel.markRestDay(date)
+        let initialCount = viewModel.restDays.count
+        
+        // When - Mark same date again
+        viewModel.markRestDay(date)
+        
+        // Then - Should not add duplicate
+        XCTAssertEqual(viewModel.restDays.count, initialCount)
+    }
+    
+    func testMarkRestDay_DoesNotAddIfWorkoutDay() {
+        // Given
+        let date = Date()
+        viewModel.addWorkoutDate(date)
+        let initialRestDayCount = viewModel.restDays.count
+        
+        // When - Try to mark as rest day when already workout day
+        viewModel.markRestDay(date)
+        
+        // Then - Should not add rest day
+        XCTAssertEqual(viewModel.restDays.count, initialRestDayCount)
+    }
+    
+    func testCalculateStreaks_IncludesRestDays() {
+        // Given
+        let calendar = Calendar.current
+        let today = Date()
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today) ?? today
+        
+        viewModel.workoutDates = [twoDaysAgo]
+        viewModel.restDays = [yesterday, today]
+        
+        // When
+        viewModel.calculateStreaks()
+        
+        // Then - Streak should include rest days
+        XCTAssertGreaterThanOrEqual(viewModel.currentStreak, 2)
+    }
+    
+    // MARK: - Volume Calculation Tests
+    
+    func testUpdateVolumeAndCount_FromWorkoutHistory() {
+        // Given
+        let initialVolume = viewModel.totalVolume
+        let initialCount = viewModel.workoutCount
+        
+        // Create a test workout
+        let workout = Workout(name: "Test Workout")
+        var exercise = Exercise(name: "Bench Press", targetSets: 3, exerciseType: .weightReps)
+        exercise.sets.append(ExerciseSet(setNumber: 1, weight: 185, reps: 8))
+        exercise.sets.append(ExerciseSet(setNumber: 2, weight: 185, reps: 8))
+        var workoutWithExercise = workout
+        workoutWithExercise.exercises = [exercise]
+        
+        // When - Add workout to history
+        WorkoutHistoryManager.shared.addCompletedWorkout(workoutWithExercise)
+        
+        // Wait for Combine publisher to update
+        let expectation = XCTestExpectation(description: "Wait for update")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+        
+        // Then - Volume and count should be updated
+        // Note: This tests real-time updates via Combine
+        XCTAssertGreaterThanOrEqual(viewModel.workoutCount, initialCount)
+    }
+    
+    func testTotalVolume_CalculatedFromWorkouts() {
+        // Given - Clear existing workouts for clean test
+        let workoutHistoryManager = WorkoutHistoryManager.shared
+        let initialWorkouts = workoutHistoryManager.completedWorkouts.count
+        
+        // Create test workout with known volume
+        var workout = Workout(name: "Test Workout")
+        var exercise = Exercise(name: "Bench Press", targetSets: 3, exerciseType: .weightReps)
+        exercise.sets.append(ExerciseSet(setNumber: 1, weight: 100, reps: 10)) // 1000 lbs
+        exercise.sets.append(ExerciseSet(setNumber: 2, weight: 100, reps: 10)) // 1000 lbs
+        workout.exercises = [exercise]
+        
+        // When
+        workoutHistoryManager.addCompletedWorkout(workout)
+        
+        // Wait for update
+        let expectation = XCTestExpectation(description: "Wait for update")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+        
+        // Then - Volume should include the new workout
+        let allTimeVolume = workoutHistoryManager.getAllTimeVolume()
+        XCTAssertGreaterThanOrEqual(allTimeVolume, 2000) // At least 2000 lbs from our test workout
+    }
 }
+
 
 
 

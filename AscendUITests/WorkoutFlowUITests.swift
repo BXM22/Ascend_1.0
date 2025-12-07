@@ -117,6 +117,55 @@ final class WorkoutFlowUITests: XCTestCase {
         XCTAssertTrue(skipButton.exists || app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Rest'")).firstMatch.exists)
     }
     
+    func testRestTimer_Skip() throws {
+        // Given - Rest timer is active
+        navigateToWorkout()
+        addExerciseToWorkout(name: "Bench Press")
+        completeSet(weight: "185", reps: "8")
+        sleep(1)
+        
+        // When - Tap Skip button
+        let skipButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Skip'")).firstMatch
+        if skipButton.waitForExistence(timeout: 2) {
+            skipButton.tap()
+            
+            // Then - Rest timer should be dismissed
+            sleep(1)
+            XCTAssertFalse(skipButton.exists)
+        }
+    }
+    
+    func testRestTimer_CompleteRest() throws {
+        // Given - Rest timer is active
+        navigateToWorkout()
+        addExerciseToWorkout(name: "Bench Press")
+        completeSet(weight: "185", reps: "8")
+        sleep(1)
+        
+        // When - Tap Complete Rest button
+        let completeRestButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Complete Rest'")).firstMatch
+        if completeRestButton.waitForExistence(timeout: 2) {
+            completeRestButton.tap()
+            
+            // Then - Rest timer should be dismissed
+            sleep(1)
+            XCTAssertFalse(completeRestButton.exists)
+        }
+    }
+    
+    func testRestTimer_ExerciseCardCollapse() throws {
+        // Given - Rest timer is active
+        navigateToWorkout()
+        addExerciseToWorkout(name: "Bench Press")
+        completeSet(weight: "185", reps: "8")
+        sleep(1)
+        
+        // Then - Exercise card should be collapsed (showing minimal info)
+        // Verify rest timer is visible and exercise card is condensed
+        let restTimer = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Rest Timer'")).firstMatch
+        XCTAssertTrue(restTimer.exists || app.buttons.matching(NSPredicate(format: "label CONTAINS 'Skip'")).firstMatch.exists)
+    }
+    
     func testFinishWorkout() throws {
         // Given - Start a workout
         navigateToWorkout()
@@ -130,6 +179,74 @@ final class WorkoutFlowUITests: XCTestCase {
             // Then - Workout should be finished
             sleep(1)
             // Verify workout is cleared
+        }
+    }
+    
+    func testFinishWorkout_ShowsCompletionModal() throws {
+        // Given - Complete a workout with sets
+        navigateToWorkout()
+        addExerciseToWorkout(name: "Bench Press")
+        completeSet(weight: "185", reps: "8")
+        
+        // Skip rest timer if present
+        let skipButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Skip'")).firstMatch
+        if skipButton.waitForExistence(timeout: 1) {
+            skipButton.tap()
+            sleep(1)
+        }
+        
+        // When - Finish workout
+        let finishButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'checkmark' OR identifier CONTAINS 'finish'")).firstMatch
+        if finishButton.waitForExistence(timeout: 2) {
+            finishButton.tap()
+            sleep(1)
+            
+            // Confirm finish if confirmation dialog appears
+            let confirmButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Finish' OR label CONTAINS 'Confirm'")).firstMatch
+            if confirmButton.waitForExistence(timeout: 1) {
+                confirmButton.tap()
+                sleep(2)
+            }
+            
+            // Then - Completion modal should appear
+            let completionModal = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Workout Complete' OR label CONTAINS 'Great job'")).firstMatch
+            XCTAssertTrue(completionModal.exists || app.buttons.matching(NSPredicate(format: "label CONTAINS 'Done'")).firstMatch.exists)
+        }
+    }
+    
+    func testCompletionModal_Dismiss() throws {
+        // Given - Completion modal is shown
+        navigateToWorkout()
+        addExerciseToWorkout(name: "Bench Press")
+        completeSet(weight: "185", reps: "8")
+        
+        // Skip rest and finish workout
+        let skipButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Skip'")).firstMatch
+        if skipButton.waitForExistence(timeout: 1) {
+            skipButton.tap()
+            sleep(1)
+        }
+        
+        let finishButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'checkmark' OR identifier CONTAINS 'finish'")).firstMatch
+        if finishButton.waitForExistence(timeout: 2) {
+            finishButton.tap()
+            sleep(1)
+            
+            let confirmButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Finish' OR label CONTAINS 'Confirm'")).firstMatch
+            if confirmButton.waitForExistence(timeout: 1) {
+                confirmButton.tap()
+                sleep(2)
+            }
+        }
+        
+        // When - Tap Done button
+        let doneButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Done'")).firstMatch
+        if doneButton.waitForExistence(timeout: 3) {
+            doneButton.tap()
+            
+            // Then - Modal should be dismissed
+            sleep(1)
+            XCTAssertFalse(doneButton.exists)
         }
     }
     
@@ -198,6 +315,7 @@ final class WorkoutFlowUITests: XCTestCase {
         }
     }
 }
+
 
 
 

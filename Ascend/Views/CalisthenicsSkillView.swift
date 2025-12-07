@@ -270,7 +270,7 @@ struct CurrentLevelCard: View {
 #Preview {
     CalisthenicsSkillView(
         skill: CalisthenicsSkillManager.shared.skills[0],
-        workoutViewModel: WorkoutViewModel()
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager())
     )
 }
 

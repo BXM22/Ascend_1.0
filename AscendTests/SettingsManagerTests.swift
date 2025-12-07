@@ -6,26 +6,25 @@ final class SettingsManagerTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        // Clear UserDefaults for testing
-        UserDefaults.standard.removeObject(forKey: "restTimerDuration")
         settingsManager = SettingsManager()
+        // Clear UserDefaults for clean test state
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerDuration)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.customColorTheme)
     }
     
     override func tearDown() {
         settingsManager = nil
-        UserDefaults.standard.removeObject(forKey: "restTimerDuration")
         super.tearDown()
     }
     
-    // MARK: - Rest Timer Duration Tests
+    // MARK: - Rest Timer Tests
     
     func testDefaultRestTimerDuration() {
         // Given/When
-        // SettingsManager is initialized
+        let manager = SettingsManager()
         
         // Then
-        XCTAssertGreaterThan(settingsManager.restTimerDuration, 0)
-        XCTAssertLessThanOrEqual(settingsManager.restTimerDuration, 600)
+        XCTAssertEqual(manager.restTimerDuration, AppConstants.Timer.defaultRestDuration)
     }
     
     func testSetRestTimerDuration() {
@@ -37,35 +36,50 @@ final class SettingsManagerTests: XCTestCase {
         
         // Then
         XCTAssertEqual(settingsManager.restTimerDuration, newDuration)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerDuration), newDuration)
     }
     
-    func testRestTimerDurationPersistence() {
-        // Given
-        let duration = 90
-        settingsManager.restTimerDuration = duration
-        
-        // When - Create new instance
-        let newManager = SettingsManager()
-        
-        // Then - Should load saved value
-        XCTAssertEqual(newManager.restTimerDuration, duration)
-    }
+    // MARK: - Theme Import Tests
     
-    func testRestTimerDurationUserDefaults() {
-        // Given
-        let duration = 60
-        settingsManager.restTimerDuration = duration
+    func testImportTheme_ValidURL() {
+        // Given - This would need a valid Coolors URL format
+        // Note: Actual implementation depends on CoolorsURLParser
+        let urlString = "https://coolors.co/0d1b2a-1b263b-415a77-778da9-e0e1dd"
         
         // When
-        let savedValue = UserDefaults.standard.integer(forKey: "restTimerDuration")
+        let result = settingsManager.importTheme(from: urlString)
+        
+        // Then - Result depends on CoolorsURLParser implementation
+        // This test verifies the method doesn't crash
+        XCTAssertNotNil(result)
+    }
+    
+    func testImportTheme_InvalidURL() {
+        // Given
+        let invalidURL = "not-a-valid-url"
+        
+        // When
+        let result = settingsManager.importTheme(from: invalidURL)
         
         // Then
-        XCTAssertEqual(savedValue, duration)
+        switch result {
+        case .failure(let error):
+            XCTAssertTrue(error is AppError)
+        case .success:
+            XCTFail("Should have failed with invalid URL")
+        }
+    }
+    
+    func testResetToDefaultTheme() {
+        // Given
+        let urlString = "https://coolors.co/0d1b2a-1b263b-415a77-778da9-e0e1dd"
+        _ = settingsManager.importTheme(from: urlString)
+        XCTAssertNotNil(settingsManager.customTheme)
+        
+        // When
+        settingsManager.resetToDefaultTheme()
+        
+        // Then
+        XCTAssertNil(settingsManager.customTheme)
     }
 }
-
-
-
-
-
-

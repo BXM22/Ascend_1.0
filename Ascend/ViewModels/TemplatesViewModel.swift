@@ -14,74 +14,154 @@ class TemplatesViewModel: ObservableObject {
     @Published var generationSettings = WorkoutGenerationSettings()
     @Published var showGenerationSettings = false
     
-    private let templatesKey = "savedWorkoutTemplates"
+    private let templatesKey = AppConstants.UserDefaultsKeys.savedWorkoutTemplates
+    
+    // Performance optimizations
+    private var cachedCalisthenicsTemplates: [WorkoutTemplate]?
+    private let processingQueue = DispatchQueue(label: "com.ascend.templatesProcessing", qos: .utility)
     
     init() {
         loadTemplates()
     }
     
     func loadTemplates() {
-        // Load saved templates from UserDefaults
-        if let data = UserDefaults.standard.data(forKey: templatesKey),
-           let decoded = try? JSONDecoder().decode([WorkoutTemplate].self, from: data) {
-            templates = decoded
-        } else {
-            // Load sample templates if no saved data
-            loadSampleTemplates()
+        // Load on background queue for better performance
+        processingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Load saved templates from UserDefaults
+            guard let data = UserDefaults.standard.data(forKey: self.templatesKey) else {
+                // No saved data, start with default templates
+                DispatchQueue.main.async {
+                    self.templates = []
+                    self.loadDefaultTemplates()
+                    self.loadCalisthenicsTemplates()
+                }
+                return
+            }
+            
+            do {
+                let decoded = try JSONDecoder().decode([WorkoutTemplate].self, from: data)
+                DispatchQueue.main.async {
+                    self.templates = decoded
+                    // Only load default templates if they don't exist
+                    if !self.templates.contains(where: { $0.name == "Day 1: Push" }) {
+                        self.loadDefaultTemplates()
+                    }
+                    self.loadCalisthenicsTemplates()
+                }
+            } catch {
+                // Invalid data, log error and start fresh
+                Logger.error("Failed to load templates", error: error, category: .persistence)
+                // Clear invalid data
+                UserDefaults.standard.removeObject(forKey: self.templatesKey)
+                DispatchQueue.main.async {
+                    self.templates = []
+                    self.loadDefaultTemplates()
+                    self.loadCalisthenicsTemplates()
+                }
+            }
         }
-        
-        // Always add calisthenics skill progression templates (these are dynamic)
-        loadCalisthenicsTemplates()
     }
     
-    func loadSampleTemplates() {
-        let sampleTemplates = [
-            WorkoutTemplate(
-                name: "Push Day",
-                exercises: ["Bench Press", "Overhead Press", "Incline Dumbbell", "Tricep Dips", "Lateral Raises", "Chest Flyes"],
-                estimatedDuration: 60
-            ),
-            WorkoutTemplate(
-                name: "Pull Day",
-                exercises: ["Deadlift", "Pull-ups", "Barbell Rows", "Cable Rows", "Face Pulls"],
-                estimatedDuration: 50
-            ),
-            WorkoutTemplate(
-                name: "Leg Day",
-                exercises: ["Squat", "Romanian Deadlift", "Leg Press", "Leg Curls", "Calf Raises", "Lunges", "Leg Extensions"],
-                estimatedDuration: 70
-            )
-        ]
+    func loadDefaultTemplates() {
+        // Day 1: Push
+        let pushTemplate = WorkoutTemplate(
+            name: "Day 1: Push",
+            exercises: [
+                TemplateExercise(name: "Bench Press (Barbell)", sets: 3, reps: "6-10"),
+                TemplateExercise(name: "Shoulder Press (Dumbbell)", sets: 3, reps: "10-12"),
+                TemplateExercise(name: "Low Cable Fly Crossovers", sets: 3, reps: "12-15"),
+                TemplateExercise(name: "Triceps Extension (Dumbbell)", sets: 3, reps: "12-15"),
+                TemplateExercise(name: "Triceps Rope Pushdown", sets: 3, reps: "12-15")
+            ],
+            estimatedDuration: 60
+        )
         
-        // Only add sample templates if we have no saved templates
-        if templates.isEmpty {
-            templates = sampleTemplates
-        }
+        // Day 2: Pull
+        let pullTemplate = WorkoutTemplate(
+            name: "Day 2: Pull",
+            exercises: [
+                TemplateExercise(name: "Bent Over Row (Barbell)", sets: 3, reps: "6-10"),
+                TemplateExercise(name: "Lat Pulldown (Cable)", sets: 3, reps: "8-12"),
+                TemplateExercise(name: "Bicep Curl (Dumbbell)", sets: 3, reps: "12-15"),
+                TemplateExercise(name: "Hammer Curl (Dumbbell)", sets: 3, reps: "12-15"),
+                TemplateExercise(name: "Face Pull", sets: 3, reps: "15-25")
+            ],
+            estimatedDuration: 60
+        )
+        
+        // Day 3: Legs
+        let legsTemplate = WorkoutTemplate(
+            name: "Day 3: Legs",
+            exercises: [
+                TemplateExercise(name: "Squat (Barbell)", sets: 3, reps: "6-10"),
+                TemplateExercise(name: "Glute Ham Raise", sets: 3, reps: "8-12"),
+                TemplateExercise(name: "Lunge (Dumbbell)", sets: 3, reps: "10-15"),
+                TemplateExercise(name: "Lying Leg Curl (Machine)", sets: 3, reps: "12-15"),
+                TemplateExercise(name: "Standing Calf Raise (Smith)", sets: 3, reps: "8-12")
+            ],
+            estimatedDuration: 60
+        )
+        
+        // Only add if they don't already exist
+        let existingNames = Set(templates.map { $0.name })
+        let defaultTemplates = [pushTemplate, pullTemplate, legsTemplate]
+            .filter { !existingNames.contains($0.name) }
+        
+        templates.append(contentsOf: defaultTemplates)
     }
     
     func loadCalisthenicsTemplates() {
-        let calisthenicsTemplates = CalisthenicsSkillManager.shared.skills.map { skill in
-            // Create template with all progression levels as exercises
-            let exerciseNames = skill.progressionLevels.map { "\(skill.name) - \($0.name)" }
-            return WorkoutTemplate(
-                name: "\(skill.name) Progression",
-                exercises: exerciseNames,
-                estimatedDuration: 45
-            )
+        // Use cached calisthenics templates if available
+        if let cached = cachedCalisthenicsTemplates {
+            let existingProgressionNames = Set(templates.filter { $0.name.contains("Progression") }.map { $0.name })
+            let newCalisthenicsTemplates = cached.filter { !existingProgressionNames.contains($0.name) }
+            templates.append(contentsOf: newCalisthenicsTemplates)
+            return
         }
         
-        // Only add calisthenics templates if they don't already exist
-        let existingProgressionNames = Set(templates.filter { $0.name.contains("Progression") }.map { $0.name })
-        let newCalisthenicsTemplates = calisthenicsTemplates.filter { !existingProgressionNames.contains($0.name) }
-        templates.append(contentsOf: newCalisthenicsTemplates)
+        // Generate calisthenics templates on background queue
+        processingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let calisthenicsTemplates = CalisthenicsSkillManager.shared.skills.map { skill in
+                // Create template with all progression levels as exercises
+                let exerciseNames = skill.progressionLevels.map { "\(skill.name) - \($0.name)" }
+                return WorkoutTemplate(
+                    name: "\(skill.name) Progression",
+                    exercises: exerciseNames,
+                    estimatedDuration: 45
+                )
+            }
+            
+            // Cache the templates
+            self.cachedCalisthenicsTemplates = calisthenicsTemplates
+            
+            DispatchQueue.main.async {
+                // Only add calisthenics templates if they don't already exist
+                let existingProgressionNames = Set(self.templates.filter { $0.name.contains("Progression") }.map { $0.name })
+                let newCalisthenicsTemplates = calisthenicsTemplates.filter { !existingProgressionNames.contains($0.name) }
+                self.templates.append(contentsOf: newCalisthenicsTemplates)
+            }
+        }
     }
     
     private func saveTemplates() {
-        // Filter out calisthenics progression templates before saving (they're dynamic)
-        let templatesToSave = templates.filter { !$0.name.contains("Progression") }
-        
-        if let encoded = try? JSONEncoder().encode(templatesToSave) {
-            UserDefaults.standard.set(encoded, forKey: templatesKey)
+        // Save on background queue
+        processingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Filter out calisthenics progression templates before saving (they're dynamic)
+            let templatesToSave = self.templates.filter { !$0.name.contains("Progression") }
+            
+            do {
+                let encoded = try JSONEncoder().encode(templatesToSave)
+                UserDefaults.standard.set(encoded, forKey: self.templatesKey)
+            } catch {
+                // Log error but don't crash - template saving is not critical
+                Logger.error("Failed to save templates", error: error, category: .persistence)
+            }
         }
     }
     

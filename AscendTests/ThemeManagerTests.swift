@@ -7,14 +7,13 @@ final class ThemeManagerTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        // Clear UserDefaults for testing
-        UserDefaults.standard.removeObject(forKey: "themeMode")
         themeManager = ThemeManager()
+        // Clear UserDefaults for clean test state
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.themeMode)
     }
     
     override func tearDown() {
         themeManager = nil
-        UserDefaults.standard.removeObject(forKey: "themeMode")
         super.tearDown()
     }
     
@@ -22,28 +21,30 @@ final class ThemeManagerTests: XCTestCase {
     
     func testDefaultThemeMode() {
         // Given/When
-        // ThemeManager is initialized
+        let manager = ThemeManager()
         
         // Then
-        XCTAssertEqual(themeManager.themeMode, .system)
+        XCTAssertEqual(manager.themeMode, .system)
     }
     
     func testSetThemeMode_Light() {
-        // Given/When
+        // When
         themeManager.themeMode = .light
         
         // Then
         XCTAssertEqual(themeManager.themeMode, .light)
         XCTAssertEqual(themeManager.colorScheme, .light)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: AppConstants.UserDefaultsKeys.themeMode), "Light")
     }
     
     func testSetThemeMode_Dark() {
-        // Given/When
+        // When
         themeManager.themeMode = .dark
         
         // Then
         XCTAssertEqual(themeManager.themeMode, .dark)
         XCTAssertEqual(themeManager.colorScheme, .dark)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: AppConstants.UserDefaultsKeys.themeMode), "Dark")
     }
     
     func testSetThemeMode_System() {
@@ -56,9 +57,8 @@ final class ThemeManagerTests: XCTestCase {
         // Then
         XCTAssertEqual(themeManager.themeMode, .system)
         XCTAssertNil(themeManager.colorScheme)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: AppConstants.UserDefaultsKeys.themeMode), "System")
     }
-    
-    // MARK: - Persistence Tests
     
     func testThemeModePersistence() {
         // Given
@@ -67,24 +67,7 @@ final class ThemeManagerTests: XCTestCase {
         // When - Create new instance
         let newManager = ThemeManager()
         
-        // Then - Should load saved value
+        // Then - Should load saved preference
         XCTAssertEqual(newManager.themeMode, .dark)
     }
-    
-    func testThemeModeUserDefaults() {
-        // Given
-        themeManager.themeMode = .light
-        
-        // When
-        let savedValue = UserDefaults.standard.string(forKey: "themeMode")
-        
-        // Then
-        XCTAssertEqual(savedValue, "Light")
-    }
 }
-
-
-
-
-
-

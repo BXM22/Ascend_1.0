@@ -8,21 +8,8 @@ class WorkoutSplitViewModel: ObservableObject {
     @Published var editingSplit: WorkoutSplit?
     
     init() {
-        loadSampleSplits()
-    }
-    
-    func loadSampleSplits() {
-        // Create sample splits
-        splits = [
-            WorkoutSplit(
-                name: "My PPL Split",
-                splitType: .pushPullLegs
-            ),
-            WorkoutSplit(
-                name: "Upper/Lower Split",
-                splitType: .chestBackLegsShouldersArms
-            )
-        ]
+        // Start with empty splits - users can create their own
+        splits = []
     }
     
     func createSplit(name: String, splitType: WorkoutSplitType) {

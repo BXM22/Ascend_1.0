@@ -13,7 +13,7 @@ class ColorThemeProvider: ObservableObject {
     private init() {
         // Listen for theme changes
         NotificationCenter.default.addObserver(
-            forName: .colorThemeDidChange,
+            forName: AppConstants.Notification.colorThemeDidChange,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -33,7 +33,7 @@ struct AppColors {
     // MARK: - Custom Theme Support
     
     private static var customTheme: ColorTheme? {
-        if let data = UserDefaults.standard.data(forKey: "customColorTheme"),
+        if let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.customColorTheme),
            let theme = try? JSONDecoder().decode(ColorTheme.self, from: data) {
             return theme
         }

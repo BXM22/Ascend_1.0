@@ -10,17 +10,26 @@ class WorkoutViewModel: ObservableObject {
     @Published var currentExerciseIndex: Int = 0
     @Published var elapsedTime: Int = 0
     @Published var restTimerActive: Bool = false
-    @Published var restTimeRemaining: Int = 60
+    @Published var restTimeRemaining: Int = AppConstants.Timer.defaultRestDuration
+    @Published var restTimerTotalDuration: Int = AppConstants.Timer.defaultRestDuration
     @Published var showPRBadge: Bool = false
     @Published var prMessage: String = ""
     @Published var showAddExerciseSheet: Bool = false
     @Published var showSettingsSheet: Bool = false
+    @Published var showCompletionModal: Bool = false
+    @Published var completionStats: WorkoutCompletionStats?
     
-    var settingsManager: SettingsManager?
-    var progressViewModel: ProgressViewModel?
-    var programViewModel: WorkoutProgramViewModel?
-    var templatesViewModel: TemplatesViewModel?
-    var themeManager: ThemeManager?
+    // Dropset configuration state
+    @Published var dropsetsEnabled: Bool = false
+    @Published var numberOfDropsets: Int = AppConstants.Dropset.defaultDropsets
+    @Published var weightReductionPerDropset: Double = AppConstants.Dropset.defaultWeightReduction
+    
+    // Dependencies (injected via initializer)
+    let settingsManager: SettingsManager
+    weak var progressViewModel: ProgressViewModel?
+    weak var programViewModel: WorkoutProgramViewModel?
+    weak var templatesViewModel: TemplatesViewModel?
+    weak var themeManager: ThemeManager?
     
     private var timer: Timer?
     private var restTimer: Timer?
@@ -28,6 +37,7 @@ class WorkoutViewModel: ObservableObject {
     private var restTimerStartTime: Date?
     private var restTimerOriginalDuration: Int = 0
     private var backgroundTime: Date?
+    private var notificationObservers: [NSObjectProtocol] = []
     
     var currentExercise: Exercise? {
         guard let workout = currentWorkout,
@@ -37,36 +47,84 @@ class WorkoutViewModel: ObservableObject {
         return workout.exercises[currentExerciseIndex]
     }
     
-    init(settingsManager: SettingsManager? = nil) {
-        self.settingsManager = settingsManager ?? SettingsManager()
+    /// Initialize with required dependencies
+    /// - Parameters:
+    ///   - settingsManager: Required settings manager
+    ///   - progressViewModel: Optional progress view model (weak reference)
+    ///   - programViewModel: Optional program view model (weak reference)
+    ///   - templatesViewModel: Optional templates view model (weak reference)
+    ///   - themeManager: Optional theme manager (weak reference)
+    init(
+        settingsManager: SettingsManager,
+        progressViewModel: ProgressViewModel? = nil,
+        programViewModel: WorkoutProgramViewModel? = nil,
+        templatesViewModel: TemplatesViewModel? = nil,
+        themeManager: ThemeManager? = nil
+    ) {
+        self.settingsManager = settingsManager
+        self.progressViewModel = progressViewModel
+        self.programViewModel = programViewModel
+        self.templatesViewModel = templatesViewModel
+        self.themeManager = themeManager
         setupAppLifecycleObservers()
+        restoreRestTimerState()
     }
     
     private func setupAppLifecycleObservers() {
         #if canImport(UIKit)
         // Listen for app going to background
-        NotificationCenter.default.addObserver(
+        let backgroundObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.handleAppBackgrounded()
         }
+        notificationObservers.append(backgroundObserver)
         
         // Listen for app coming to foreground
-        NotificationCenter.default.addObserver(
+        let foregroundObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.handleAppForegrounded()
         }
+        notificationObservers.append(foregroundObserver)
+        
+        // Listen for rest timer completion from notification
+        let restTimerCompletedObserver = NotificationCenter.default.addObserver(
+            forName: Notification.Name("RestTimerCompletedFromNotification"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Logger.info("Received rest timer completion notification", category: .notification)
+            // If rest timer is still active, complete it
+            if self?.restTimerActive == true {
+                self?.completeRest()
+            } else {
+                // Timer may have already completed, but ensure state is clean
+                self?.restTimeRemaining = 0
+            }
+        }
+        notificationObservers.append(restTimerCompletedObserver)
         #endif
     }
     
     private func handleAppBackgrounded() {
         backgroundTime = Date()
-        // No need to store anything - we'll calculate from restTimerStartTime when foregrounding
+        // Pause timers when going to background to save battery
+        // We'll recalculate time when foregrounding
+        timer?.invalidate()
+        timer = nil
+        restTimer?.invalidate()
+        restTimer = nil
+        
+        // Save rest timer state for app termination scenarios
+        // This ensures we can restore accurately even if app is killed
+        saveRestTimerState()
+        
+        Logger.debug("App backgrounded - saved rest timer state", category: .persistence)
     }
     
     private func handleAppForegrounded() {
@@ -76,8 +134,8 @@ class WorkoutViewModel: ObservableObject {
         // Update workout timer - recalculate from start time
         if let startTime = workoutStartTime {
             elapsedTime = Int(Date().timeIntervalSince(startTime))
-            // Restart timer if it was running
-            if timer == nil && currentWorkout != nil {
+            // Restart timer if workout is active (was running before backgrounding)
+            if currentWorkout != nil && timer == nil {
                 startTimer()
             }
         }
@@ -86,19 +144,50 @@ class WorkoutViewModel: ObservableObject {
         if restTimerActive, let restStart = restTimerStartTime {
             // Calculate total elapsed time since timer started
             let totalElapsed = Int(Date().timeIntervalSince(restStart))
-            let newRemaining = max(0, restTimerOriginalDuration - totalElapsed)
+            // Use the original total duration for accurate calculation
+            // Prefer restTimerTotalDuration as it's the published value used by UI
+            let originalTotal = restTimerTotalDuration > 0 ? restTimerTotalDuration : restTimerOriginalDuration
             
-            restTimeRemaining = newRemaining
+            guard originalTotal > 0 else {
+                Logger.error("Invalid original total duration: \(originalTotal)", category: .persistence)
+                completeRest()
+                return
+            }
+            
+            let newRemaining = max(0, originalTotal - totalElapsed)
             
             if newRemaining <= 0 {
                 // Timer completed while in background
+                Logger.info("Rest timer completed while app was in background", category: .persistence)
                 completeRest()
             } else {
                 // Restart timer with remaining time - reset start time to now
                 // The timer will continue counting down from the updated restTimeRemaining
+                restTimeRemaining = newRemaining
                 restTimerStartTime = Date()
+                
+                // Preserve original total duration for accurate progress calculation
+                // Ensure restTimerTotalDuration is set correctly
+                if restTimerTotalDuration == 0 || restTimerTotalDuration != originalTotal {
+                    restTimerTotalDuration = originalTotal
+                }
+                restTimerOriginalDuration = originalTotal
+                
+                // Restart the timer
                 restartRestTimer()
+                
+                // Reschedule notification with remaining time
+                NotificationManager.shared.scheduleRestTimerNotification(duration: newRemaining)
+                
+                // Save updated state
+                saveRestTimerState()
+                
+                Logger.debug("Restored rest timer after foreground: \(newRemaining)s remaining of \(originalTotal)s total", category: .persistence)
             }
+        } else if restTimerActive {
+            // Timer was active but we lost the start time - try to restore from UserDefaults
+            Logger.debug("Rest timer active but start time missing - attempting restore", category: .persistence)
+            restoreRestTimerState()
         }
     }
     
@@ -126,11 +215,15 @@ class WorkoutViewModel: ObservableObject {
                 exerciseType: exerciseType,
                 holdDuration: holdDuration,
                 alternatives: alternatives,
-                videoURL: videoURL
+                videoURL: videoURL,
+                hasDropsets: templateExercise.dropsets,
+                numberOfDropsets: templateExercise.dropsets ? 1 : 0,
+                weightReductionPerDropset: 5.0
             )
         }
         currentWorkout = Workout(name: template.name, exercises: exercises)
         currentExerciseIndex = 0
+        syncDropsetStateFromCurrentExercise()
         startTimer()
     }
     
@@ -161,7 +254,7 @@ class WorkoutViewModel: ObservableObject {
     
     func startTimer() {
         workoutStartTime = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.workoutTimerInterval, repeats: true) { [weak self] _ in
             guard let self = self, let startTime = self.workoutStartTime else { return }
             self.elapsedTime = Int(Date().timeIntervalSince(startTime))
         }
@@ -178,50 +271,133 @@ class WorkoutViewModel: ObservableObject {
     func finishWorkout() {
         pauseWorkout()
         
-        // Save completed workout
-        if let workout = currentWorkout {
-            WorkoutHistoryManager.shared.addCompletedWorkout(workout)
+        guard let workout = currentWorkout else { return }
+        
+        // Calculate completion statistics before saving
+        let totalSets = workout.exercises.reduce(0) { $0 + $1.sets.count }
+        let totalVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
+            let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
+                return setTotal + Int(set.weight * Double(set.reps))
+            }
+            return exerciseTotal + exerciseVolume
         }
         
-        // Add workout date to progress tracking
+        // Check for PRs achieved during this workout
+        var prsAchieved: [String] = []
+        if let progressVM = progressViewModel {
+            // Get PRs that were added today
+            let today = Calendar.current.startOfDay(for: Date())
+            let todayPRs = progressVM.prs.filter { Calendar.current.startOfDay(for: $0.date) == today }
+            prsAchieved = Array(Set(todayPRs.map { $0.exercise }))
+        }
+        
+        // Create completion stats
+        let stats = WorkoutCompletionStats(
+            duration: elapsedTime,
+            exerciseCount: workout.exercises.count,
+            totalSets: totalSets,
+            totalVolume: totalVolume,
+            prsAchieved: prsAchieved
+        )
+        
+        // Save completed workout FIRST - this triggers WorkoutHistoryManager updates
+        WorkoutHistoryManager.shared.addCompletedWorkout(workout)
+        
+        // Add workout date to progress tracking and calculate streak IMMEDIATELY
         if let progressVM = progressViewModel {
             progressVM.addWorkoutDate()
+            // Force immediate streak calculation (addWorkoutDate already calls calculateStreaks, but ensure it's synchronous)
+            progressVM.calculateStreaks()
             // Invalidate volume cache since new workout was added
             progressVM.invalidateVolumeCache()
+            // Force immediate volume and count update
+            progressVM.updateVolumeAndCount()
         }
         
         // Advance program day if workout was from a program
         if let programVM = programViewModel,
-           let workout = currentWorkout,
            let activeProgram = programVM.activeProgram,
            let program = programVM.programs.first(where: { $0.id == activeProgram.programId }),
            workout.name.contains(program.name) {
             programVM.advanceToNextDay(for: program)
         }
         
-        currentWorkout = nil
-        currentExerciseIndex = 0
-        elapsedTime = 0
+        // Store stats and show modal BEFORE clearing workout state
+        // This ensures modal appears with accurate data and view is still visible
+        completionStats = stats
+        showCompletionModal = true
+        
+        Logger.debug("Showing completion modal - stats: \(stats.exerciseCount) exercises, \(stats.totalSets) sets, \(stats.totalVolume) lbs", category: .general)
+        
+        // Celebration haptic feedback
+        HapticManager.success()
+        
+        // Don't clear workout state yet - wait until modal is dismissed
+        // This ensures the modal overlay remains visible
     }
     
     func completeSet(weight: Double, reps: Int) {
+        // Validate input
+        switch validateSetCompletion(weight: weight, reps: reps) {
+        case .failure(let error):
+            // Log error - in a production app, you might want to show an alert
+            Logger.error("Set completion validation failed", error: error, category: .validation)
+            return
+        case .success:
+            break
+        }
+        
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
-        let set = ExerciseSet(
-            setNumber: exercise.currentSet,
+        // Update dropset configuration from state before completing set
+        exercise.hasDropsets = dropsetsEnabled
+        exercise.numberOfDropsets = dropsetsEnabled ? numberOfDropsets : 0
+        exercise.weightReductionPerDropset = max(AppConstants.Dropset.minWeightReduction, weightReductionPerDropset)
+        
+        // Create main set
+        let mainSetNumber = exercise.currentSet
+        let mainSet = ExerciseSet(
+            setNumber: mainSetNumber,
             weight: weight,
-            reps: reps
+            reps: reps,
+            isDropset: false
         )
         
-        exercise.sets.append(set)
+        exercise.sets.append(mainSet)
+        
+        // If dropsets are enabled, automatically create dropset sets
+        // Use state variables directly as source of truth
+        if dropsetsEnabled && numberOfDropsets > 0 {
+            let reductionAmount = max(AppConstants.Dropset.minWeightReduction, weightReductionPerDropset)
+            
+            for dropsetNumber in 1...numberOfDropsets {
+                let dropsetWeight = max(0, weight - (Double(dropsetNumber) * reductionAmount))
+                
+                let dropset = ExerciseSet(
+                    setNumber: mainSetNumber, // Same set number as main set
+                    weight: dropsetWeight,
+                    reps: reps,
+                    isDropset: true,
+                    dropsetNumber: dropsetNumber
+                )
+                
+                exercise.sets.append(dropset)
+            }
+        }
+        
+        // Increment currentSet only after completing the main set (and its dropsets)
         exercise.currentSet += 1
         
         // Update exercise in workout
         workout.exercises[currentExerciseIndex] = exercise
+        
+        // Force SwiftUI to detect the change by explicitly triggering objectWillChange
+        // and assigning a new workout instance
+        objectWillChange.send()
         currentWorkout = workout
         
-        // Add initial entry for new exercise or check for PR
+        // Add initial entry for new exercise or check for PR (only check main set, not dropsets)
         if let progressVM = progressViewModel {
             if !progressVM.availableExercises.contains(exercise.name) {
                 // First time this exercise is being tracked
@@ -235,11 +411,28 @@ class WorkoutViewModel: ObservableObject {
             checkForPR(exercise: exercise.name, weight: weight, reps: reps)
         }
         
-        // Start rest timer
-        startRestTimer()
+        // Check if all sets are completed before starting rest timer
+        // If all sets are done, advance to next exercise instead of starting rest
+        if exercise.currentSet > exercise.targetSets {
+            // All sets completed, advance to next exercise immediately
+            advanceToNextExercise()
+        } else {
+            // Start rest timer
+            startRestTimer()
+        }
     }
     
     func completeHoldSet(duration: Int) {
+        // Validate input
+        switch validateHoldSetCompletion(duration: duration) {
+        case .failure(let error):
+            // Log error - in a production app, you might want to show an alert
+            Logger.error("Hold set completion validation failed", error: error, category: .validation)
+            return
+        case .success:
+            break
+        }
+        
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
@@ -255,6 +448,9 @@ class WorkoutViewModel: ObservableObject {
         
         // Update exercise in workout
         workout.exercises[currentExerciseIndex] = exercise
+        
+        // Force SwiftUI to detect the change
+        objectWillChange.send()
         currentWorkout = workout
         
         // Start rest timer
@@ -262,6 +458,16 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func addExercise(name: String, targetSets: Int, type: ExerciseType, holdDuration: Int?) {
+        // Validate input
+        switch validateAddExercise(name: name, targetSets: targetSets, type: type, holdDuration: holdDuration) {
+        case .failure(let error):
+            // Log error - in a production app, you might want to show an alert
+            Logger.error("Add exercise validation failed", error: error, category: .validation)
+            return
+        case .success:
+            break
+        }
+        
         guard var workout = currentWorkout else {
             // Create new workout if none exists
             let alternatives = ExerciseDataManager.shared.getAlternatives(for: name)
@@ -295,6 +501,16 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func switchToAlternative(alternativeName: String) {
+        // Validate input
+        switch validateAlternativeSwitch(alternativeName: alternativeName) {
+        case .failure(let error):
+            // Log error - in a production app, you might want to show an alert
+            Logger.error("Alternative switch validation failed", error: error, category: .validation)
+            return
+        case .success:
+            break
+        }
+        
         guard var workout = currentWorkout,
               currentExerciseIndex < workout.exercises.count else { return }
         
@@ -303,33 +519,49 @@ class WorkoutViewModel: ObservableObject {
         let videoURL = ExerciseDataManager.shared.getVideoURL(for: alternativeName)
         
         // Replace current exercise with alternative
+        let currentExercise = workout.exercises[currentExerciseIndex]
         var alternativeExercise = Exercise(
             name: alternativeName,
-            targetSets: workout.exercises[currentExerciseIndex].targetSets,
-            exerciseType: workout.exercises[currentExerciseIndex].exerciseType,
-            holdDuration: workout.exercises[currentExerciseIndex].targetHoldDuration,
+            targetSets: currentExercise.targetSets,
+            exerciseType: currentExercise.exerciseType,
+            holdDuration: currentExercise.targetHoldDuration,
             alternatives: alternatives,
-            videoURL: videoURL
+            videoURL: videoURL,
+            hasDropsets: currentExercise.hasDropsets,
+            numberOfDropsets: currentExercise.numberOfDropsets,
+            weightReductionPerDropset: currentExercise.weightReductionPerDropset
         )
         
         // Preserve sets if any
-        alternativeExercise.sets = workout.exercises[currentExerciseIndex].sets
-        alternativeExercise.currentSet = workout.exercises[currentExerciseIndex].currentSet
+        alternativeExercise.sets = currentExercise.sets
+        alternativeExercise.currentSet = currentExercise.currentSet
         
         workout.exercises[currentExerciseIndex] = alternativeExercise
         currentWorkout = workout
+        
+        // Sync dropset state after switching
+        syncDropsetStateFromCurrentExercise()
     }
     
     private func startRestTimer() {
-        guard let settingsManager = settingsManager else { return }
-        
         restTimerActive = true
         restTimerOriginalDuration = settingsManager.restTimerDuration
+        restTimerTotalDuration = restTimerOriginalDuration
         restTimeRemaining = restTimerOriginalDuration
         restTimerStartTime = Date()
         
+        // Validate timer duration
+        guard restTimerOriginalDuration > 0 else {
+            Logger.error("Invalid rest timer duration: \(restTimerOriginalDuration)", category: .validation)
+            restTimerActive = false
+            return
+        }
+        
         // Schedule notification for when rest timer completes
         NotificationManager.shared.scheduleRestTimerNotification(duration: restTimeRemaining)
+        
+        // Save state for persistence
+        saveRestTimerState()
         
         startRestTimerTick()
     }
@@ -341,12 +573,15 @@ class WorkoutViewModel: ObservableObject {
     
     private func startRestTimerTick() {
         restTimer?.invalidate()
-        restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        restTimer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.restTimerInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
+            // Ensure time remaining is never negative
             if self.restTimeRemaining > 0 {
                 self.restTimeRemaining -= 1
             } else {
+                // Timer reached zero or went negative - complete rest
+                self.restTimeRemaining = 0
                 self.completeRest()
             }
         }
@@ -359,9 +594,16 @@ class WorkoutViewModel: ObservableObject {
         restTimeRemaining = 0
         restTimerStartTime = nil
         restTimerOriginalDuration = 0
+        restTimerTotalDuration = AppConstants.Timer.defaultRestDuration
         
         // Cancel notification since timer was skipped
         NotificationManager.shared.cancelRestTimerNotification()
+        
+        // Clear saved state
+        clearRestTimerState()
+        
+        // Check if exercise is complete and advance if needed
+        checkAndAdvanceExercise()
     }
     
     func completeRest() {
@@ -371,9 +613,72 @@ class WorkoutViewModel: ObservableObject {
         restTimeRemaining = 0
         restTimerStartTime = nil
         restTimerOriginalDuration = 0
+        restTimerTotalDuration = AppConstants.Timer.defaultRestDuration
         
         // Cancel notification since timer completed
         NotificationManager.shared.cancelRestTimerNotification()
+        
+        // Clear saved state
+        clearRestTimerState()
+        
+        // Check if exercise is complete and advance if needed
+        checkAndAdvanceExercise()
+    }
+    
+    private func checkAndAdvanceExercise() {
+        guard let exercise = currentExercise,
+              currentWorkout != nil else { return }
+        
+        // Check if all sets are completed
+        if exercise.currentSet > exercise.targetSets {
+            // All sets completed, move to next exercise
+            advanceToNextExercise()
+        }
+    }
+    
+    private func advanceToNextExercise() {
+        guard let workout = currentWorkout else { return }
+        
+        // Check if there's a next exercise
+        if currentExerciseIndex < workout.exercises.count - 1 {
+            // Move to next exercise with animation
+            withAnimation(AppAnimations.smooth) {
+                currentExerciseIndex += 1
+            }
+            syncDropsetStateFromCurrentExercise()
+            HapticManager.selection()
+        } else {
+            // Last exercise completed - automatically finish the workout
+            // This shows the completion modal and saves stats to dashboard
+            HapticManager.success()
+            finishWorkout()
+        }
+    }
+    
+    // Sync dropset state from current exercise
+    func syncDropsetStateFromCurrentExercise() {
+        guard let exercise = currentExercise else {
+            dropsetsEnabled = false
+            numberOfDropsets = AppConstants.Dropset.defaultDropsets
+            weightReductionPerDropset = AppConstants.Dropset.defaultWeightReduction
+            return
+        }
+        
+        dropsetsEnabled = exercise.hasDropsets
+        numberOfDropsets = exercise.numberOfDropsets > 0 ? exercise.numberOfDropsets : AppConstants.Dropset.defaultDropsets
+        weightReductionPerDropset = max(AppConstants.Dropset.minWeightReduction, exercise.weightReductionPerDropset)
+    }
+    
+    // Update current exercise with dropset configuration
+    func updateCurrentExerciseDropsetConfiguration() {
+        guard var workout = currentWorkout,
+              currentExerciseIndex < workout.exercises.count else { return }
+        
+        workout.exercises[currentExerciseIndex].hasDropsets = dropsetsEnabled
+        workout.exercises[currentExerciseIndex].numberOfDropsets = dropsetsEnabled ? numberOfDropsets : 0
+        workout.exercises[currentExerciseIndex].weightReductionPerDropset = max(AppConstants.Dropset.minWeightReduction, weightReductionPerDropset)
+        
+        currentWorkout = workout
     }
     
     func abortWorkoutTimer() {
@@ -397,12 +702,85 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Rest Timer Persistence
+    
+    private func saveRestTimerState() {
+        guard restTimerActive else {
+            clearRestTimerState()
+            return
+        }
+        
+        // Ensure we have valid values before saving
+        guard restTimeRemaining >= 0, restTimerTotalDuration > 0 else {
+            Logger.error("Invalid rest timer state - not saving", category: .persistence)
+            return
+        }
+        
+        UserDefaults.standard.set(restTimerActive, forKey: AppConstants.UserDefaultsKeys.restTimerActive)
+        UserDefaults.standard.set(max(0, restTimeRemaining), forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
+        UserDefaults.standard.set(restTimerTotalDuration, forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
+        
+        if let startTime = restTimerStartTime {
+            UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+        }
+        
+        Logger.debug("Saved rest timer state: \(restTimeRemaining)s remaining of \(restTimerTotalDuration)s total", category: .persistence)
+    }
+    
+    private func restoreRestTimerState() {
+        guard UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.restTimerActive) else {
+            return
+        }
+        
+        let remaining = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
+        let totalDuration = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
+        let startTimeInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+        
+        guard startTimeInterval > 0, totalDuration > 0 else {
+            clearRestTimerState()
+            return
+        }
+        
+        let startTime = Date(timeIntervalSince1970: startTimeInterval)
+        let elapsed = Int(Date().timeIntervalSince(startTime))
+        // Use the original total duration for accurate calculation
+        let newRemaining = max(0, totalDuration - elapsed)
+        
+        if newRemaining <= 0 {
+            // Timer completed while app was terminated
+            clearRestTimerState()
+            return
+        }
+        
+        // Restore state - preserve original total duration for accurate progress calculation
+        restTimerActive = true
+        restTimeRemaining = newRemaining
+        restTimerTotalDuration = totalDuration // Preserve original total duration
+        restTimerOriginalDuration = totalDuration // Set to original total, not remaining
+        restTimerStartTime = Date() // Reset to now for accurate counting
+        
+        // Restart the timer
+        restartRestTimer()
+        
+        // Reschedule notification with remaining time
+        NotificationManager.shared.scheduleRestTimerNotification(duration: newRemaining)
+        
+        Logger.debug("Restored rest timer state: \(newRemaining)s remaining of \(totalDuration)s total", category: .persistence)
+    }
+    
+    private func clearRestTimerState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerActive)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+    }
+    
     private func checkForPR(exercise: String, weight: Double, reps: Int) {
         guard let progressVM = progressViewModel else {
             // No progress view model connected, just show badge
             showPRBadge = true
             prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
                 self.showPRBadge = false
             }
             return
@@ -416,8 +794,8 @@ class WorkoutViewModel: ObservableObject {
             showPRBadge = true
             prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
             
-            // Hide PR badge after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            // Hide PR badge after configured duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
                 self.showPRBadge = false
             }
         }
@@ -426,6 +804,8 @@ class WorkoutViewModel: ObservableObject {
     deinit {
         timer?.invalidate()
         restTimer?.invalidate()
-        NotificationCenter.default.removeObserver(self)
+        // Remove all notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
     }
 }

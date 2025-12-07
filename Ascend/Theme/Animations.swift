@@ -162,3 +162,50 @@ struct ShimmerEffectModifier: ViewModifier {
     }
 }
 
+// MARK: - Button Styles
+struct SubtleButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.02 : 1.0))
+            .opacity(configuration.isPressed ? 0.85 : (isHovered ? 0.95 : 1.0))
+            .animation(AppAnimations.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimations.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .onChange(of: configuration.isPressed) { oldValue, newValue in
+                if newValue {
+                    HapticManager.impact(style: .light)
+                }
+            }
+    }
+}
+
+struct CardButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : (isHovered ? 1.01 : 1.0))
+            .brightness(configuration.isPressed ? -0.03 : (isHovered ? 0.02 : 0))
+            .shadow(
+                color: configuration.isPressed ? Color.black.opacity(0.1) : (isHovered ? Color.black.opacity(0.15) : Color.black.opacity(0.12)),
+                radius: configuration.isPressed ? 4 : (isHovered ? 6 : 5),
+                x: 0,
+                y: configuration.isPressed ? 2 : (isHovered ? 3 : 2)
+            )
+            .animation(AppAnimations.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimations.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .onChange(of: configuration.isPressed) { oldValue, newValue in
+                if newValue {
+                    HapticManager.impact(style: .light)
+                }
+            }
+    }
+}
+

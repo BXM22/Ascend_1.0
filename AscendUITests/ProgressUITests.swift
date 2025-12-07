@@ -122,7 +122,97 @@ final class ProgressUITests: XCTestCase {
         // PR section should exist (even if empty)
         XCTAssertTrue(prSection.count >= 0)
     }
+    
+    // MARK: - Rest Day Tests
+    
+    func testRestDayButton_Exists() throws {
+        // Given - Navigate to Dashboard
+        let dashboardButton = app.buttons["Home"]
+        XCTAssertTrue(dashboardButton.waitForExistence(timeout: 2))
+        dashboardButton.tap()
+        sleep(1)
+        
+        // Then - Rest Day button should be visible
+        let restDayButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Rest Day'")).firstMatch
+        XCTAssertTrue(restDayButton.exists)
+    }
+    
+    func testRestDayButton_TapShowsConfirmation() throws {
+        // Given - Navigate to Dashboard
+        let dashboardButton = app.buttons["Home"]
+        XCTAssertTrue(dashboardButton.waitForExistence(timeout: 2))
+        dashboardButton.tap()
+        sleep(1)
+        
+        // When - Tap Rest Day button
+        let restDayButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Rest Day'")).firstMatch
+        if restDayButton.waitForExistence(timeout: 2) {
+            restDayButton.tap()
+            sleep(1)
+            
+            // Then - Confirmation alert should appear
+            let alert = app.alerts.firstMatch
+            XCTAssertTrue(alert.waitForExistence(timeout: 2))
+            XCTAssertTrue(alert.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Rest Day'")).firstMatch.exists)
+        }
+    }
+    
+    func testRestDayButton_ConfirmMarksRestDay() throws {
+        // Given - Navigate to Dashboard
+        let dashboardButton = app.buttons["Home"]
+        XCTAssertTrue(dashboardButton.waitForExistence(timeout: 2))
+        dashboardButton.tap()
+        sleep(1)
+        
+        // When - Tap Rest Day and confirm
+        let restDayButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Rest Day'")).firstMatch
+        if restDayButton.waitForExistence(timeout: 2) {
+            restDayButton.tap()
+            sleep(1)
+            
+            let alert = app.alerts.firstMatch
+            if alert.waitForExistence(timeout: 2) {
+                let confirmButton = alert.buttons.matching(NSPredicate(format: "label CONTAINS 'Mark Rest Day' OR label CONTAINS 'Rest Day'")).firstMatch
+                if confirmButton.exists {
+                    confirmButton.tap()
+                    sleep(1)
+                    
+                    // Then - Alert should be dismissed
+                    XCTAssertFalse(alert.exists)
+                    // Streak should be updated (may need to check dashboard)
+                }
+            }
+        }
+    }
+    
+    func testRestDayButton_Cancel() throws {
+        // Given - Navigate to Dashboard
+        let dashboardButton = app.buttons["Home"]
+        XCTAssertTrue(dashboardButton.waitForExistence(timeout: 2))
+        dashboardButton.tap()
+        sleep(1)
+        
+        // When - Tap Rest Day and cancel
+        let restDayButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Rest Day'")).firstMatch
+        if restDayButton.waitForExistence(timeout: 2) {
+            restDayButton.tap()
+            sleep(1)
+            
+            let alert = app.alerts.firstMatch
+            if alert.waitForExistence(timeout: 2) {
+                let cancelButton = alert.buttons.matching(NSPredicate(format: "label CONTAINS 'Cancel'")).firstMatch
+                if cancelButton.exists {
+                    cancelButton.tap()
+                    sleep(1)
+                    
+                    // Then - Alert should be dismissed
+                    XCTAssertFalse(alert.exists)
+                }
+            }
+        }
+    }
 }
+
 
 
 

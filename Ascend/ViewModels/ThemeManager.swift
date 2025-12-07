@@ -34,11 +34,11 @@ class ThemeManager: ObservableObject {
     }
     
     private func saveThemePreference() {
-        UserDefaults.standard.set(themeMode.rawValue, forKey: "themeMode")
+        UserDefaults.standard.set(themeMode.rawValue, forKey: AppConstants.UserDefaultsKeys.themeMode)
     }
     
     private func loadThemePreference() {
-        if let saved = UserDefaults.standard.string(forKey: "themeMode"),
+        if let saved = UserDefaults.standard.string(forKey: AppConstants.UserDefaultsKeys.themeMode),
            let mode = ThemeMode(rawValue: saved) {
             themeMode = mode
         }

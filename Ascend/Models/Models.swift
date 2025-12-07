@@ -8,13 +8,17 @@ struct ExerciseSet: Identifiable, Equatable, Codable {
     let weight: Double
     let reps: Int
     let holdDuration: Int?
+    let isDropset: Bool
+    let dropsetNumber: Int? // 1, 2, 3, etc. for dropsets
     
-    init(setNumber: Int, weight: Double, reps: Int, holdDuration: Int? = nil) {
+    init(setNumber: Int, weight: Double, reps: Int, holdDuration: Int? = nil, isDropset: Bool = false, dropsetNumber: Int? = nil) {
         self.id = UUID()
         self.setNumber = setNumber
         self.weight = weight
         self.reps = reps
         self.holdDuration = holdDuration
+        self.isDropset = isDropset
+        self.dropsetNumber = dropsetNumber
     }
     
     static func == (lhs: ExerciseSet, rhs: ExerciseSet) -> Bool {
@@ -39,13 +43,16 @@ struct Exercise: Identifiable, Equatable, Codable {
     let targetHoldDuration: Int?
     let alternatives: [String]
     let videoURL: String?
+    var hasDropsets: Bool
+    var numberOfDropsets: Int
+    var weightReductionPerDropset: Double
     
     // Convenience property for type
     var type: ExerciseType {
         exerciseType
     }
     
-    init(name: String, targetSets: Int, exerciseType: ExerciseType, holdDuration: Int? = nil, alternatives: [String] = [], videoURL: String? = nil) {
+    init(name: String, targetSets: Int, exerciseType: ExerciseType, holdDuration: Int? = nil, alternatives: [String] = [], videoURL: String? = nil, hasDropsets: Bool = false, numberOfDropsets: Int = 0, weightReductionPerDropset: Double = 5.0) {
         self.id = UUID()
         self.name = name
         self.sets = []
@@ -55,6 +62,9 @@ struct Exercise: Identifiable, Equatable, Codable {
         self.targetHoldDuration = holdDuration
         self.alternatives = alternatives
         self.videoURL = videoURL
+        self.hasDropsets = hasDropsets
+        self.numberOfDropsets = numberOfDropsets
+        self.weightReductionPerDropset = max(5.0, weightReductionPerDropset) // Ensure minimum 5 lbs
     }
     
     static func == (lhs: Exercise, rhs: Exercise) -> Bool {
@@ -148,7 +158,7 @@ struct Workout: Identifiable, Equatable, Codable {
 }
 
 // MARK: - Personal Record
-struct PersonalRecord: Identifiable {
+struct PersonalRecord: Identifiable, Codable {
     let id: UUID
     let exercise: String
     let weight: Double

@@ -27,8 +27,6 @@
 		E39A3DD82ECC56880043FACF /* Ascend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ascend.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E39A3DE52ECC56890043FACF /* AscendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AscendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E39A3DEF2ECC56890043FACF /* AscendUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AscendUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E39D9D122EE3C468005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Ascend.xcodeproj; path = Ascend/Ascend.xcodeproj; sourceTree = SOURCE_ROOT; };
-		E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -90,20 +88,6 @@
 				E39A3DD82ECC56880043FACF /* Ascend.app */,
 				E39A3DE52ECC56890043FACF /* AscendTests.xctest */,
 				E39A3DEF2ECC56890043FACF /* AscendUITests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E39D9D152EE3C468005FDF84 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E39D9D6F2EE4C97B005FDF84 /* Products */ = {
-			isa = PBXGroup;
-			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -217,16 +201,6 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E39A3DD92ECC56880043FACF /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
-					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
-				},
-				{
-					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;
-					ProjectRef = E39D9D122EE3C468005FDF84 /* Ascend.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				E39A3DD72ECC56870043FACF /* Ascend */,
@@ -442,7 +416,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brennen.ascend-";
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.com.Ascend;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

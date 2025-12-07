@@ -123,7 +123,7 @@ struct SimpleWorkoutProgramCard: View {
 
 #Preview {
     WorkoutProgramsSection(
-        workoutViewModel: WorkoutViewModel(),
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         onStart: {}
     )
     .padding()

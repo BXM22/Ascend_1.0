@@ -5,21 +5,21 @@ import Combine
 class SettingsManager: ObservableObject {
     @Published var restTimerDuration: Int {
         didSet {
-            UserDefaults.standard.set(restTimerDuration, forKey: "restTimerDuration")
+            UserDefaults.standard.set(restTimerDuration, forKey: AppConstants.UserDefaultsKeys.restTimerDuration)
         }
     }
     
     @Published var customTheme: ColorTheme? {
         didSet {
             saveCustomTheme()
-            // Notify AppColors to update
-            NotificationCenter.default.post(name: .colorThemeDidChange, object: nil)
+        // Notify AppColors to update
+        NotificationCenter.default.post(name: AppConstants.Notification.colorThemeDidChange, object: nil)
         }
     }
     
     init() {
         // Load saved rest timer duration, default to 90 seconds
-        self.restTimerDuration = UserDefaults.standard.object(forKey: "restTimerDuration") as? Int ?? 90
+        self.restTimerDuration = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.restTimerDuration) as? Int ?? AppConstants.Timer.defaultRestDuration
         
         // Load custom theme
         loadCustomTheme()
@@ -27,13 +27,17 @@ class SettingsManager: ObservableObject {
     
     // MARK: - Color Theme Import
     
-    func importTheme(from urlString: String) -> Result<ColorTheme, Error> {
+    func importTheme(from urlString: String) -> AppResult<ColorTheme> {
+        guard !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .failure(.themeImportError("URL cannot be empty"))
+        }
+        
         guard let colors = CoolorsURLParser.parse(urlString: urlString) else {
-            return .failure(ColorThemeError.invalidURL)
+            return .failure(.themeImportError("Invalid Coolors.co URL format"))
         }
         
         guard colors.count >= 3 else {
-            return .failure(ColorThemeError.insufficientColors)
+            return .failure(.themeImportError("Theme must contain at least 3 colors"))
         }
         
         let theme = ColorTheme(
@@ -52,18 +56,32 @@ class SettingsManager: ObservableObject {
     // MARK: - Persistence
     
     private func saveCustomTheme() {
-        if let theme = customTheme,
-           let encoded = try? JSONEncoder().encode(theme) {
-            UserDefaults.standard.set(encoded, forKey: "customColorTheme")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "customColorTheme")
+        do {
+            if let theme = customTheme {
+                let encoded = try JSONEncoder().encode(theme)
+                UserDefaults.standard.set(encoded, forKey: AppConstants.UserDefaultsKeys.customColorTheme)
+            } else {
+                UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.customColorTheme)
+            }
+        } catch {
+            // Log error but don't crash - theme saving is not critical
+            Logger.error("Failed to save custom theme", error: error, category: .persistence)
         }
     }
     
     private func loadCustomTheme() {
-        if let data = UserDefaults.standard.data(forKey: "customColorTheme"),
-           let theme = try? JSONDecoder().decode(ColorTheme.self, from: data) {
+        guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.customColorTheme) else {
+            return
+        }
+        
+        do {
+            let theme = try JSONDecoder().decode(ColorTheme.self, from: data)
             self.customTheme = theme
+        } catch {
+            // Log error but don't crash - invalid theme data
+            Logger.error("Failed to load custom theme", error: error, category: .persistence)
+            // Clear invalid data
+            UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.customColorTheme)
         }
     }
     
@@ -78,12 +96,12 @@ class SettingsManager: ObservableObject {
     ) {
         // Clear all UserDefaults keys
         let keysToRemove = [
-            "restTimerDuration",
-            "customColorTheme",
-            "themeMode",
-            "savedWorkoutPrograms",
-            "activeWorkoutProgram",
-            "savedWorkoutTemplates"
+            AppConstants.UserDefaultsKeys.restTimerDuration,
+            AppConstants.UserDefaultsKeys.customColorTheme,
+            AppConstants.UserDefaultsKeys.themeMode,
+            AppConstants.UserDefaultsKeys.savedWorkoutPrograms,
+            AppConstants.UserDefaultsKeys.activeWorkoutProgram,
+            AppConstants.UserDefaultsKeys.savedWorkoutTemplates
         ]
         
         for key in keysToRemove {
@@ -91,7 +109,7 @@ class SettingsManager: ObservableObject {
         }
         
         // Reset SettingsManager properties
-        self.restTimerDuration = 90
+        self.restTimerDuration = AppConstants.Timer.defaultRestDuration
         self.customTheme = nil
         
         // Reset ThemeManager
@@ -108,7 +126,6 @@ class SettingsManager: ObservableObject {
         
         // Reset TemplatesViewModel
         templatesViewModel.templates = []
-        templatesViewModel.loadSampleTemplates()
         templatesViewModel.loadCalisthenicsTemplates()
         
         // Reset WorkoutProgramViewModel
@@ -135,7 +152,7 @@ enum ColorThemeError: LocalizedError {
 
 // MARK: - Notification Names
 extension Notification.Name {
-    static let colorThemeDidChange = Notification.Name("colorThemeDidChange")
+    static let colorThemeDidChange = AppConstants.Notification.colorThemeDidChange
 }
 
 
