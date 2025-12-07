@@ -94,14 +94,24 @@ class SettingsManager: ObservableObject {
         programViewModel: WorkoutProgramViewModel,
         themeManager: ThemeManager
     ) {
-        // Clear all UserDefaults keys
+        // Clear ALL UserDefaults keys used by the app
         let keysToRemove = [
             AppConstants.UserDefaultsKeys.restTimerDuration,
             AppConstants.UserDefaultsKeys.customColorTheme,
             AppConstants.UserDefaultsKeys.themeMode,
             AppConstants.UserDefaultsKeys.savedWorkoutPrograms,
             AppConstants.UserDefaultsKeys.activeWorkoutProgram,
-            AppConstants.UserDefaultsKeys.savedWorkoutTemplates
+            AppConstants.UserDefaultsKeys.savedWorkoutTemplates,
+            AppConstants.UserDefaultsKeys.customExercises,
+            AppConstants.UserDefaultsKeys.completedWorkouts,
+            AppConstants.UserDefaultsKeys.personalRecords,
+            AppConstants.UserDefaultsKeys.workoutDates,
+            AppConstants.UserDefaultsKeys.restDays,
+            // Rest timer state
+            AppConstants.UserDefaultsKeys.restTimerActive,
+            AppConstants.UserDefaultsKeys.restTimerRemaining,
+            AppConstants.UserDefaultsKeys.restTimerTotalDuration,
+            AppConstants.UserDefaultsKeys.restTimerStartTime
         ]
         
         for key in keysToRemove {
@@ -115,14 +125,21 @@ class SettingsManager: ObservableObject {
         // Reset ThemeManager
         themeManager.themeMode = .system
         
-        // Reset ProgressViewModel
+        // Reset ProgressViewModel (clear both in-memory and UserDefaults)
         progressViewModel.prs = []
         progressViewModel.workoutDates = []
+        progressViewModel.restDays = []
         progressViewModel.currentStreak = 0
         progressViewModel.longestStreak = 0
         progressViewModel.totalVolume = 0
         progressViewModel.workoutCount = 0
         progressViewModel.selectedExercise = ""
+        
+        // Reset WorkoutHistoryManager (shared singleton)
+        WorkoutHistoryManager.shared.completedWorkouts = []
+        
+        // Reset ExerciseDataManager (shared singleton)
+        ExerciseDataManager.shared.clearAllCustomExercises()
         
         // Reset TemplatesViewModel - but preserve default templates
         templatesViewModel.templates = []

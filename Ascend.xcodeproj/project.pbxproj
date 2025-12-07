@@ -24,6 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39A3DD82ECC56880043FACF /* Ascend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ascend.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E39A3DE52ECC56890043FACF /* AscendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AscendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E39A3DEF2ECC56890043FACF /* AscendUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AscendUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -74,6 +75,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		60F9A12B2EE62CD100033EE6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		E39A3DCF2ECC56870043FACF = {
 			isa = PBXGroup;
 			children = (
@@ -221,6 +229,10 @@
 				{
 					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
 					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = 60F9A12B2EE62CD100033EE6 /* Products */;
+					ProjectRef = 60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;
@@ -428,7 +440,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = 8DU7M3QGM7;
+				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
@@ -442,7 +454,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brennen.ascend-";
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.com.Ascend;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

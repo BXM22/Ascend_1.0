@@ -134,6 +134,12 @@ class ExerciseDataManager: ObservableObject {
         saveCustomExercises()
     }
     
+    /// Clear all custom exercises
+    func clearAllCustomExercises() {
+        customExercises = []
+        saveCustomExercises()
+    }
+    
     /// Get custom exercise by name
     func getCustomExercise(name: String) -> CustomExercise? {
         return customExercises.first { $0.name.lowercased() == name.lowercased() }
