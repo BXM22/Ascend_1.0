@@ -13,6 +13,7 @@ struct WorkoutView: View {
     @State private var reps: String = "8"
     @State private var holdDuration: String = "30"
     @State private var showFinishConfirmation = false
+    @State private var selectedExerciseForHistory: String?
     
     var body: some View {
         ScrollView {
@@ -20,6 +21,7 @@ struct WorkoutView: View {
                 // Header
                 WorkoutHeader(
                     title: viewModel.currentWorkout?.name ?? "Workout",
+                    totalVolume: viewModel.totalWorkoutVolume,
                     onPause: { viewModel.pauseWorkout() },
                     onFinish: { showFinishConfirmation = true },
                     onSettings: { viewModel.showSettingsSheet = true }
@@ -68,6 +70,8 @@ struct WorkoutView: View {
                             numberOfDropsets: $viewModel.numberOfDropsets,
                             weightReductionPerDropset: $viewModel.weightReductionPerDropset,
                             isCollapsed: viewModel.restTimerActive,
+                            showUndoButton: viewModel.showUndoButton,
+                            barWeight: viewModel.settingsManager.barWeight,
                             onCompleteSet: {
                                 viewModel.updateCurrentExerciseDropsetConfiguration()
                                 if let weightValue = Double(weight),
@@ -75,8 +79,15 @@ struct WorkoutView: View {
                                     viewModel.completeSet(weight: weightValue, reps: repsValue)
                                 }
                             },
+                            onUndoSet: {
+                                viewModel.undoLastSet()
+                            },
                             onSelectAlternative: { alternativeName in
                                 viewModel.switchToAlternative(alternativeName: alternativeName)
+                            },
+                            onExerciseNameTapped: {
+                                selectedExerciseForHistory = exercise.name
+                                viewModel.showExerciseHistory = true
                             }
                         )
                         .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
@@ -160,6 +171,13 @@ struct WorkoutView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $viewModel.showExerciseHistory) {
+            if let exerciseName = selectedExerciseForHistory ?? viewModel.currentExercise?.name {
+                ExerciseHistoryView(exerciseName: exerciseName, progressViewModel: viewModel.progressViewModel)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+        }
         .sheet(isPresented: $viewModel.showSettingsSheet) {
             if let progressViewModel = viewModel.progressViewModel,
                let templatesViewModel = viewModel.templatesViewModel,
@@ -179,15 +197,31 @@ struct WorkoutView: View {
 
 struct WorkoutHeader: View {
     let title: String
+    let totalVolume: Int
     let onPause: () -> Void
     let onFinish: () -> Void
     let onSettings: () -> Void
     
+    private func formatVolume(_ volume: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
+    }
+    
     var body: some View {
         HStack {
-            Text(title)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(LinearGradient.primaryGradient)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                
+                if totalVolume > 0 {
+                    Text("\(formatVolume(totalVolume)) lbs")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+            }
             
             Spacer()
             
@@ -315,8 +349,19 @@ struct ExerciseCard: View {
     @Binding var numberOfDropsets: Int
     @Binding var weightReductionPerDropset: Double
     let isCollapsed: Bool
+    let showUndoButton: Bool
+    let barWeight: Double
     let onCompleteSet: () -> Void
+    let onUndoSet: () -> Void
     let onSelectAlternative: ((String) -> Void)?
+    let onExerciseNameTapped: (() -> Void)?
+    
+    private func formatVolume(_ volume: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
+    }
     
     private var alternatives: [String] {
         if !exercise.alternatives.isEmpty {
@@ -370,20 +415,50 @@ struct ExerciseCard: View {
                 // Expanded view - show all content
                 VStack(alignment: .leading, spacing: 20) {
                     // Exercise Header
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(exercise.name)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                            .accessibilityAddTraits(.isHeader)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    onExerciseNameTapped?()
+                                }) {
+                                    Text(exercise.name)
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundColor(AppColors.foreground)
+                                        .accessibilityAddTraits(.isHeader)
+                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                // Favorite Button
+                                FavoriteButton(exerciseName: exercise.name)
+                            }
+                            
+                            HStack(spacing: 12) {
+                                Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(AppColors.secondary)
+                                    .clipShape(Capsule())
+                                
+                                // Exercise Volume
+                                if !exercise.sets.isEmpty {
+                                    let exerciseVolume = exercise.sets.reduce(0) { total, set in
+                                        total + Int(set.weight * Double(set.reps))
+                                    }
+                                    Text("\(formatVolume(exerciseVolume)) lbs")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(AppColors.accent)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(AppColors.accent.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
                         
-                        Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(AppColors.secondary)
-                            .clipShape(Capsule())
+                        Spacer()
                     }
                     
                     // PR Badge
@@ -393,20 +468,35 @@ struct ExerciseCard: View {
                             .zIndex(10)
                     }
                     
+                    // Smart Weight Suggestions
+                    SmartWeightSuggestion(
+                        exerciseName: exercise.name,
+                        weight: $weight,
+                        reps: $reps
+                    )
+                    
                     // Weight Input
                     InputField(
                         label: "Weight",
                         value: $weight,
                         unit: "lbs",
-                        keyboardType: .decimalPad
+                        keyboardType: .decimalPad,
+                        isWeight: true
                     )
+                    
+                    // Plate Calculator
+                    if let weightValue = Double(weight), weightValue > 0 {
+                        PlateCalculator(weight: weightValue, barWeight: barWeight)
+                    }
                     
                     // Reps Input
                     InputField(
                         label: "Reps",
                         value: $reps,
                         unit: "reps",
-                        keyboardType: .numberPad
+                        keyboardType: .numberPad,
+                        isWeight: false,
+                        presets: [5, 8, 10, 12, 15]
                     )
                     
                     // Dropset Configuration
@@ -555,6 +645,29 @@ struct ExerciseCard: View {
                     .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
+                
+                // Undo Last Set Button
+                if showUndoButton {
+                    Button(action: onUndoSet) {
+                        HStack {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Undo Last Set")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(AppColors.destructive)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.destructive.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 } // Close inner VStack (expanded view content)
             } // Close else block
         } // Close outer VStack
@@ -803,18 +916,42 @@ struct InputField: View {
     @Binding var value: String
     let unit: String
     let keyboardType: UIKeyboardType
+    let isWeight: Bool // true for weight, false for reps
+    let presets: [Int]? // Optional presets for quick selection
+    
+    init(label: String, value: Binding<String>, unit: String, keyboardType: UIKeyboardType, isWeight: Bool = false, presets: [Int]? = nil) {
+        self.label = label
+        self._value = value
+        self.unit = unit
+        self.keyboardType = keyboardType
+        self.isWeight = isWeight
+        self.presets = presets
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(label)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(AppColors.mutedForeground)
             
+            // Main input field with +/- buttons
             HStack(spacing: 12) {
+                // Minus button
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    adjustValue(by: isWeight ? -5.0 : -1)
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(AppColors.accent)
+                }
+                .buttonStyle(SubtleButtonStyle())
+                
                 TextField("", text: $value)
                     .keyboardType(keyboardType)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(AppColors.foreground)
+                    .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                     .background(AppColors.input)
@@ -823,14 +960,281 @@ struct InputField: View {
                             .stroke(AppColors.border, lineWidth: 2)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .gesture(
+                        DragGesture(minimumDistance: 20)
+                            .onEnded { gesture in
+                                let horizontalAmount = gesture.translation.width
+                                if abs(horizontalAmount) > 30 {
+                                    if horizontalAmount > 0 {
+                                        // Swipe right - increase
+                                        adjustValue(by: isWeight ? 5.0 : 1)
+                                    } else {
+                                        // Swipe left - decrease
+                                        adjustValue(by: isWeight ? -5.0 : -1)
+                                    }
+                                }
+                            }
+                    )
                     .accessibilityLabel(label)
                     .accessibilityValue(value.isEmpty ? "No value" : "\(value) \(unit)")
-                    .accessibilityHint("Enter \(label.lowercased()) in \(unit)")
+                    .accessibilityHint("Enter \(label.lowercased()) in \(unit). Swipe left or right to adjust.")
+                
+                // Plus button
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    adjustValue(by: isWeight ? 5.0 : 1)
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(AppColors.accent)
+                }
+                .buttonStyle(SubtleButtonStyle())
                 
                 Text(unit)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(AppColors.mutedForeground)
+                    .frame(width: 40)
             }
+            
+            // Quick adjustment buttons for weight
+            if isWeight {
+                HStack(spacing: 8) {
+                    QuickAdjustButton(value: 5, currentValue: $value, isWeight: true)
+                    QuickAdjustButton(value: 10, currentValue: $value, isWeight: true)
+                    QuickAdjustButton(value: 25, currentValue: $value, isWeight: true)
+                }
+            }
+            
+            // Preset buttons for reps
+            if let presets = presets, !isWeight {
+                HStack(spacing: 8) {
+                    ForEach(presets, id: \.self) { preset in
+                        PresetButton(preset: preset, currentValue: $value)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func adjustValue(by amount: Double) {
+        guard let currentValue = Double(value) else {
+            // If value is empty or invalid, set to amount
+            value = String(format: "%.0f", abs(amount))
+            return
+        }
+        
+        let newValue = max(0, currentValue + amount)
+        if isWeight {
+            value = String(format: "%.0f", newValue)
+        } else {
+            value = String(format: "%.0f", newValue)
+        }
+    }
+}
+
+struct QuickAdjustButton: View {
+    let value: Int
+    @Binding var currentValue: String
+    let isWeight: Bool
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            adjustValue(by: Double(value))
+        }) {
+            Text("+\(value)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(AppColors.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(AppColors.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(SubtleButtonStyle())
+    }
+    
+    private func adjustValue(by amount: Double) {
+        guard let current = Double(currentValue) else {
+            currentValue = String(format: "%.0f", amount)
+            return
+        }
+        let newValue = max(0, current + amount)
+        currentValue = String(format: "%.0f", newValue)
+    }
+}
+
+struct PresetButton: View {
+    let preset: Int
+    @Binding var currentValue: String
+    
+    var isSelected: Bool {
+        guard let current = Int(currentValue) else { return false }
+        return current == preset
+    }
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            currentValue = "\(preset)"
+        }) {
+            Text("\(preset)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(isSelected ? AppColors.alabasterGrey : AppColors.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? AppColors.accent : AppColors.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(SubtleButtonStyle())
+    }
+}
+
+// MARK: - Favorite Button
+struct FavoriteButton: View {
+    let exerciseName: String
+    @StateObject private var favoritesManager = FavoritesManager.shared
+    
+    var isFavorite: Bool {
+        favoritesManager.isFavorite(exerciseName)
+    }
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            favoritesManager.toggleFavorite(exerciseName)
+        }) {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(.system(size: 20))
+                .foregroundColor(isFavorite ? AppColors.accent : AppColors.mutedForeground)
+                .frame(width: 40, height: 40)
+                .background(isFavorite ? AppColors.accent.opacity(0.1) : AppColors.secondary)
+                .clipShape(Circle())
+        }
+        .buttonStyle(SubtleButtonStyle())
+        .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
+    }
+}
+
+// MARK: - Plate Calculator
+struct PlateCalculator: View {
+    let weight: Double
+    let barWeight: Double
+    
+    init(weight: Double, barWeight: Double = 45.0) {
+        self.weight = weight
+        self.barWeight = barWeight
+    }
+    
+    private var plateCalculation: String {
+        guard weight > barWeight else { return "" }
+        
+        let weightToLoad = weight - barWeight
+        let platesPerSide = weightToLoad / 2.0
+        
+        // Standard plate weights (lbs)
+        let plateWeights: [Double] = [45, 35, 25, 10, 5, 2.5]
+        var remaining = platesPerSide
+        var result: [String] = []
+        
+        for plateWeight in plateWeights {
+            let count = Int(remaining / plateWeight)
+            if count > 0 {
+                result.append("\(count)×\(Int(plateWeight))")
+                remaining -= Double(count) * plateWeight
+            }
+        }
+        
+        // Handle odd weights (round to nearest 2.5)
+        if remaining > 1.25 {
+            result.append("1×2.5")
+        }
+        
+        return result.isEmpty ? "" : result.joined(separator: " + ")
+    }
+    
+    var body: some View {
+        if !plateCalculation.isEmpty {
+            HStack {
+                Image(systemName: "scalemass")
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                Text("Plates per side: \(plateCalculation)")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+}
+
+// MARK: - Smart Weight Suggestion
+struct SmartWeightSuggestion: View {
+    let exerciseName: String
+    @Binding var weight: String
+    @Binding var reps: String
+    
+    @StateObject private var historyManager = ExerciseHistoryManager.shared
+    @State private var lastWeight: Double?
+    @State private var lastReps: Int?
+    
+    var body: some View {
+        if let lastWeight = lastWeight, let lastReps = lastReps {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Text("Last time: \(Int(lastWeight)) lbs × \(lastReps) reps")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        self.weight = String(format: "%.0f", lastWeight)
+                        self.reps = "\(lastReps)"
+                    }) {
+                        Text("Use Last")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(AppColors.accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(AppColors.accent.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(SubtleButtonStyle())
+                }
+            }
+            .padding(.horizontal, 4)
+            .onAppear {
+                loadLastWeightReps()
+            }
+            .onChange(of: exerciseName) { _ in
+                loadLastWeightReps()
+            }
+        } else {
+            EmptyView()
+                .onAppear {
+                    loadLastWeightReps()
+                }
+                .onChange(of: exerciseName) { _ in
+                    loadLastWeightReps()
+                }
+        }
+    }
+    
+    private func loadLastWeightReps() {
+        if let last = historyManager.getLastWeightReps(for: exerciseName) {
+            lastWeight = last.weight
+            lastReps = last.reps
+        } else {
+            lastWeight = nil
+            lastReps = nil
         }
     }
 }

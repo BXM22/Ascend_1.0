@@ -30,6 +30,8 @@
 		E39A3DEF2ECC56890043FACF /* AscendUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AscendUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E39D9D122EE3C468005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Ascend.xcodeproj; path = Ascend/Ascend.xcodeproj; sourceTree = SOURCE_ROOT; };
 		E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -110,6 +112,20 @@
 			sourceTree = "<group>";
 		};
 		E39D9D6F2EE4C97B005FDF84 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E39DA3422EE69459005FDF84 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E39DA4A22EE69BF0005FDF84 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -233,6 +249,14 @@
 				{
 					ProductGroup = 60F9A12B2EE62CD100033EE6 /* Products */;
 					ProjectRef = 60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E39DA3422EE69459005FDF84 /* Products */;
+					ProjectRef = E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E39DA4A22EE69BF0005FDF84 /* Products */;
+					ProjectRef = E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;

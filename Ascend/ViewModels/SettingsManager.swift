@@ -17,9 +17,18 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    @Published var barWeight: Double {
+        didSet {
+            UserDefaults.standard.set(barWeight, forKey: "barWeight")
+        }
+    }
+    
     init() {
         // Load saved rest timer duration, default to 90 seconds
         self.restTimerDuration = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.restTimerDuration) as? Int ?? AppConstants.Timer.defaultRestDuration
+        
+        // Load bar weight, default to 45 lbs
+        self.barWeight = UserDefaults.standard.object(forKey: "barWeight") as? Double ?? 45.0
         
         // Load custom theme
         loadCustomTheme()

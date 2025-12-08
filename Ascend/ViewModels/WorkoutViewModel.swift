@@ -18,6 +18,11 @@ class WorkoutViewModel: ObservableObject {
     @Published var showSettingsSheet: Bool = false
     @Published var showCompletionModal: Bool = false
     @Published var completionStats: WorkoutCompletionStats?
+    @Published var showExerciseHistory: Bool = false
+    
+    // Undo state
+    @Published var showUndoButton: Bool = false
+    @Published var lastCompletedSet: (exerciseIndex: Int, setCount: Int, wasPR: Bool)?
     
     // Dropset configuration state
     @Published var dropsetsEnabled: Bool = false
@@ -45,6 +50,33 @@ class WorkoutViewModel: ObservableObject {
             return nil
         }
         return workout.exercises[currentExerciseIndex]
+    }
+    
+    /// Calculate total volume for current exercise (sum of weight × reps)
+    var currentExerciseVolume: Int {
+        guard let exercise = currentExercise else { return 0 }
+        return exercise.sets.reduce(0) { total, set in
+            return total + Int(set.weight * Double(set.reps))
+        }
+    }
+    
+    /// Calculate total workout volume (sum across all exercises)
+    var totalWorkoutVolume: Int {
+        guard let workout = currentWorkout else { return 0 }
+        return workout.exercises.reduce(0) { exerciseTotal, exercise in
+            let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
+                return setTotal + Int(set.weight * Double(set.reps))
+            }
+            return exerciseTotal + exerciseVolume
+        }
+    }
+    
+    /// Format volume with comma separator
+    func formatVolume(_ volume: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
     }
     
     /// Initialize with required dependencies
@@ -350,6 +382,10 @@ class WorkoutViewModel: ObservableObject {
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
+        // Store state for undo before making changes
+        let setCountBefore = exercise.sets.count
+        let wasPR = checkForPR(exercise: exercise.name, weight: weight, reps: reps, silent: true)
+        
         // Update dropset configuration from state before completing set
         exercise.hasDropsets = dropsetsEnabled
         exercise.numberOfDropsets = dropsetsEnabled ? numberOfDropsets : 0
@@ -397,18 +433,38 @@ class WorkoutViewModel: ObservableObject {
         objectWillChange.send()
         currentWorkout = workout
         
+        // Track exercise history
+        ExerciseHistoryManager.shared.updateLastWeightReps(
+            exerciseName: exercise.name,
+            weight: weight,
+            reps: reps
+        )
+        
         // Add initial entry for new exercise or check for PR (only check main set, not dropsets)
         if let progressVM = progressViewModel {
             if !progressVM.availableExercises.contains(exercise.name) {
                 // First time this exercise is being tracked
                 progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: weight, reps: reps)
             } else {
-                // Check for PR
+                // Check for PR (show badge)
                 checkForPR(exercise: exercise.name, weight: weight, reps: reps)
             }
         } else {
             // No progress view model, just check for PR (shows badge only)
             checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+        }
+        
+        // Store undo state
+        lastCompletedSet = (exerciseIndex: currentExerciseIndex, setCount: setCountBefore, wasPR: wasPR)
+        showUndoButton = true
+        
+        // Auto-hide undo button after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            if self.showUndoButton {
+                withAnimation(AppAnimations.quick) {
+                    self.showUndoButton = false
+                }
+            }
         }
         
         // Check if all sets are completed before starting rest timer
@@ -420,6 +476,58 @@ class WorkoutViewModel: ObservableObject {
             // Start rest timer
             startRestTimer()
         }
+    }
+    
+    func undoLastSet() {
+        guard let undoState = lastCompletedSet,
+              var workout = currentWorkout,
+              undoState.exerciseIndex < workout.exercises.count else {
+            return
+        }
+        
+        var exercise = workout.exercises[undoState.exerciseIndex]
+        
+        // Remove sets that were added (main set + dropsets)
+        let setsToRemove = exercise.sets.count - undoState.setCount
+        if setsToRemove > 0 {
+            exercise.sets.removeLast(setsToRemove)
+        }
+        
+        // Decrement currentSet if needed
+        if exercise.currentSet > 1 {
+            exercise.currentSet -= 1
+        }
+        
+        // Update exercise in workout
+        workout.exercises[undoState.exerciseIndex] = exercise
+        
+        // If a PR was recorded, remove it
+        if undoState.wasPR, let progressVM = progressViewModel {
+            // Find and remove the most recent PR for this exercise
+            // Sort by date descending and remove the first one (most recent)
+            let recentPRs = progressVM.prs
+                .filter { $0.exercise == exercise.name }
+                .sorted { $0.date > $1.date }
+            
+            if let mostRecentPR = recentPRs.first {
+                // Check if it was added very recently (within last 5 seconds to be safe)
+                if Date().timeIntervalSince(mostRecentPR.date) < 5.0 {
+                    progressVM.prs.removeAll { $0.id == mostRecentPR.id }
+                }
+            }
+        }
+        
+        // Update workout
+        objectWillChange.send()
+        currentWorkout = workout
+        
+        // Hide undo button
+        withAnimation(AppAnimations.quick) {
+            showUndoButton = false
+        }
+        lastCompletedSet = nil
+        
+        HapticManager.success()
     }
     
     func completeHoldSet(duration: Int) {
@@ -775,21 +883,23 @@ class WorkoutViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
     }
     
-    private func checkForPR(exercise: String, weight: Double, reps: Int) {
+    private func checkForPR(exercise: String, weight: Double, reps: Int, silent: Bool = false) -> Bool {
         guard let progressVM = progressViewModel else {
-            // No progress view model connected, just show badge
-            showPRBadge = true
-            prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
-            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
-                self.showPRBadge = false
+            // No progress view model connected, just show badge (unless silent)
+            if !silent {
+                showPRBadge = true
+                prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
+                DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
+                    self.showPRBadge = false
+                }
             }
-            return
+            return false
         }
         
         // Add or update PR in ProgressViewModel
         let isNewPR = progressVM.addOrUpdatePR(exercise: exercise, weight: weight, reps: reps)
         
-        if isNewPR {
+        if isNewPR && !silent {
             // Show PR badge
             showPRBadge = true
             prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
@@ -799,6 +909,8 @@ class WorkoutViewModel: ObservableObject {
                 self.showPRBadge = false
             }
         }
+        
+        return isNewPR
     }
     
     deinit {

@@ -6,8 +6,10 @@ struct ExerciseAutocompleteField: View {
     var fontSize: CGFloat = 18
     @State private var showSuggestions = false
     @State private var filteredSuggestions: [String] = []
+    @State private var favoriteSuggestions: [String] = []
     @FocusState private var isFocused: Bool
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
+    @StateObject private var favoritesManager = FavoritesManager.shared
     @State private var debounceTask: Task<Void, Never>?
     
     // Cache exercise list for better performance - computed once
@@ -43,39 +45,52 @@ struct ExerciseAutocompleteField: View {
     }
     
     // Optimized filtering function - uses early exit and single pass where possible
-    private func filterExercises(_ query: String) -> [String] {
-        guard !query.isEmpty else { return [] }
+    private func filterExercises(_ query: String) -> ([String], [String]) {
+        // Separate favorites and regular exercises
+        let favorites = favoritesManager.favoriteExercises
+        let regularExercises = allExercises.filter { !favorites.contains($0) }
+        
+        guard !query.isEmpty else {
+            // If no query, return favorites first
+            return (favorites, [])
+        }
+        
         let lowercasedQuery = query.lowercased()
         
         // Pre-allocate result arrays for better performance
+        var favoritePrefixMatches: [String] = []
+        var favoriteContainsMatches: [String] = []
         var prefixMatches: [String] = []
         var containsMatches: [String] = []
-        prefixMatches.reserveCapacity(10)
-        containsMatches.reserveCapacity(10)
         
-        // Single pass through exercises
-        for exercise in allExercises {
+        // Filter favorites first
+        for exercise in favorites {
             let lowerExercise = exercise.lowercased()
-            
-            // Check prefix first (most relevant)
+            if lowerExercise.hasPrefix(lowercasedQuery) {
+                favoritePrefixMatches.append(exercise)
+            } else if lowerExercise.contains(lowercasedQuery) {
+                favoriteContainsMatches.append(exercise)
+            }
+        }
+        
+        // Filter regular exercises
+        for exercise in regularExercises {
+            let lowerExercise = exercise.lowercased()
             if lowerExercise.hasPrefix(lowercasedQuery) {
                 prefixMatches.append(exercise)
-                if prefixMatches.count >= 10 {
-                    return prefixMatches
-                }
             } else if lowerExercise.contains(lowercasedQuery) {
                 containsMatches.append(exercise)
             }
         }
         
-        // Combine results: prefix matches first, then contains matches
-        var results = prefixMatches
-        let remaining = 10 - results.count
-        if remaining > 0 {
-            results.append(contentsOf: containsMatches.prefix(remaining))
-        }
+        // Combine: favorites first (prefix, then contains), then regular (prefix, then contains)
+        var favoriteResults = favoritePrefixMatches
+        favoriteResults.append(contentsOf: favoriteContainsMatches)
         
-        return results
+        var regularResults = prefixMatches
+        regularResults.append(contentsOf: containsMatches)
+        
+        return (favoriteResults, regularResults)
     }
     
     var body: some View {
@@ -105,10 +120,11 @@ struct ExerciseAutocompleteField: View {
                         guard !Task.isCancelled, text == newValue else { return }
                         
                         // Update filtered suggestions efficiently
-                        let newFiltered = filterExercises(newValue)
-                        filteredSuggestions = newFiltered
+                        let (favorites, regular) = filterExercises(newValue)
+                        favoriteSuggestions = favorites
+                        filteredSuggestions = regular
                         
-                        let shouldShow = !newValue.isEmpty && !newFiltered.isEmpty
+                        let shouldShow = !newValue.isEmpty && (!favorites.isEmpty || !regular.isEmpty)
                         if shouldShow != showSuggestions {
                             withAnimation(AppAnimations.standard) {
                                 showSuggestions = shouldShow
@@ -117,7 +133,7 @@ struct ExerciseAutocompleteField: View {
                     }
                 }
                 .onChange(of: isFocused) { oldValue, newValue in
-                    let shouldShow = newValue && !text.isEmpty && !filteredSuggestions.isEmpty
+                    let shouldShow = newValue && !text.isEmpty && (!favoriteSuggestions.isEmpty || !filteredSuggestions.isEmpty)
                     if shouldShow != showSuggestions {
                         withAnimation(AppAnimations.standard) {
                             showSuggestions = shouldShow
@@ -126,8 +142,50 @@ struct ExerciseAutocompleteField: View {
                 }
             
             // Suggestions List
-            if showSuggestions && !filteredSuggestions.isEmpty {
+            if showSuggestions && (!favoriteSuggestions.isEmpty || !filteredSuggestions.isEmpty) {
                 VStack(alignment: .leading, spacing: 0) {
+                    // Favorites Section
+                    if !favoriteSuggestions.isEmpty {
+                        ForEach(favoriteSuggestions, id: \.self) { suggestion in
+                            Button(action: {
+                                withAnimation(AppAnimations.quick) {
+                                    text = suggestion
+                                    showSuggestions = false
+                                    isFocused = false
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(AppColors.accent)
+                                    
+                                    Text(suggestion)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(AppColors.foreground)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "arrow.up.left")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(AppColors.accent.opacity(0.05))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .transition(.smoothSlide)
+                            
+                            if suggestion != favoriteSuggestions.last || !filteredSuggestions.isEmpty {
+                                Divider()
+                                    .background(AppColors.border.opacity(0.3))
+                                    .padding(.horizontal, 16)
+                                    .transition(.opacity)
+                            }
+                        }
+                    }
+                    
+                    // Regular Suggestions Section
                     ForEach(filteredSuggestions, id: \.self) { suggestion in
                         Button(action: {
                             withAnimation(AppAnimations.quick) {
