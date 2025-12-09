@@ -26,11 +26,16 @@ struct WorkoutView: View {
                     onFinish: { showFinishConfirmation = true },
                     onSettings: { viewModel.showSettingsSheet = true }
                 )
+                .id("header-volume-\(viewModel.totalWorkoutVolume)")
+                .id("header-\(viewModel.totalWorkoutVolume)")
                 
                 // Workout Timer
                 WorkoutTimerBar(
                     time: viewModel.formatTime(viewModel.elapsedTime),
-                    onAbort: { viewModel.abortWorkoutTimer() }
+                    isPaused: viewModel.isTimerPausedDuringRest,
+                    onAbort: {
+                        viewModel.resetTimer()
+                    }
                 )
                 
                 // Exercise Navigation
@@ -44,6 +49,7 @@ struct WorkoutView: View {
                         }
                     )
                     .padding(EdgeInsets(top: 16, leading: 20, bottom: 0, trailing: 20))
+                    .id("exercise-nav-\(workout.exercises.map { "\($0.id)-\($0.sets.count)" }.joined(separator: "-"))")
                 }
                 
                 // Exercise Card
@@ -72,6 +78,8 @@ struct WorkoutView: View {
                             isCollapsed: viewModel.restTimerActive,
                             showUndoButton: viewModel.showUndoButton,
                             barWeight: viewModel.settingsManager.barWeight,
+                            currentExerciseVolume: viewModel.currentExerciseVolume,
+                            viewModel: viewModel,
                             onCompleteSet: {
                                 viewModel.updateCurrentExerciseDropsetConfiguration()
                                 if let weightValue = Double(weight),
@@ -91,11 +99,15 @@ struct WorkoutView: View {
                             }
                         )
                         .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                        .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                         .onAppear {
                             viewModel.syncDropsetStateFromCurrentExercise()
                         }
                         .onChange(of: viewModel.currentExerciseIndex) { oldValue, newValue in
                             viewModel.syncDropsetStateFromCurrentExercise()
+                        }
+                        .onChange(of: exercise.sets.count) { _, _ in
+                            // Force update when sets change - volume will recalculate
                         }
                     }
                 }
@@ -288,21 +300,30 @@ struct WorkoutHeader: View {
 
 struct WorkoutTimerBar: View {
     let time: String
+    let isPaused: Bool
     let onAbort: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "timer")
+            Image(systemName: isPaused ? "pause.circle.fill" : "timer")
                 .font(.system(size: 16))
-                .foregroundColor(AppColors.mutedForeground)
+                .foregroundColor(isPaused ? AppColors.accent : AppColors.mutedForeground)
             
-            Text(time)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(AppColors.mutedForeground)
-                .contentTransition(.numericText())
-                .animation(AppAnimations.quick, value: time)
-                .accessibilityLabel("Workout time: \(time)")
-                .accessibilityValue(time)
+            HStack(spacing: 4) {
+                Text(time)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(isPaused ? AppColors.accent : AppColors.mutedForeground)
+                    .contentTransition(.numericText())
+                    .animation(AppAnimations.quick, value: time)
+                
+                if isPaused {
+                    Text("(Paused)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.accent)
+                }
+            }
+            .accessibilityLabel(isPaused ? "Workout time paused: \(time)" : "Workout time: \(time)")
+            .accessibilityValue(time)
             
             Spacer()
             
@@ -351,6 +372,8 @@ struct ExerciseCard: View {
     let isCollapsed: Bool
     let showUndoButton: Bool
     let barWeight: Double
+    let currentExerciseVolume: Int
+    let viewModel: WorkoutViewModel
     let onCompleteSet: () -> Void
     let onUndoSet: () -> Void
     let onSelectAlternative: ((String) -> Void)?
@@ -443,11 +466,8 @@ struct ExerciseCard: View {
                                     .clipShape(Capsule())
                                 
                                 // Exercise Volume
-                                if !exercise.sets.isEmpty {
-                                    let exerciseVolume = exercise.sets.reduce(0) { total, set in
-                                        total + Int(set.weight * Double(set.reps))
-                                    }
-                                    Text("\(formatVolume(exerciseVolume)) lbs")
+                                if currentExerciseVolume > 0 {
+                                    Text("\(formatVolume(currentExerciseVolume)) lbs")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(AppColors.accent)
                                         .padding(.horizontal, 12)
@@ -627,6 +647,28 @@ struct ExerciseCard: View {
                 // Video Tutorial Button
                 if videoURL != nil {
                     VideoTutorialButton(videoURL: videoURL, exerciseName: exercise.name)
+                }
+                
+                // Warm-up Sets and Set Templates Buttons
+                HStack(spacing: 12) {
+                    // Warm-up Sets Button
+                    WarmupSetsButton(
+                        exercise: exercise,
+                        weight: weight,
+                        reps: reps,
+                        viewModel: viewModel,
+                        onAddWarmup: {
+                            if let weightValue = Double(weight), let repsValue = Int(reps) {
+                                viewModel.addWarmupSets(for: weightValue, reps: repsValue)
+                            }
+                        }
+                    )
+                    
+                    // Set Templates Button
+                    SetTemplatesButton(
+                        weight: $weight,
+                        reps: $reps
+                    )
                 }
                 
                 // Complete Set Button
@@ -1115,6 +1157,168 @@ struct FavoriteButton: View {
     }
 }
 
+// MARK: - Warm-up Sets Button
+struct WarmupSetsButton: View {
+    let exercise: Exercise
+    let weight: String
+    let reps: String
+    let viewModel: WorkoutViewModel
+    let onAddWarmup: () -> Void
+    
+    private var canAddWarmup: Bool {
+        // Only show if exercise has no sets yet and weight/reps are valid
+        guard exercise.sets.isEmpty,
+              let weightValue = Double(weight), weightValue > 0,
+              let repsValue = Int(reps), repsValue > 0 else { return false }
+        // Don't show if warm-up sets already exist (safety check)
+        return !viewModel.hasWarmupSets()
+    }
+    
+    var body: some View {
+        if canAddWarmup {
+            Button(action: {
+                HapticManager.impact(style: .light)
+                onAddWarmup()
+            }) {
+                HStack {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 14))
+                    Text("Warm-up")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(AppColors.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(AppColors.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+    }
+}
+
+// MARK: - Set Templates Button
+struct SetTemplatesButton: View {
+    @Binding var weight: String
+    @Binding var reps: String
+    @StateObject private var templatesManager = SetTemplatesManager.shared
+    @State private var showTemplates = false
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            showTemplates = true
+        }) {
+            HStack {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 14))
+                Text("Templates")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(AppColors.accent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(AppColors.accent.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .sheet(isPresented: $showTemplates) {
+            SetTemplatesView(weight: $weight, reps: $reps)
+        }
+    }
+}
+
+// MARK: - Set Templates View
+struct SetTemplatesView: View {
+    @Binding var weight: String
+    @Binding var reps: String
+    @StateObject private var templatesManager = SetTemplatesManager.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var newTemplateName = ""
+    @State private var showCreateTemplate = false
+    
+    var body: some View {
+        NavigationView {
+            List {
+                // Create Template Section
+                Section {
+                    Button(action: {
+                        if let weightValue = Double(weight), weightValue > 0,
+                           let repsValue = Int(reps), repsValue > 0 {
+                            let template = templatesManager.createTemplateFromCurrent(weight: weightValue, reps: repsValue)
+                            templatesManager.addTemplate(name: template.name, weight: template.weight, reps: template.reps)
+                            HapticManager.success()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Save Current Set as Template")
+                        }
+                        .foregroundColor(AppColors.accent)
+                    }
+                    .disabled(weight.isEmpty || reps.isEmpty || Double(weight) == nil || Double(weight) ?? 0 <= 0 || Int(reps) == nil || Int(reps) ?? 0 <= 0)
+                }
+                
+                // Templates List
+                Section(header: Text("Saved Templates")) {
+                    if templatesManager.templates.isEmpty {
+                        Text("No templates saved")
+                            .foregroundColor(AppColors.mutedForeground)
+                            .font(.system(size: 14))
+                    } else {
+                        ForEach(templatesManager.templates) { template in
+                            Button(action: {
+                                // Format weight to remove unnecessary decimals
+                                if template.weight.truncatingRemainder(dividingBy: 1) == 0 {
+                                    weight = "\(Int(template.weight))"
+                                } else {
+                                    weight = String(format: "%.1f", template.weight)
+                                }
+                                reps = "\(template.reps)"
+                                dismiss()
+                                HapticManager.selection()
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(template.name)
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(AppColors.foreground)
+                                        Text("\(Int(template.weight)) lbs × \(template.reps) reps")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(AppColors.mutedForeground)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive, action: {
+                                    templatesManager.deleteTemplate(template)
+                                    HapticManager.impact(style: .medium)
+                                }) {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Set Templates")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.accent)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Plate Calculator
 struct PlateCalculator: View {
     let weight: Double
@@ -1295,6 +1499,11 @@ struct ExerciseNavigationView: View {
     let currentIndex: Int
     let onSelect: (Int) -> Void
     
+    // Count only working sets (exclude warm-up sets)
+    private func workingSetsCount(for exercise: Exercise) -> Int {
+        return exercise.sets.filter { !$0.isWarmup }.count
+    }
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
@@ -1310,9 +1519,12 @@ struct ExerciseNavigationView: View {
                                 .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.foreground)
                                 .lineLimit(1)
                             
-                            Text("\(exercise.sets.count)/\(exercise.targetSets)")
+                            let workingSets = workingSetsCount(for: exercise)
+                            Text("\(workingSets)/\(exercise.targetSets)")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(index == currentIndex ? AppColors.alabasterGrey.opacity(0.8) : AppColors.mutedForeground)
+                                .contentTransition(.numericText())
+                                .animation(AppAnimations.quick, value: workingSets)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -1329,6 +1541,7 @@ struct ExerciseNavigationView: View {
                         .animation(AppAnimations.selection, value: currentIndex)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .id("\(exercise.id)-\(workingSetsCount(for: exercise))")
                 }
             }
             .padding(.horizontal, 4)
@@ -1455,6 +1668,9 @@ struct SettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
                     .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    
+                    // Warm-up Sets Section
+                    WarmupSettingsSection(settingsManager: settingsManager)
                     
                     // Reset Data Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -1590,6 +1806,350 @@ struct SettingsView: View {
             }
         } else {
             return "\(seconds)s"
+        }
+    }
+}
+
+// MARK: - Warm-up Settings Section
+struct WarmupSettingsSection: View {
+    @ObservedObject var settingsManager: SettingsManager
+    @State private var editingPercentages: [Double] = []
+    @State private var showPreview = false
+    @State private var previewWeight: String = "185"
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppColors.accent)
+                
+                Text("Warm-up Sets")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(AppColors.foreground)
+            }
+            
+            Text("Configure warm-up set percentages based on your working weight")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(AppColors.mutedForeground)
+            
+            // Current Warm-up Percentages
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Warm-up Percentages")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.foreground)
+                
+                if settingsManager.warmupPercentages.isEmpty {
+                    Text("No warm-up sets configured")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .padding(.vertical, 8)
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(Array(settingsManager.warmupPercentages.enumerated()), id: \.offset) { index, percentage in
+                            WarmupPercentageRow(
+                                percentage: percentage,
+                                index: index,
+                                onDelete: {
+                                    var updated = settingsManager.warmupPercentages
+                                    updated.remove(at: index)
+                                    settingsManager.warmupPercentages = updated
+                                },
+                                onEdit: { newPercentage in
+                                    var updated = settingsManager.warmupPercentages
+                                    updated[index] = newPercentage
+                                    settingsManager.warmupPercentages = updated.sorted()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .background(AppColors.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            // Quick Presets
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Quick Presets")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.foreground)
+                
+                HStack(spacing: 12) {
+                    WarmupPresetButton(
+                        title: "Light",
+                        percentages: [40, 60, 80],
+                        current: settingsManager.warmupPercentages,
+                        onSelect: { settingsManager.warmupPercentages = $0 }
+                    )
+                    
+                    WarmupPresetButton(
+                        title: "Standard",
+                        percentages: [50, 70, 90],
+                        current: settingsManager.warmupPercentages,
+                        onSelect: { settingsManager.warmupPercentages = $0 }
+                    )
+                    
+                    WarmupPresetButton(
+                        title: "Heavy",
+                        percentages: [60, 80, 95],
+                        current: settingsManager.warmupPercentages,
+                        onSelect: { settingsManager.warmupPercentages = $0 }
+                    )
+                }
+            }
+            
+            // Add Warm-up Percentage
+            Button(action: {
+                var updated = settingsManager.warmupPercentages
+                // Add a new percentage (default to 50% if empty, otherwise add 10% to the last one)
+                let newPercentage = updated.isEmpty ? 50.0 : min(95.0, (updated.last ?? 50.0) + 10.0)
+                updated.append(newPercentage)
+                settingsManager.warmupPercentages = updated.sorted()
+                HapticManager.impact(style: .light)
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 16))
+                    Text("Add Warm-up Percentage")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(AppColors.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(AppColors.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
+            // Preview Section
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Preview")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.foreground)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showPreview.toggle()
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Image(systemName: showPreview ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                }
+                
+                if showPreview {
+                    WarmupPreviewSection(
+                        percentages: settingsManager.warmupPercentages,
+                        weight: $previewWeight
+                    )
+                }
+            }
+            .padding(16)
+            .background(AppColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            // Reset Button
+            Button(action: {
+                settingsManager.resetWarmupPercentages()
+                HapticManager.impact(style: .medium)
+            }) {
+                HStack {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 14))
+                    Text("Reset to Default")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(AppColors.mutedForeground)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(AppColors.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+        }
+        .padding(20)
+        .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+    }
+}
+
+struct WarmupPercentageRow: View {
+    let percentage: Double
+    let index: Int
+    let onDelete: () -> Void
+    let onEdit: (Double) -> Void
+    @State private var isEditing = false
+    @State private var editValue: String = ""
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Percentage Display/Edit
+            if isEditing {
+                HStack(spacing: 8) {
+                    TextField("", text: $editValue)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppColors.foreground)
+                        .frame(width: 60)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(AppColors.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    Text("%")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Button(action: {
+                        if let newValue = Double(editValue),
+                           newValue >= AppConstants.Warmup.minPercentage,
+                           newValue <= AppConstants.Warmup.maxPercentage {
+                            onEdit(newValue)
+                            isEditing = false
+                            HapticManager.selection()
+                        }
+                    }) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(AppColors.accent)
+                    }
+                    
+                    Button(action: {
+                        isEditing = false
+                        editValue = String(format: "%.0f", percentage)
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                }
+            } else {
+                HStack {
+                    Text("\(Int(percentage))%")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppColors.foreground)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        isEditing = true
+                        editValue = String(format: "%.0f", percentage)
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.accent)
+                    }
+                    
+                    Button(action: {
+                        onDelete()
+                        HapticManager.impact(style: .medium)
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.destructive)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(AppColors.background)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+struct WarmupPresetButton: View {
+    let title: String
+    let percentages: [Double]
+    let current: [Double]
+    let onSelect: ([Double]) -> Void
+    
+    var isSelected: Bool {
+        current == percentages
+    }
+    
+    var body: some View {
+        Button(action: {
+            onSelect(percentages)
+            HapticManager.impact(style: .light)
+        }) {
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                
+                Text(percentages.map { "\(Int($0))%" }.joined(separator: ", "))
+                    .font(.system(size: 11))
+            }
+            .foregroundColor(isSelected ? AppColors.alabasterGrey : AppColors.foreground)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
+struct WarmupPreviewSection: View {
+    let percentages: [Double]
+    @Binding var weight: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Working Weight:")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                TextField("185", text: $weight)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppColors.foreground)
+                    .frame(width: 80)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(AppColors.secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                
+                Text("lbs")
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.mutedForeground)
+            }
+            
+            if let workingWeight = Double(weight), workingWeight > 0, !percentages.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Warm-up Sets:")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .textCase(.uppercase)
+                    
+                    ForEach(Array(percentages.sorted().enumerated()), id: \.offset) { _, percentage in
+                        let warmupWeight = (workingWeight * percentage / 100.0).rounded(toNearest: 2.5)
+                        HStack {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.accent)
+                            
+                            Text("\(Int(percentage))%")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                                .frame(width: 40, alignment: .leading)
+                            
+                            Text("\(Int(warmupWeight)) lbs")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppColors.foreground)
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding(.top, 4)
+            }
         }
     }
 }

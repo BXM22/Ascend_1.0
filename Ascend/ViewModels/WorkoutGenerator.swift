@@ -86,14 +86,26 @@ class WorkoutGenerator {
         // Shuffle final list for variety
         selectedExercises = selectedExercises.shuffled()
         
-        // Calculate estimated duration (3-4 minutes per exercise)
-        let estimatedDuration = selectedExercises.count * 4
+        // Filter exercises to only include those in the database
+        let verifiedExercises = selectedExercises.filter { exerciseName in
+            let hasAlternatives = !ExerciseDataManager.shared.getAlternatives(for: exerciseName).isEmpty
+            let hasVideoURL = ExerciseDataManager.shared.getVideoURL(for: exerciseName) != nil
+            return hasAlternatives || hasVideoURL
+        }
+        
+        // If we filtered out too many, log a warning
+        if verifiedExercises.count < selectedExercises.count {
+            Logger.debug("Filtered out \(selectedExercises.count - verifiedExercises.count) exercises not in database", category: .validation)
+        }
+        
+        // Calculate estimated duration (3-4 minutes per exercise) based on verified exercises
+        let estimatedDuration = verifiedExercises.count * 4
         
         // Generate workout name if not provided
         let workoutName = name ?? generateWorkoutName(settings: settings)
         
         // Convert exercise names to TemplateExercise format with intelligent defaults
-        let templateExercises = selectedExercises.enumerated().map { index, exerciseName in
+        let templateExercises = verifiedExercises.enumerated().map { index, exerciseName in
             // Vary sets and reps based on exercise position and type
             let sets: Int
             let reps: String
@@ -116,7 +128,7 @@ class WorkoutGenerator {
                 name: exerciseName,
                 sets: sets,
                 reps: reps,
-                dropsets: index >= selectedExercises.count - 2, // Allow dropsets on last 2 exercises
+                dropsets: index >= verifiedExercises.count - 2, // Allow dropsets on last 2 exercises
                 exerciseType: .weightReps
             )
         }

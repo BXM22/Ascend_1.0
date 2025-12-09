@@ -10,8 +10,9 @@ struct ExerciseSet: Identifiable, Equatable, Codable {
     let holdDuration: Int?
     let isDropset: Bool
     let dropsetNumber: Int? // 1, 2, 3, etc. for dropsets
+    let isWarmup: Bool // True for warm-up sets
     
-    init(setNumber: Int, weight: Double, reps: Int, holdDuration: Int? = nil, isDropset: Bool = false, dropsetNumber: Int? = nil) {
+    init(setNumber: Int, weight: Double, reps: Int, holdDuration: Int? = nil, isDropset: Bool = false, dropsetNumber: Int? = nil, isWarmup: Bool = false) {
         self.id = UUID()
         self.setNumber = setNumber
         self.weight = weight
@@ -19,10 +20,19 @@ struct ExerciseSet: Identifiable, Equatable, Codable {
         self.holdDuration = holdDuration
         self.isDropset = isDropset
         self.dropsetNumber = dropsetNumber
+        self.isWarmup = isWarmup
     }
     
     static func == (lhs: ExerciseSet, rhs: ExerciseSet) -> Bool {
         return lhs.id == rhs.id
+    }
+}
+
+// MARK: - Double Extension for Rounding
+extension Double {
+    /// Round to nearest value (e.g., 2.5 for plate weights)
+    func rounded(toNearest value: Double) -> Double {
+        return (self / value).rounded() * value
     }
 }
 

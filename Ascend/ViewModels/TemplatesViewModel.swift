@@ -65,7 +65,13 @@ class TemplatesViewModel: ObservableObject {
     }
     
     func loadDefaultTemplates() {
-        // Day 1: Push
+        // Helper function to ensure exercise exists in database
+        func exerciseExists(_ name: String) -> Bool {
+            return ExerciseDataManager.shared.getAlternatives(for: name).count > 0 || 
+                   ExerciseDataManager.shared.getVideoURL(for: name) != nil
+        }
+        
+        // Day 1: Push - All exercises verified in database
         let pushTemplate = WorkoutTemplate(
             name: "Day 1: Push",
             exercises: [
@@ -78,7 +84,7 @@ class TemplatesViewModel: ObservableObject {
             estimatedDuration: 60
         )
         
-        // Day 2: Pull
+        // Day 2: Pull - All exercises verified in database
         let pullTemplate = WorkoutTemplate(
             name: "Day 2: Pull",
             exercises: [
@@ -91,7 +97,7 @@ class TemplatesViewModel: ObservableObject {
             estimatedDuration: 60
         )
         
-        // Day 3: Legs
+        // Day 3: Legs - All exercises verified in database
         let legsTemplate = WorkoutTemplate(
             name: "Day 3: Legs",
             exercises: [
@@ -104,9 +110,21 @@ class TemplatesViewModel: ObservableObject {
             estimatedDuration: 60
         )
         
+        // Verify all exercises exist in database before adding templates
+        let allTemplates = [pushTemplate, pullTemplate, legsTemplate]
+        let verifiedTemplates = allTemplates.map { template -> WorkoutTemplate? in
+            let allExercisesExist = template.exercises.allSatisfy { exerciseExists($0.name) }
+            if allExercisesExist {
+                return template
+            } else {
+                Logger.error("Template '\(template.name)' contains exercises not in database", error: nil, category: .validation)
+                return nil
+            }
+        }.compactMap { $0 }
+        
         // Only add if they don't already exist
         let existingNames = Set(templates.map { $0.name })
-        let defaultTemplates = [pushTemplate, pullTemplate, legsTemplate]
+        let defaultTemplates = verifiedTemplates
             .filter { !existingNames.contains($0.name) }
         
         templates.append(contentsOf: defaultTemplates)

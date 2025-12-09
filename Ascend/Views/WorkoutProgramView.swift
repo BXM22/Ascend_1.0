@@ -61,6 +61,11 @@ struct WorkoutProgramView: View {
         workoutViewModel.currentExerciseIndex = 0
         workoutViewModel.startTimer()
         
+        // Track exercise usage for all exercises in program day
+        for exercise in exercises {
+            ExerciseUsageTracker.shared.trackExerciseUsage(exercise.name)
+        }
+        
         dismiss()
     }
     

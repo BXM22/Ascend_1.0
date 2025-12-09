@@ -23,6 +23,15 @@ enum AppConstants {
         static let personalRecords = "personalRecords"
         static let workoutDates = "workoutDates"
         static let restDays = "restDays"
+        // Warm-up settings
+        static let warmupPercentages = "warmupPercentages"
+        // Set templates
+        static let setTemplates = "setTemplates"
+        // Timer pause during rest
+        static let pauseTimerDuringRest = "pauseTimerDuringRest"
+        // Exercise usage tracking
+        static let recentExercises = "recentExercises"
+        static let exerciseUsageCounts = "exerciseUsageCounts"
     }
     
     // MARK: - Timer Constants
@@ -50,6 +59,15 @@ enum AppConstants {
         static let maxWeightReduction: Double = 50.0 // lbs
         static let defaultWeightReduction: Double = 5.0 // lbs
         static let weightReductionStep: Double = 5.0 // lbs
+    }
+    
+    // MARK: - Warm-up Constants
+    
+    enum Warmup {
+        static let defaultPercentages: [Double] = [50.0, 70.0, 90.0] // percentages of working weight
+        static let minPercentage: Double = 20.0
+        static let maxPercentage: Double = 95.0
+        static let percentageStep: Double = 5.0
     }
     
     // MARK: - Hold Exercise Constants

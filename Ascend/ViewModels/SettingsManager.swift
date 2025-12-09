@@ -23,12 +23,35 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    @Published var warmupPercentages: [Double] {
+        didSet {
+            saveWarmupPercentages()
+        }
+    }
+    
+    @Published var pauseTimerDuringRest: Bool {
+        didSet {
+            UserDefaults.standard.set(pauseTimerDuringRest, forKey: AppConstants.UserDefaultsKeys.pauseTimerDuringRest)
+        }
+    }
+    
     init() {
         // Load saved rest timer duration, default to 90 seconds
         self.restTimerDuration = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.restTimerDuration) as? Int ?? AppConstants.Timer.defaultRestDuration
         
         // Load bar weight, default to 45 lbs
         self.barWeight = UserDefaults.standard.object(forKey: "barWeight") as? Double ?? 45.0
+        
+        // Load warm-up percentages, default to [50%, 70%, 90%]
+        // Inline the logic to avoid calling instance method before all properties are initialized
+        if let saved = UserDefaults.standard.array(forKey: AppConstants.UserDefaultsKeys.warmupPercentages) as? [Double] {
+            self.warmupPercentages = saved
+        } else {
+            self.warmupPercentages = AppConstants.Warmup.defaultPercentages
+        }
+        
+        // Load pause timer during rest setting, default to false
+        self.pauseTimerDuringRest = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.pauseTimerDuringRest)
         
         // Load custom theme
         loadCustomTheme()
@@ -92,6 +115,23 @@ class SettingsManager: ObservableObject {
             // Clear invalid data
             UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.customColorTheme)
         }
+    }
+    
+    // MARK: - Warm-up Settings
+    
+    private func saveWarmupPercentages() {
+        UserDefaults.standard.set(warmupPercentages, forKey: AppConstants.UserDefaultsKeys.warmupPercentages)
+    }
+    
+    private func loadWarmupPercentages() -> [Double] {
+        if let saved = UserDefaults.standard.array(forKey: AppConstants.UserDefaultsKeys.warmupPercentages) as? [Double] {
+            return saved
+        }
+        return AppConstants.Warmup.defaultPercentages
+    }
+    
+    func resetWarmupPercentages() {
+        warmupPercentages = AppConstants.Warmup.defaultPercentages
     }
     
     // MARK: - Reset Data

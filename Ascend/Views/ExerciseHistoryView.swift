@@ -8,7 +8,24 @@ struct ExerciseHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var workoutHistoryManager = WorkoutHistoryManager.shared
     
+    // Cache computed values to avoid recalculation on every render
+    @State private var cachedExerciseHistory: [ExerciseSetData] = []
+    @State private var cachedPRs: [PersonalRecord] = []
+    @State private var cachedChartData: [ChartDataPoint] = []
+    
     private var exerciseHistory: [ExerciseSetData] {
+        cachedExerciseHistory
+    }
+    
+    private var prs: [PersonalRecord] {
+        cachedPRs
+    }
+    
+    private var chartData: [ChartDataPoint] {
+        cachedChartData
+    }
+    
+    private func loadExerciseHistory() {
         // Get all workouts containing this exercise
         let workouts = workoutHistoryManager.completedWorkouts
             .filter { workout in
@@ -31,15 +48,13 @@ struct ExerciseHistoryView: View {
         }
         
         // Sort by date (newest first)
-        return sets.sorted { $0.date > $1.date }
-    }
-    
-    private var prs: [PersonalRecord] {
-        progressViewModel?.prs.filter { $0.exercise == exerciseName } ?? []
-    }
-    
-    private var chartData: [ChartDataPoint] {
-        exerciseHistory.map { set in
+        cachedExerciseHistory = sets.sorted { $0.date > $1.date }
+        
+        // Update PRs
+        cachedPRs = progressViewModel?.prs.filter { $0.exercise == exerciseName } ?? []
+        
+        // Update chart data
+        cachedChartData = cachedExerciseHistory.map { set in
             ChartDataPoint(
                 date: set.date,
                 weight: set.weight,
@@ -59,12 +74,38 @@ struct ExerciseHistoryView: View {
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(AppColors.foreground)
                         
-                        Text("\(exerciseHistory.count) sets completed")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+                        if exerciseHistory.isEmpty {
+                            Text("No sets completed yet")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                        } else {
+                            Text("\(exerciseHistory.count) sets completed")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                    
+                    // Empty State
+                    if exerciseHistory.isEmpty && prs.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 48))
+                                .foregroundColor(AppColors.mutedForeground)
+                            
+                            Text("No history yet")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(AppColors.foreground)
+                            
+                            Text("Complete sets to see your progress here")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.mutedForeground)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 60)
+                    }
                     
                     // PR Section
                     if !prs.isEmpty {
@@ -179,6 +220,12 @@ struct ExerciseHistoryView: View {
                     }
                     .foregroundColor(AppColors.accent)
                 }
+            }
+            .onAppear {
+                loadExerciseHistory()
+            }
+            .onChange(of: workoutHistoryManager.completedWorkouts.count) { _, _ in
+                loadExerciseHistory()
             }
         }
     }

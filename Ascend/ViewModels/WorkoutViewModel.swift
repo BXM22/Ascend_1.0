@@ -44,6 +44,16 @@ class WorkoutViewModel: ObservableObject {
     private var backgroundTime: Date?
     private var notificationObservers: [NSObjectProtocol] = []
     
+    // Timer pause during rest tracking
+    private var pausedTimeAccumulator: Int = 0 // Total paused time in seconds
+    private var pauseStartTime: Date? // When the timer was paused
+    private var isTimerPaused: Bool = false
+    
+    /// Public property to check if timer is paused during rest
+    var isTimerPausedDuringRest: Bool {
+        return isTimerPaused && settingsManager.pauseTimerDuringRest
+    }
+    
     var currentExercise: Exercise? {
         guard let workout = currentWorkout,
               currentExerciseIndex < workout.exercises.count else {
@@ -145,6 +155,14 @@ class WorkoutViewModel: ObservableObject {
     
     private func handleAppBackgrounded() {
         backgroundTime = Date()
+        
+        // If timer is paused during rest, track the pause time
+        if isTimerPaused, let pauseStart = pauseStartTime {
+            let pauseDuration = Int(Date().timeIntervalSince(pauseStart))
+            pausedTimeAccumulator += pauseDuration
+            pauseStartTime = nil
+        }
+        
         // Pause timers when going to background to save battery
         // We'll recalculate time when foregrounding
         timer?.invalidate()
@@ -161,11 +179,20 @@ class WorkoutViewModel: ObservableObject {
     
     private func handleAppForegrounded() {
         guard backgroundTime != nil else { return }
+        let backgroundDuration = Date().timeIntervalSince(backgroundTime!)
         self.backgroundTime = nil
         
-        // Update workout timer - recalculate from start time
+        // Update workout timer - recalculate from start time, accounting for paused time
         if let startTime = workoutStartTime {
-            elapsedTime = Int(Date().timeIntervalSince(startTime))
+            let totalElapsed = Int(Date().timeIntervalSince(startTime))
+            elapsedTime = totalElapsed - pausedTimeAccumulator
+            
+            // If timer was paused during rest, account for the background time as paused time
+            if isTimerPaused && settingsManager.pauseTimerDuringRest {
+                pausedTimeAccumulator += Int(backgroundDuration)
+                elapsedTime = totalElapsed - pausedTimeAccumulator
+            }
+            
             // Restart timer if workout is active (was running before backgrounding)
             if currentWorkout != nil && timer == nil {
                 startTimer()
@@ -257,6 +284,11 @@ class WorkoutViewModel: ObservableObject {
         currentExerciseIndex = 0
         syncDropsetStateFromCurrentExercise()
         startTimer()
+        
+        // Track exercise usage for all exercises in template
+        for exercise in exercises {
+            ExerciseUsageTracker.shared.trackExerciseUsage(exercise.name)
+        }
     }
     
     private func determineExerciseType(for exerciseName: String) -> (ExerciseType, Int?) {
@@ -286,9 +318,36 @@ class WorkoutViewModel: ObservableObject {
     
     func startTimer() {
         workoutStartTime = Date()
+        pausedTimeAccumulator = 0
+        isTimerPaused = false
+        pauseStartTime = nil
+        elapsedTime = 0
         timer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.workoutTimerInterval, repeats: true) { [weak self] _ in
             guard let self = self, let startTime = self.workoutStartTime else { return }
-            self.elapsedTime = Int(Date().timeIntervalSince(startTime))
+            if !self.isTimerPaused {
+                let totalElapsed = Int(Date().timeIntervalSince(startTime))
+                self.elapsedTime = max(0, totalElapsed - self.pausedTimeAccumulator)
+            }
+        }
+    }
+    
+    /// Reset the workout timer to zero and restart it
+    func resetTimer() {
+        workoutStartTime = Date()
+        pausedTimeAccumulator = 0
+        isTimerPaused = false
+        pauseStartTime = nil
+        elapsedTime = 0
+        // Restart timer if it was running
+        if timer != nil {
+            timer?.invalidate()
+            timer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.workoutTimerInterval, repeats: true) { [weak self] _ in
+                guard let self = self, let startTime = self.workoutStartTime else { return }
+                if !self.isTimerPaused {
+                    let totalElapsed = Int(Date().timeIntervalSince(startTime))
+                    self.elapsedTime = max(0, totalElapsed - self.pausedTimeAccumulator)
+                }
+            }
         }
     }
     
@@ -298,10 +357,21 @@ class WorkoutViewModel: ObservableObject {
         restTimer?.invalidate()
         restTimer = nil
         restTimerActive = false
+        
+        // Reset pause state if workout is paused
+        if isTimerPaused {
+            isTimerPaused = false
+            pauseStartTime = nil
+        }
     }
     
     func finishWorkout() {
         pauseWorkout()
+        
+        // Reset pause state
+        isTimerPaused = false
+        pauseStartTime = nil
+        pausedTimeAccumulator = 0
         
         guard let workout = currentWorkout else { return }
         
@@ -392,12 +462,15 @@ class WorkoutViewModel: ObservableObject {
         exercise.weightReductionPerDropset = max(AppConstants.Dropset.minWeightReduction, weightReductionPerDropset)
         
         // Create main set
-        let mainSetNumber = exercise.currentSet
+        // Count only working sets (non-warmup) to determine set number
+        let workingSetsCount = exercise.sets.filter { !$0.isWarmup }.count
+        let mainSetNumber = workingSetsCount + 1
         let mainSet = ExerciseSet(
             setNumber: mainSetNumber,
             weight: weight,
             reps: reps,
-            isDropset: false
+            isDropset: false,
+            isWarmup: false
         )
         
         exercise.sets.append(mainSet)
@@ -415,7 +488,8 @@ class WorkoutViewModel: ObservableObject {
                     weight: dropsetWeight,
                     reps: reps,
                     isDropset: true,
-                    dropsetNumber: dropsetNumber
+                    dropsetNumber: dropsetNumber,
+                    isWarmup: false
                 )
                 
                 exercise.sets.append(dropset)
@@ -488,15 +562,26 @@ class WorkoutViewModel: ObservableObject {
         var exercise = workout.exercises[undoState.exerciseIndex]
         
         // Remove sets that were added (main set + dropsets)
-        let setsToRemove = exercise.sets.count - undoState.setCount
-        if setsToRemove > 0 {
-            exercise.sets.removeLast(setsToRemove)
+        // Only remove working sets, not warm-up sets
+        let workingSetsBefore = exercise.sets.filter { !$0.isWarmup }.count
+        let workingSetsToRemove = workingSetsBefore - undoState.setCount
+        if workingSetsToRemove > 0 {
+            // Remove the last N working sets (skip warm-up sets)
+            var removed = 0
+            for i in (0..<exercise.sets.count).reversed() {
+                if !exercise.sets[i].isWarmup {
+                    exercise.sets.remove(at: i)
+                    removed += 1
+                    if removed >= workingSetsToRemove {
+                        break
+                    }
+                }
+            }
         }
         
-        // Decrement currentSet if needed
-        if exercise.currentSet > 1 {
-            exercise.currentSet -= 1
-        }
+        // Decrement currentSet if needed (only count working sets)
+        let currentWorkingSets = exercise.sets.filter { !$0.isWarmup }.count
+        exercise.currentSet = max(1, currentWorkingSets + 1)
         
         // Update exercise in workout
         workout.exercises[undoState.exerciseIndex] = exercise
@@ -606,6 +691,9 @@ class WorkoutViewModel: ObservableObject {
         )
         workout.exercises.append(exercise)
         currentWorkout = workout
+        
+        // Track exercise usage
+        ExerciseUsageTracker.shared.trackExerciseUsage(name)
     }
     
     func switchToAlternative(alternativeName: String) {
@@ -658,6 +746,11 @@ class WorkoutViewModel: ObservableObject {
         restTimeRemaining = restTimerOriginalDuration
         restTimerStartTime = Date()
         
+        // Pause workout timer during rest if setting is enabled
+        if settingsManager.pauseTimerDuringRest {
+            pauseWorkoutTimer()
+        }
+        
         // Validate timer duration
         guard restTimerOriginalDuration > 0 else {
             Logger.error("Invalid rest timer duration: \(restTimerOriginalDuration)", category: .validation)
@@ -704,6 +797,11 @@ class WorkoutViewModel: ObservableObject {
         restTimerOriginalDuration = 0
         restTimerTotalDuration = AppConstants.Timer.defaultRestDuration
         
+        // Resume workout timer if it was paused
+        if settingsManager.pauseTimerDuringRest {
+            resumeWorkoutTimer()
+        }
+        
         // Cancel notification since timer was skipped
         NotificationManager.shared.cancelRestTimerNotification()
         
@@ -723,6 +821,11 @@ class WorkoutViewModel: ObservableObject {
         restTimerOriginalDuration = 0
         restTimerTotalDuration = AppConstants.Timer.defaultRestDuration
         
+        // Resume workout timer if it was paused
+        if settingsManager.pauseTimerDuringRest {
+            resumeWorkoutTimer()
+        }
+        
         // Cancel notification since timer completed
         NotificationManager.shared.cancelRestTimerNotification()
         
@@ -733,12 +836,93 @@ class WorkoutViewModel: ObservableObject {
         checkAndAdvanceExercise()
     }
     
+    // MARK: - Timer Pause During Rest
+    
+    private func pauseWorkoutTimer() {
+        guard !isTimerPaused else { return }
+        isTimerPaused = true
+        pauseStartTime = Date()
+        // Update elapsed time immediately to reflect pause
+        if let startTime = workoutStartTime {
+            let totalElapsed = Int(Date().timeIntervalSince(startTime))
+            elapsedTime = max(0, totalElapsed - pausedTimeAccumulator)
+        }
+    }
+    
+    private func resumeWorkoutTimer() {
+        guard isTimerPaused, let pauseStart = pauseStartTime else { return }
+        let pauseDuration = Int(Date().timeIntervalSince(pauseStart))
+        pausedTimeAccumulator += pauseDuration
+        isTimerPaused = false
+        pauseStartTime = nil
+        // Update elapsed time to reflect resume
+        if let startTime = workoutStartTime {
+            let totalElapsed = Int(Date().timeIntervalSince(startTime))
+            elapsedTime = max(0, totalElapsed - pausedTimeAccumulator)
+        }
+    }
+    
+    // MARK: - Warm-up Sets
+    
+    func addWarmupSets(for workingWeight: Double, reps: Int) {
+        guard var exercise = currentExercise,
+              var workout = currentWorkout,
+              workingWeight > 0, reps > 0 else { return }
+        
+        // Don't add warm-up sets if they already exist
+        guard !hasWarmupSets() else { return }
+        
+        // Don't add warm-up sets if there are already working sets
+        guard exercise.sets.isEmpty else { return }
+        
+        let percentages = settingsManager.warmupPercentages.sorted()
+        guard !percentages.isEmpty else { return }
+        
+        // Calculate warm-up sets and insert before first working set
+        // Use negative setNumbers for warm-up sets to avoid conflicts with working sets
+        var warmupSets: [ExerciseSet] = []
+        for (index, percentage) in percentages.enumerated() {
+            let warmupWeight = max(0, (workingWeight * percentage / 100.0).rounded(toNearest: 2.5))
+            // Use same reps as working set, or reduce for very light warm-up sets
+            let warmupReps = percentage < 50 ? min(reps, 5) : reps
+            let warmupSet = ExerciseSet(
+                setNumber: -(index + 1), // Negative numbers for warm-up sets
+                weight: warmupWeight,
+                reps: warmupReps,
+                isDropset: false,
+                isWarmup: true // Mark as warm-up
+            )
+            warmupSets.append(warmupSet)
+        }
+        
+        // Insert warm-up sets at the beginning
+        exercise.sets.insert(contentsOf: warmupSets, at: 0)
+        
+        // Update exercise in workout
+        workout.exercises[currentExerciseIndex] = exercise
+        
+        // Force SwiftUI update
+        objectWillChange.send()
+        currentWorkout = workout
+        
+        HapticManager.success()
+    }
+    
+    func hasWarmupSets() -> Bool {
+        guard let exercise = currentExercise else { return false }
+        // Check if any sets are marked as warm-up
+        return exercise.sets.contains { $0.isWarmup }
+    }
+    
     private func checkAndAdvanceExercise() {
         guard let exercise = currentExercise,
               currentWorkout != nil else { return }
         
+        // Count only working sets (exclude warm-up sets)
+        let workingSetsCount = exercise.sets.filter { !$0.isWarmup }.count
+        
         // Check if all sets are completed
-        if exercise.currentSet > exercise.targetSets {
+        if workingSetsCount >= exercise.targetSets {
             // All sets completed, move to next exercise
             advanceToNextExercise()
         }

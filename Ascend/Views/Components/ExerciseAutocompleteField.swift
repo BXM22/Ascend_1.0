@@ -10,6 +10,7 @@ struct ExerciseAutocompleteField: View {
     @FocusState private var isFocused: Bool
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     @StateObject private var favoritesManager = FavoritesManager.shared
+    @StateObject private var usageTracker = ExerciseUsageTracker.shared
     @State private var debounceTask: Task<Void, Never>?
     
     // Cache exercise list for better performance - computed once
@@ -46,25 +47,63 @@ struct ExerciseAutocompleteField: View {
     
     // Optimized filtering function - uses early exit and single pass where possible
     private func filterExercises(_ query: String) -> ([String], [String]) {
-        // Separate favorites and regular exercises
+        // Separate favorites, recent, most used, and regular exercises
+        // Use Set for O(1) lookup performance
+        let favoritesSet = Set(favoritesManager.favoriteExercises)
+        let recentSet = Set(usageTracker.recentExercises)
+        let mostUsedSet = Set(usageTracker.getMostUsedExercises(limit: 10))
+        
         let favorites = favoritesManager.favoriteExercises
-        let regularExercises = allExercises.filter { !favorites.contains($0) }
+        let recent = usageTracker.recentExercises
+        let mostUsed = usageTracker.getMostUsedExercises(limit: 10)
+        let regularExercises = allExercises.filter { 
+            !favoritesSet.contains($0) && !recentSet.contains($0) && !mostUsedSet.contains($0)
+        }
         
         guard !query.isEmpty else {
-            // If no query, return favorites first
-            return (favorites, [])
+            // If no query, return: recent → most used → favorites → alphabetical
+            // Use Set for O(1) lookup performance
+            let recentSet = Set(recent)
+            let mostUsedSet = Set(mostUsed)
+            var ordered: [String] = []
+            ordered.append(contentsOf: recent)
+            ordered.append(contentsOf: mostUsed.filter { !recentSet.contains($0) })
+            ordered.append(contentsOf: favorites.filter { !recentSet.contains($0) && !mostUsedSet.contains($0) })
+            return (ordered, [])
         }
         
         let lowercasedQuery = query.lowercased()
         
         // Pre-allocate result arrays for better performance
+        var recentMatches: [String] = []
+        var mostUsedMatches: [String] = []
         var favoritePrefixMatches: [String] = []
         var favoriteContainsMatches: [String] = []
         var prefixMatches: [String] = []
         var containsMatches: [String] = []
         
-        // Filter favorites first
+        // Filter recent exercises first (optimized with early exit)
+        for exercise in recent {
+            let lowerExercise = exercise.lowercased()
+            if lowerExercise.hasPrefix(lowercasedQuery) || lowerExercise.contains(lowercasedQuery) {
+                recentMatches.append(exercise)
+            }
+        }
+        
+        // Filter most used exercises (skip if already in recent) - use Set for O(1) lookup
+        let recentMatchesSet = Set(recentMatches)
+        for exercise in mostUsed {
+            if recentMatchesSet.contains(exercise) { continue }
+            let lowerExercise = exercise.lowercased()
+            if lowerExercise.hasPrefix(lowercasedQuery) || lowerExercise.contains(lowercasedQuery) {
+                mostUsedMatches.append(exercise)
+            }
+        }
+        
+        // Filter favorites - use Set for O(1) lookup
+        let mostUsedMatchesSet = Set(mostUsedMatches)
         for exercise in favorites {
+            if recentMatchesSet.contains(exercise) || mostUsedMatchesSet.contains(exercise) { continue }
             let lowerExercise = exercise.lowercased()
             if lowerExercise.hasPrefix(lowercasedQuery) {
                 favoritePrefixMatches.append(exercise)
@@ -83,14 +122,18 @@ struct ExerciseAutocompleteField: View {
             }
         }
         
-        // Combine: favorites first (prefix, then contains), then regular (prefix, then contains)
+        // Combine: recent → most used → favorites (prefix, then contains) → regular (prefix, then contains)
+        var orderedResults = recentMatches
+        orderedResults.append(contentsOf: mostUsedMatches)
+        
         var favoriteResults = favoritePrefixMatches
         favoriteResults.append(contentsOf: favoriteContainsMatches)
+        orderedResults.append(contentsOf: favoriteResults)
         
         var regularResults = prefixMatches
         regularResults.append(contentsOf: containsMatches)
         
-        return (favoriteResults, regularResults)
+        return (orderedResults, regularResults)
     }
     
     var body: some View {
@@ -153,11 +196,24 @@ struct ExerciseAutocompleteField: View {
                                     showSuggestions = false
                                     isFocused = false
                                 }
+                                // Track exercise usage
+                                usageTracker.trackExerciseUsage(suggestion)
                             }) {
                                 HStack {
-                                    Image(systemName: "star.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(AppColors.accent)
+                                    // Show icon based on type
+                                    if usageTracker.recentExercises.contains(suggestion) {
+                                        Image(systemName: "clock.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(AppColors.accent)
+                                    } else if usageTracker.getMostUsedExercises().contains(suggestion) {
+                                        Image(systemName: "chart.bar.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(AppColors.accent)
+                                    } else {
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(AppColors.accent)
+                                    }
                                     
                                     Text(suggestion)
                                         .font(.system(size: 16, weight: .semibold))
@@ -193,6 +249,8 @@ struct ExerciseAutocompleteField: View {
                                 showSuggestions = false
                                 isFocused = false
                             }
+                            // Track exercise usage
+                            usageTracker.trackExerciseUsage(suggestion)
                         }) {
                             HStack {
                                 Text(suggestion)
@@ -200,6 +258,13 @@ struct ExerciseAutocompleteField: View {
                                     .foregroundColor(AppColors.foreground)
                                 
                                 Spacer()
+                                
+                                // Show usage count for most used exercises
+                                if usageTracker.getUsageCount(for: suggestion) > 0 {
+                                    Text("\(usageTracker.getUsageCount(for: suggestion))×")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
                                 
                                 Image(systemName: "arrow.up.left")
                                     .font(.system(size: 12))

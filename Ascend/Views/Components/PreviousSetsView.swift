@@ -3,11 +3,20 @@ import SwiftUI
 struct PreviousSetsView: View {
     let sets: [ExerciseSet]
     
-    // Group sets by set number, including dropsets
+    // Separate warm-up sets and working sets
+    private var warmupSets: [ExerciseSet] {
+        sets.filter { $0.isWarmup }
+    }
+    
+    private var workingSets: [ExerciseSet] {
+        sets.filter { !$0.isWarmup }
+    }
+    
+    // Group sets by set number, including dropsets (only for working sets)
     private var groupedSets: [(setNumber: Int, mainSet: ExerciseSet, dropsets: [ExerciseSet])] {
         var grouped: [Int: (mainSet: ExerciseSet?, dropsets: [ExerciseSet])] = [:]
         
-        for set in sets {
+        for set in workingSets {
             if set.isDropset {
                 // For dropsets, they share the same set number as their main set
                 let mainSetNumber = set.setNumber
@@ -43,9 +52,27 @@ struct PreviousSetsView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(AppColors.foreground)
             
-            ForEach(groupedSets, id: \.setNumber) { group in
-                SetRowGroup(mainSet: group.mainSet, dropsets: group.dropsets)
-                    .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
+            // Warm-up sets section
+            if !warmupSets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Warm-up")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .textCase(.uppercase)
+                    
+                    ForEach(warmupSets.sorted(by: { $0.setNumber < $1.setNumber }), id: \.id) { set in
+                        WarmupSetRow(set: set)
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+            
+            // Working sets section
+            if !groupedSets.isEmpty {
+                ForEach(groupedSets, id: \.setNumber) { group in
+                    SetRowGroup(mainSet: group.mainSet, dropsets: group.dropsets)
+                        .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
+                }
             }
         }
         .padding(20)
@@ -185,6 +212,52 @@ struct SetRow: View {
                 .foregroundColor(AppColors.border.opacity(0.3)),
             alignment: .bottom
         )
+    }
+}
+
+struct WarmupSetRow: View {
+    let set: ExerciseSet
+    
+    var body: some View {
+        HStack {
+            HStack(spacing: 12) {
+                // Show warm-up indicator instead of set number
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.accent)
+                    Text("Warm-up")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                
+                if let holdDuration = set.holdDuration {
+                    Text("\(holdDuration) seconds")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.foreground.opacity(0.7))
+                } else {
+                    Text("\(Int(set.weight)) lbs × \(set.reps) reps")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.foreground.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            ZStack {
+                Circle()
+                    .fill(AppColors.accent.opacity(0.08))
+                    .frame(width: 28, height: 28)
+                
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(AppColors.accent.opacity(0.6))
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.leading, 8)
+        .background(AppColors.secondary.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
