@@ -59,6 +59,7 @@ struct WorkoutProgramView: View {
         
         workoutViewModel.currentWorkout = Workout(name: "\(program.name) - \(day.name)", exercises: exercises)
         workoutViewModel.currentExerciseIndex = 0
+        workoutViewModel.isFromTemplate = true // Mark as from template/program
         workoutViewModel.startTimer()
         
         // Track exercise usage for all exercises in program day

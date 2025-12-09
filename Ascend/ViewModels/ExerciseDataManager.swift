@@ -17,16 +17,32 @@ class ExerciseDataManager: ObservableObject {
         
         // MARK: - Chest Exercises
         db["Bench Press"] = ExerciseInfo(
-            alternatives: ["Push-ups", "Dumbbell Press", "Incline Push-ups"],
+            alternatives: ["Push-ups", "Dumbbell Press", "Incline Push-ups", "Bench Press (Dumbbell)", "Bench Press (Machine)"],
             videoURL: "https://www.youtube.com/watch?v=rT7DgCr-3pg"
         )
         db["Bench Press (Barbell)"] = ExerciseInfo(
-            alternatives: ["Push-ups", "Dumbbell Press", "Incline Push-ups"],
+            alternatives: ["Push-ups", "Dumbbell Press", "Incline Push-ups", "Bench Press (Dumbbell)", "Bench Press (Machine)"],
             videoURL: "https://www.youtube.com/watch?v=rT7DgCr-3pg"
         )
+        db["Bench Press (Dumbbell)"] = ExerciseInfo(
+            alternatives: ["Bench Press", "Push-ups", "Incline Dumbbell Press", "Bench Press (Barbell)", "Bench Press (Machine)"],
+            videoURL: "https://www.youtube.com/results?search_query=dumbbell+bench+press"
+        )
+        db["Bench Press (Machine)"] = ExerciseInfo(
+            alternatives: ["Bench Press", "Push-ups", "Dumbbell Press", "Bench Press (Barbell)", "Bench Press (Dumbbell)"],
+            videoURL: "https://www.youtube.com/results?search_query=machine+bench+press"
+        )
         db["Incline Bench Press"] = ExerciseInfo(
-            alternatives: ["Incline Push-ups", "Dumbbell Incline Press", "Push-ups"],
+            alternatives: ["Incline Push-ups", "Dumbbell Incline Press", "Push-ups", "Incline Bench Press (Dumbbell)", "Incline Bench Press (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/PectoralClavicular/BBInclineBenchPress"
+        )
+        db["Incline Bench Press (Dumbbell)"] = ExerciseInfo(
+            alternatives: ["Incline Bench Press", "Incline Push-ups", "Dumbbell Incline Press", "Incline Bench Press (Barbell)", "Incline Bench Press (Machine)"],
+            videoURL: "https://www.youtube.com/results?search_query=dumbbell+incline+bench+press"
+        )
+        db["Incline Bench Press (Machine)"] = ExerciseInfo(
+            alternatives: ["Incline Bench Press", "Incline Push-ups", "Dumbbell Incline Press", "Incline Bench Press (Barbell)", "Incline Bench Press (Dumbbell)"],
+            videoURL: "https://www.youtube.com/results?search_query=machine+incline+bench+press"
         )
         db["Decline Bench Press"] = ExerciseInfo(
             alternatives: ["Decline Push-ups", "Dips", "Push-ups"],
@@ -59,12 +75,20 @@ class ExerciseDataManager: ObservableObject {
             videoURL: "https://exrx.net/WeightExercises/LatissimusDorsi/BWChinup"
         )
         db["Barbell Row"] = ExerciseInfo(
-            alternatives: ["Inverted Rows", "Dumbbell Rows", "Pull-ups"],
+            alternatives: ["Inverted Rows", "Dumbbell Rows", "Pull-ups", "Barbell Row (Dumbbell)", "Barbell Row (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/LatissimusDorsi/BBBentOverRow"
         )
         db["Bent Over Row (Barbell)"] = ExerciseInfo(
-            alternatives: ["Inverted Rows", "Dumbbell Rows", "Pull-ups"],
+            alternatives: ["Inverted Rows", "Dumbbell Rows", "Pull-ups", "Barbell Row (Dumbbell)", "Barbell Row (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/LatissimusDorsi/BBBentOverRow"
+        )
+        db["Barbell Row (Dumbbell)"] = ExerciseInfo(
+            alternatives: ["Barbell Row", "Dumbbell Rows", "Inverted Rows", "Barbell Row (Barbell)", "Barbell Row (Machine)"],
+            videoURL: "https://www.youtube.com/results?search_query=dumbbell+row"
+        )
+        db["Barbell Row (Machine)"] = ExerciseInfo(
+            alternatives: ["Barbell Row", "Cable Rows", "Inverted Rows", "Barbell Row (Barbell)", "Barbell Row (Dumbbell)"],
+            videoURL: "https://www.youtube.com/results?search_query=machine+row"
         )
         db["T-Bar Row"] = ExerciseInfo(
             alternatives: ["Barbell Row", "Dumbbell Rows", "Inverted Rows"],
@@ -153,12 +177,20 @@ class ExerciseDataManager: ObservableObject {
         
         // MARK: - Leg Exercises
         db["Squat"] = ExerciseInfo(
-            alternatives: ["Bodyweight Squat", "Jump Squats", "Lunges"],
+            alternatives: ["Bodyweight Squat", "Jump Squats", "Lunges", "Squat (Dumbbell)", "Squat (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/Quadriceps/BBSquat"
         )
         db["Squat (Barbell)"] = ExerciseInfo(
-            alternatives: ["Bodyweight Squat", "Jump Squats", "Lunges"],
+            alternatives: ["Bodyweight Squat", "Jump Squats", "Lunges", "Squat (Dumbbell)", "Squat (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/Quadriceps/BBSquat"
+        )
+        db["Squat (Dumbbell)"] = ExerciseInfo(
+            alternatives: ["Squat", "Goblet Squat", "Bodyweight Squat", "Squat (Barbell)", "Squat (Machine)"],
+            videoURL: "https://www.youtube.com/results?search_query=dumbbell+squat"
+        )
+        db["Squat (Machine)"] = ExerciseInfo(
+            alternatives: ["Squat", "Leg Press", "Bodyweight Squat", "Squat (Barbell)", "Squat (Dumbbell)"],
+            videoURL: "https://www.youtube.com/results?search_query=machine+squat"
         )
         db["Front Squat"] = ExerciseInfo(
             alternatives: ["Squat", "Goblet Squat", "Bodyweight Squat"],
@@ -177,8 +209,16 @@ class ExerciseDataManager: ObservableObject {
             videoURL: "https://exrx.net/WeightExercises/Quadriceps/BWLunge"
         )
         db["Deadlift"] = ExerciseInfo(
-            alternatives: ["Romanian Deadlift", "Good Mornings", "Hip Thrusts"],
+            alternatives: ["Romanian Deadlift", "Good Mornings", "Hip Thrusts", "Deadlift (Dumbbell)", "Deadlift (Machine)"],
             videoURL: "https://exrx.net/WeightExercises/Hamstrings/BBDeadlift"
+        )
+        db["Deadlift (Dumbbell)"] = ExerciseInfo(
+            alternatives: ["Deadlift", "Romanian Deadlift", "Good Mornings", "Deadlift (Barbell)", "Deadlift (Machine)"],
+            videoURL: "https://www.youtube.com/results?search_query=dumbbell+deadlift"
+        )
+        db["Deadlift (Machine)"] = ExerciseInfo(
+            alternatives: ["Deadlift", "Romanian Deadlift", "Good Mornings", "Deadlift (Barbell)", "Deadlift (Dumbbell)"],
+            videoURL: "https://www.youtube.com/results?search_query=machine+deadlift"
         )
         db["Romanian Deadlift"] = ExerciseInfo(
             alternatives: ["Deadlift", "Good Mornings", "Hip Thrusts"],

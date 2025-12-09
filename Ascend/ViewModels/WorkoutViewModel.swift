@@ -19,6 +19,7 @@ class WorkoutViewModel: ObservableObject {
     @Published var showCompletionModal: Bool = false
     @Published var completionStats: WorkoutCompletionStats?
     @Published var showExerciseHistory: Bool = false
+    @Published var isFromTemplate: Bool = false // Track if workout came from template
     
     // Undo state
     @Published var showUndoButton: Bool = false
@@ -282,6 +283,7 @@ class WorkoutViewModel: ObservableObject {
         }
         currentWorkout = Workout(name: template.name, exercises: exercises)
         currentExerciseIndex = 0
+        isFromTemplate = true // Mark as from template
         syncDropsetStateFromCurrentExercise()
         startTimer()
         
@@ -313,6 +315,7 @@ class WorkoutViewModel: ObservableObject {
     func startWorkout(name: String) {
         currentWorkout = Workout(name: name)
         currentExerciseIndex = 0
+        isFromTemplate = false // Mark as manually created
         startTimer()
     }
     
@@ -322,12 +325,21 @@ class WorkoutViewModel: ObservableObject {
         isTimerPaused = false
         pauseStartTime = nil
         elapsedTime = 0
+        
+        // Invalidate any existing timer first
+        timer?.invalidate()
+        
         timer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.workoutTimerInterval, repeats: true) { [weak self] _ in
             guard let self = self, let startTime = self.workoutStartTime else { return }
             if !self.isTimerPaused {
                 let totalElapsed = Int(Date().timeIntervalSince(startTime))
                 self.elapsedTime = max(0, totalElapsed - self.pausedTimeAccumulator)
             }
+        }
+        
+        // Add timer to RunLoop to ensure it fires correctly
+        if let timer = timer {
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
     
@@ -424,17 +436,27 @@ class WorkoutViewModel: ObservableObject {
             programVM.advanceToNextDay(for: program)
         }
         
-        // Store stats and show modal BEFORE clearing workout state
-        // This ensures modal appears with accurate data and view is still visible
-        completionStats = stats
-        showCompletionModal = true
+        // Only show completion modal if workout came from template
+        if isFromTemplate {
+            // Store stats and show modal BEFORE clearing workout state
+            // This ensures modal appears with accurate data and view is still visible
+            completionStats = stats
+            showCompletionModal = true
+            
+            Logger.debug("Showing completion modal - stats: \(stats.exerciseCount) exercises, \(stats.totalSets) sets, \(stats.totalVolume) lbs", category: .general)
+            
+            // Celebration haptic feedback
+            HapticManager.success()
+        } else {
+            // For manually created workouts, just clear state without showing modal
+            currentWorkout = nil
+            currentExerciseIndex = 0
+            elapsedTime = 0
+            isFromTemplate = false
+            HapticManager.success()
+        }
         
-        Logger.debug("Showing completion modal - stats: \(stats.exerciseCount) exercises, \(stats.totalSets) sets, \(stats.totalVolume) lbs", category: .general)
-        
-        // Celebration haptic feedback
-        HapticManager.success()
-        
-        // Don't clear workout state yet - wait until modal is dismissed
+        // Don't clear workout state yet if showing modal - wait until modal is dismissed
         // This ensures the modal overlay remains visible
     }
     
@@ -521,11 +543,11 @@ class WorkoutViewModel: ObservableObject {
                 progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: weight, reps: reps)
             } else {
                 // Check for PR (show badge)
-                checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+                _ = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
             }
         } else {
             // No progress view model, just check for PR (shows badge only)
-            checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+            _ = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
         }
         
         // Store undo state
@@ -615,25 +637,61 @@ class WorkoutViewModel: ObservableObject {
         HapticManager.success()
     }
     
-    func completeHoldSet(duration: Int) {
-        // Validate input
-        switch validateHoldSetCompletion(duration: duration) {
-        case .failure(let error):
-            // Log error - in a production app, you might want to show an alert
-            Logger.error("Hold set completion validation failed", error: error, category: .validation)
+    func deleteSet(setId: UUID) {
+        guard var workout = currentWorkout,
+              currentExerciseIndex < workout.exercises.count else {
             return
-        case .success:
-            break
+        }
+        
+        var exercise = workout.exercises[currentExerciseIndex]
+        
+        // Find and remove the set
+        guard let setIndex = exercise.sets.firstIndex(where: { $0.id == setId }) else {
+            return
+        }
+        
+        let setToDelete = exercise.sets[setIndex]
+        exercise.sets.remove(at: setIndex)
+        
+        // Update currentSet counter if needed (only for working sets)
+        if !setToDelete.isWarmup {
+            let currentWorkingSets = exercise.sets.filter { !$0.isWarmup }.count
+            exercise.currentSet = max(1, currentWorkingSets + 1)
+        }
+        
+        // Update exercise in workout
+        workout.exercises[currentExerciseIndex] = exercise
+        
+        // Force SwiftUI update
+        objectWillChange.send()
+        currentWorkout = workout
+        
+        HapticManager.impact(style: .medium)
+    }
+    
+    func completeCalisthenicsSet(reps: Int, additionalWeight: Double) {
+        // Validate input
+        guard reps >= AppConstants.Validation.minReps,
+              reps <= AppConstants.Validation.maxReps else {
+            Logger.error("Reps validation failed: \(reps)", category: .validation)
+            return
+        }
+        
+        guard additionalWeight >= 0,
+              additionalWeight <= AppConstants.Validation.maxWeight else {
+            Logger.error("Additional weight validation failed: \(additionalWeight)", category: .validation)
+            return
         }
         
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
+        // Create set with reps and additional weight (weight represents additional weight for calisthenics)
         let set = ExerciseSet(
             setNumber: exercise.currentSet,
-            weight: 0,
-            reps: 0,
-            holdDuration: duration
+            weight: additionalWeight,
+            reps: reps,
+            holdDuration: nil
         )
         
         exercise.sets.append(set)
@@ -646,8 +704,37 @@ class WorkoutViewModel: ObservableObject {
         objectWillChange.send()
         currentWorkout = workout
         
-        // Start rest timer
-        startRestTimer()
+        // Track exercise history
+        ExerciseHistoryManager.shared.updateLastWeightReps(
+            exerciseName: exercise.name,
+            weight: additionalWeight,
+            reps: reps
+        )
+        
+        // Check for PR (using additional weight + bodyweight approximation or just reps)
+        if let progressVM = progressViewModel {
+            if !progressVM.availableExercises.contains(exercise.name) {
+                progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: additionalWeight, reps: reps)
+            } else {
+                _ = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: reps)
+            }
+        } else {
+            _ = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: reps)
+        }
+        
+        // Check if all sets are completed before starting rest timer
+        if exercise.currentSet > exercise.targetSets {
+            advanceToNextExercise()
+        } else {
+            startRestTimer()
+        }
+    }
+    
+    // Keep old function for backward compatibility (if needed elsewhere)
+    func completeHoldSet(duration: Int) {
+        // For calisthenics, use reps=0 and weight=0 as fallback
+        // This maintains backward compatibility but should not be used for new calisthenics exercises
+        completeCalisthenicsSet(reps: 0, additionalWeight: 0)
     }
     
     func addExercise(name: String, targetSets: Int, type: ExerciseType, holdDuration: Int?) {
@@ -675,7 +762,19 @@ class WorkoutViewModel: ObservableObject {
             )
             currentWorkout = Workout(name: "Workout", exercises: [exercise])
             currentExerciseIndex = 0
+            isFromTemplate = false // Mark as manually created
             startTimer()
+            return
+        }
+        
+        // Check for duplicate exercises (case-insensitive)
+        let exerciseNameLower = name.lowercased()
+        let isDuplicate = workout.exercises.contains { existingExercise in
+            existingExercise.name.lowercased() == exerciseNameLower
+        }
+        
+        if isDuplicate {
+            Logger.info("Duplicate exercise '\(name)' not added", category: .validation)
             return
         }
         
@@ -785,6 +884,11 @@ class WorkoutViewModel: ObservableObject {
                 self.restTimeRemaining = 0
                 self.completeRest()
             }
+        }
+        
+        // Add timer to RunLoop to ensure it fires correctly, especially when app is backgrounded
+        if let restTimer = restTimer {
+            RunLoop.main.add(restTimer, forMode: .common)
         }
     }
     
@@ -931,19 +1035,24 @@ class WorkoutViewModel: ObservableObject {
     private func advanceToNextExercise() {
         guard let workout = currentWorkout else { return }
         
-        // Check if there's a next exercise
-        if currentExerciseIndex < workout.exercises.count - 1 {
+        // Check if all exercises are completed (not just if we're on the last one)
+        let allExercisesComplete = workout.exercises.allSatisfy { exercise in
+            let workingSetsCount = exercise.sets.filter { !$0.isWarmup }.count
+            return workingSetsCount >= exercise.targetSets
+        }
+        
+        if allExercisesComplete {
+            // All exercises completed - automatically finish the workout
+            // This shows the completion modal and saves stats to dashboard
+            HapticManager.success()
+            finishWorkout()
+        } else if currentExerciseIndex < workout.exercises.count - 1 {
             // Move to next exercise with animation
             withAnimation(AppAnimations.smooth) {
                 currentExerciseIndex += 1
             }
             syncDropsetStateFromCurrentExercise()
             HapticManager.selection()
-        } else {
-            // Last exercise completed - automatically finish the workout
-            // This shows the completion modal and saves stats to dashboard
-            HapticManager.success()
-            finishWorkout()
         }
     }
     
@@ -1020,11 +1129,16 @@ class WorkoutViewModel: ObservableObject {
     }
     
     private func restoreRestTimerState() {
+        // Only restore if there's an active workout
+        guard currentWorkout != nil else {
+            clearRestTimerState()
+            return
+        }
+        
         guard UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.restTimerActive) else {
             return
         }
         
-        let remaining = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
         let totalDuration = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
         let startTimeInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
         
@@ -1041,6 +1155,8 @@ class WorkoutViewModel: ObservableObject {
         if newRemaining <= 0 {
             // Timer completed while app was terminated
             clearRestTimerState()
+            // Complete rest if timer finished
+            completeRest()
             return
         }
         

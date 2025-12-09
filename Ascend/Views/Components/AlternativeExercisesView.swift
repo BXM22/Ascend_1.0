@@ -75,7 +75,8 @@ struct AlternativeExercisesView: View {
                 .padding(.vertical, AppSpacing.sm)
             } else {
                 VStack(spacing: AppSpacing.xs) {
-                    ForEach(alternatives, id: \.self) { alternative in
+                    // Limit to 3 alternatives
+                    ForEach(Array(alternatives.prefix(3)), id: \.self) { alternative in
                         AlternativeExerciseCard(
                             name: alternative,
                             exRxURL: ExerciseDataManager.shared.getExRxURL(for: alternative),

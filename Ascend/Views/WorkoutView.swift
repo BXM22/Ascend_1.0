@@ -12,6 +12,8 @@ struct WorkoutView: View {
     @State private var weight: String = "185"
     @State private var reps: String = "8"
     @State private var holdDuration: String = "30"
+    @State private var calisthenicsReps: String = "8"
+    @State private var calisthenicsWeight: String = "0"
     @State private var showFinishConfirmation = false
     @State private var selectedExerciseForHistory: String?
     
@@ -55,12 +57,14 @@ struct WorkoutView: View {
                 // Exercise Card
                 if let exercise = viewModel.currentExercise {
                     if exercise.type == .hold {
-                        HoldExerciseCard(
+                        CalisthenicsExerciseCard(
                             exercise: exercise,
-                            holdDuration: $holdDuration,
+                            reps: $calisthenicsReps,
+                            additionalWeight: $calisthenicsWeight,
                             onCompleteSet: {
-                                if let duration = Int(holdDuration) {
-                                    viewModel.completeHoldSet(duration: duration)
+                                if let repsValue = Int(calisthenicsReps),
+                                   let weightValue = Double(calisthenicsWeight) {
+                                    viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
                                 }
                             }
                         )
@@ -102,9 +106,20 @@ struct WorkoutView: View {
                         .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                         .onAppear {
                             viewModel.syncDropsetStateFromCurrentExercise()
+                            // Reset calisthenics inputs when exercise appears
+                            if let exercise = viewModel.currentExercise, exercise.type == .hold {
+                                if calisthenicsWeight.isEmpty || calisthenicsWeight == "" {
+                                    calisthenicsWeight = "0"
+                                }
+                            }
                         }
                         .onChange(of: viewModel.currentExerciseIndex) { oldValue, newValue in
                             viewModel.syncDropsetStateFromCurrentExercise()
+                            // Reset calisthenics inputs when switching exercises
+                            if let exercise = viewModel.currentExercise, exercise.type == .hold {
+                                calisthenicsWeight = "0"
+                                calisthenicsReps = "8"
+                            }
                         }
                         .onChange(of: exercise.sets.count) { _, _ in
                             // Force update when sets change - volume will recalculate
@@ -126,7 +141,9 @@ struct WorkoutView: View {
                 
                 // Alternative Exercises Section (appears after rest timer)
                 if let exercise = viewModel.currentExercise, exercise.type != .hold {
-                    let alternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
+                    let allAlternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
+                    // Limit to 3 alternatives
+                    let alternatives = Array(allAlternatives.prefix(3))
                     if !alternatives.isEmpty {
                         AlternativeExercisesView(
                             exerciseName: exercise.name,
@@ -142,10 +159,15 @@ struct WorkoutView: View {
                 
                 // Previous Sets
                 if let exercise = viewModel.currentExercise, !exercise.sets.isEmpty {
-                    PreviousSetsView(sets: exercise.sets)
-                        .id("previous-sets-\(exercise.sets.count)-\(exercise.sets.last?.id.uuidString ?? "")")
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                    PreviousSetsView(
+                        sets: exercise.sets,
+                        onDeleteSet: { setId in
+                            viewModel.deleteSet(setId: setId)
+                        }
+                    )
+                    .id("previous-sets-\(exercise.sets.count)-\(exercise.sets.last?.id.uuidString ?? "")")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
                 
                 // Add Exercise Button
@@ -154,7 +176,33 @@ struct WorkoutView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                .padding(.bottom, 100)
+                
+                // Complete Workout Button (always available to end workout early)
+                if let workout = viewModel.currentWorkout, !workout.exercises.isEmpty {
+                    Button(action: {
+                        showFinishConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20, weight: .bold))
+                            Text("Complete Workout")
+                                .font(.system(size: 17, weight: .bold))
+                        }
+                        .foregroundColor(AppColors.alabasterGrey)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(LinearGradient.primaryGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
+                        .shadow(color: AppColors.primary.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                }
+                
+                Spacer()
+                    .frame(height: 100)
             }
         }
         .background(AppColors.background)
@@ -628,7 +676,7 @@ struct ExerciseCard: View {
                             }
                             
                             // Preview text
-                            if let currentWeight = Double(weight) {
+                            if Double(weight) != nil {
                                 Text("After main set: \(numberOfDropsets) dropset\(numberOfDropsets > 1 ? "s" : ""), reducing by \(Int(weightReductionPerDropset)) lbs each")
                                     .font(.system(size: 12, weight: .regular))
                                     .foregroundColor(AppColors.mutedForeground)
@@ -649,27 +697,18 @@ struct ExerciseCard: View {
                     VideoTutorialButton(videoURL: videoURL, exerciseName: exercise.name)
                 }
                 
-                // Warm-up Sets and Set Templates Buttons
-                HStack(spacing: 12) {
-                    // Warm-up Sets Button
-                    WarmupSetsButton(
-                        exercise: exercise,
-                        weight: weight,
-                        reps: reps,
-                        viewModel: viewModel,
-                        onAddWarmup: {
-                            if let weightValue = Double(weight), let repsValue = Int(reps) {
-                                viewModel.addWarmupSets(for: weightValue, reps: repsValue)
-                            }
+                // Warm-up Sets Button
+                WarmupSetsButton(
+                    exercise: exercise,
+                    weight: weight,
+                    reps: reps,
+                    viewModel: viewModel,
+                    onAddWarmup: {
+                        if let weightValue = Double(weight), let repsValue = Int(reps) {
+                            viewModel.addWarmupSets(for: weightValue, reps: repsValue)
                         }
-                    )
-                    
-                    // Set Templates Button
-                    SetTemplatesButton(
-                        weight: $weight,
-                        reps: $reps
-                    )
-                }
+                    }
+                )
                 
                 // Complete Set Button
                 Button(action: onCompleteSet) {
@@ -723,10 +762,11 @@ struct ExerciseCard: View {
     } // Close body
 } // Close ExerciseCard struct
 
-// MARK: - Hold Exercise Card
-struct HoldExerciseCard: View {
+// MARK: - Calisthenics Exercise Card
+struct CalisthenicsExerciseCard: View {
     let exercise: Exercise
-    @Binding var holdDuration: String
+    @Binding var reps: String
+    @Binding var additionalWeight: String
     let onCompleteSet: () -> Void
     
     var body: some View {
@@ -748,7 +788,7 @@ struct HoldExerciseCard: View {
                 // Exercise Header
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "timer")
+                        Image(systemName: "figure.strengthtraining.traditional")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(AppColors.accent)
                         
@@ -766,59 +806,24 @@ struct HoldExerciseCard: View {
                         .clipShape(Capsule())
                 }
                 
-                // Hold Duration Input
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Hold Duration")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    HStack(spacing: 12) {
-                        TextField("", text: $holdDuration)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(AppColors.input)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.border, lineWidth: 2)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        
-                        Text("seconds")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                    }
-                }
+                // Reps Input
+                InputField(
+                    label: "Reps",
+                    value: $reps,
+                    unit: "reps",
+                    keyboardType: .numberPad,
+                    isWeight: false,
+                    presets: [5, 8, 10, 12, 15]
+                )
                 
-                // Quick Duration Buttons
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Quick Select")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        ForEach([15, 30, 45, 60], id: \.self) { duration in
-                            Button(action: {
-                                holdDuration = String(duration)
-                            }) {
-                                Text("\(duration)s")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(holdDuration == String(duration) ? AppColors.alabasterGrey : AppColors.foreground)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(holdDuration == String(duration) ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                    }
-                }
+                // Additional Weight Input
+                InputField(
+                    label: "Additional Weight",
+                    value: $additionalWeight,
+                    unit: "lbs",
+                    keyboardType: .decimalPad,
+                    isWeight: true
+                )
                 
                 // Complete Set Button
                 Button(action: onCompleteSet) {
@@ -845,6 +850,12 @@ struct HoldExerciseCard: View {
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
         .padding(.horizontal, 20)
         .padding(.top, 20)
+        .onAppear {
+            // Reset additional weight to 0 if empty
+            if additionalWeight.isEmpty {
+                additionalWeight = "0"
+            }
+        }
     }
 }
 
@@ -1418,7 +1429,7 @@ struct SmartWeightSuggestion: View {
             .onAppear {
                 loadLastWeightReps()
             }
-            .onChange(of: exerciseName) { _ in
+            .onChange(of: exerciseName) {
                 loadLastWeightReps()
             }
         } else {
@@ -1426,7 +1437,7 @@ struct SmartWeightSuggestion: View {
                 .onAppear {
                     loadLastWeightReps()
                 }
-                .onChange(of: exerciseName) { _ in
+                .onChange(of: exerciseName) {
                     loadLastWeightReps()
                 }
         }
@@ -1504,6 +1515,12 @@ struct ExerciseNavigationView: View {
         return exercise.sets.filter { !$0.isWarmup }.count
     }
     
+    // Check if exercise is completed
+    private func isExerciseCompleted(_ exercise: Exercise) -> Bool {
+        let workingSets = workingSetsCount(for: exercise)
+        return workingSets >= exercise.targetSets
+    }
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
@@ -1514,10 +1531,19 @@ struct ExerciseNavigationView: View {
                         }
                     }) {
                         VStack(spacing: 4) {
-                            Text(exercise.name)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.foreground)
-                                .lineLimit(1)
+                            HStack(spacing: 4) {
+                                Text(exercise.name)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.foreground)
+                                    .lineLimit(1)
+                                
+                                // Checkmark for completed exercises
+                                if isExerciseCompleted(exercise) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.accent)
+                                }
+                            }
                             
                             let workingSets = workingSetsCount(for: exercise)
                             Text("\(workingSets)/\(exercise.targetSets)")
@@ -1531,12 +1557,18 @@ struct ExerciseNavigationView: View {
                         .background(
                             index == currentIndex ?
                             LinearGradient.primaryGradient :
-                            LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom)
+                            (isExerciseCompleted(exercise) ?
+                             LinearGradient(colors: [AppColors.accent.opacity(0.2)], startPoint: .top, endPoint: .bottom) :
+                             LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(index == currentIndex ? Color.clear : AppColors.border, lineWidth: 1)
+                                .stroke(
+                                    index == currentIndex ? Color.clear :
+                                    (isExerciseCompleted(exercise) ? AppColors.accent.opacity(0.5) : AppColors.border),
+                                    lineWidth: isExerciseCompleted(exercise) ? 2 : 1
+                                )
                         )
                         .animation(AppAnimations.selection, value: currentIndex)
                     }

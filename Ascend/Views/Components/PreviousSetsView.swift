@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PreviousSetsView: View {
     let sets: [ExerciseSet]
+    let onDeleteSet: (UUID) -> Void
     
     // Separate warm-up sets and working sets
     private var warmupSets: [ExerciseSet] {
@@ -61,7 +62,9 @@ struct PreviousSetsView: View {
                         .textCase(.uppercase)
                     
                     ForEach(warmupSets.sorted(by: { $0.setNumber < $1.setNumber }), id: \.id) { set in
-                        WarmupSetRow(set: set)
+                        WarmupSetRow(set: set, onDelete: {
+                            onDeleteSet(set.id)
+                        })
                     }
                 }
                 .padding(.bottom, 8)
@@ -70,8 +73,14 @@ struct PreviousSetsView: View {
             // Working sets section
             if !groupedSets.isEmpty {
                 ForEach(groupedSets, id: \.setNumber) { group in
-                    SetRowGroup(mainSet: group.mainSet, dropsets: group.dropsets)
-                        .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
+                    SetRowGroup(
+                        mainSet: group.mainSet,
+                        dropsets: group.dropsets,
+                        onDeleteSet: { setId in
+                            onDeleteSet(setId)
+                        }
+                    )
+                    .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
                 }
             }
         }
@@ -86,6 +95,7 @@ struct PreviousSetsView: View {
 struct SetRowGroup: View {
     let mainSet: ExerciseSet
     let dropsets: [ExerciseSet]
+    let onDeleteSet: (UUID) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -109,14 +119,30 @@ struct SetRowGroup: View {
                 
                 Spacer()
                 
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent.opacity(0.1))
-                        .frame(width: 32, height: 32)
+                HStack(spacing: 8) {
+                    // Delete button
+                    Button(action: {
+                        HapticManager.impact(style: .medium)
+                        onDeleteSet(mainSet.id)
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.destructive)
+                            .frame(width: 28, height: 28)
+                            .background(AppColors.destructive.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(AppColors.accent)
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.accent.opacity(0.1))
+                            .frame(width: 32, height: 32)
+                        
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(AppColors.accent)
+                    }
                 }
             }
             
@@ -148,14 +174,30 @@ struct SetRowGroup: View {
                         
                         Spacer()
                         
-                        ZStack {
-                            Circle()
-                                .fill(AppColors.accent.opacity(0.08))
-                                .frame(width: 28, height: 28)
+                        HStack(spacing: 8) {
+                            // Delete button for dropset
+                            Button(action: {
+                                HapticManager.impact(style: .medium)
+                                onDeleteSet(dropset.id)
+                            }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppColors.destructive)
+                                    .frame(width: 24, height: 24)
+                                    .background(AppColors.destructive.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(PlainButtonStyle())
                             
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(AppColors.accent.opacity(0.7))
+                            ZStack {
+                                Circle()
+                                    .fill(AppColors.accent.opacity(0.08))
+                                    .frame(width: 28, height: 28)
+                                
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(AppColors.accent.opacity(0.7))
+                            }
                         }
                     }
                     .padding(.leading, 24)
@@ -217,6 +259,7 @@ struct SetRow: View {
 
 struct WarmupSetRow: View {
     let set: ExerciseSet
+    let onDelete: () -> Void
     
     var body: some View {
         HStack {
@@ -244,14 +287,30 @@ struct WarmupSetRow: View {
             
             Spacer()
             
-            ZStack {
-                Circle()
-                    .fill(AppColors.accent.opacity(0.08))
-                    .frame(width: 28, height: 28)
+            HStack(spacing: 8) {
+                // Delete button
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onDelete()
+                }) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
+                        .foregroundColor(AppColors.destructive)
+                        .frame(width: 24, height: 24)
+                        .background(AppColors.destructive.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
                 
-                Image(systemName: "checkmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppColors.accent.opacity(0.6))
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent.opacity(0.08))
+                        .frame(width: 28, height: 28)
+                    
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(AppColors.accent.opacity(0.6))
+                }
             }
         }
         .padding(.vertical, 8)
@@ -262,11 +321,14 @@ struct WarmupSetRow: View {
 }
 
 #Preview {
-    PreviousSetsView(sets: [
-        ExerciseSet(setNumber: 1, weight: 185, reps: 8),
-        ExerciseSet(setNumber: 2, weight: 185, reps: 8),
-        ExerciseSet(setNumber: 3, weight: 185, reps: 7)
-    ])
+    PreviousSetsView(
+        sets: [
+            ExerciseSet(setNumber: 1, weight: 185, reps: 8),
+            ExerciseSet(setNumber: 2, weight: 185, reps: 8),
+            ExerciseSet(setNumber: 3, weight: 185, reps: 7)
+        ],
+        onDeleteSet: { _ in }
+    )
     .padding()
     .background(AppColors.background)
 }

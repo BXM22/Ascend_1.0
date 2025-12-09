@@ -116,7 +116,8 @@ struct ContentView: View {
             }
             
             // Completion Modal - at ZStack level so it appears above everything
-            if workoutViewModel.showCompletionModal {
+            // Only show if workout came from template
+            if workoutViewModel.showCompletionModal && workoutViewModel.isFromTemplate {
                 if let stats = workoutViewModel.completionStats {
                     WorkoutCompletionModal(
                         stats: stats,
@@ -127,6 +128,7 @@ struct ContentView: View {
                             workoutViewModel.elapsedTime = 0
                             workoutViewModel.showCompletionModal = false
                             workoutViewModel.completionStats = nil
+                            workoutViewModel.isFromTemplate = false
                         }
                     )
                     .zIndex(1000) // Ensure modal appears on top of everything

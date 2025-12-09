@@ -298,7 +298,7 @@ struct TopExercisesCard: View {
             .mapValues { $0.count }
             .sorted { $0.value > $1.value }
         
-        return Array(exerciseCounts.prefix(5).map { ($0.key, $0.value) })
+        return Array(exerciseCounts.prefix(3).map { ($0.key, $0.value) })
     }
     
     var body: some View {
