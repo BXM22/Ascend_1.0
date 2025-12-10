@@ -56,19 +56,41 @@ struct WorkoutView: View {
                 
                 // Exercise Card
                 if let exercise = viewModel.currentExercise {
-                    if exercise.type == .hold {
-                        CalisthenicsExerciseCard(
-                            exercise: exercise,
-                            reps: $calisthenicsReps,
-                            additionalWeight: $calisthenicsWeight,
-                            onCompleteSet: {
-                                if let repsValue = Int(calisthenicsReps),
-                                   let weightValue = Double(calisthenicsWeight) {
-                                    viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
+                    // Check if it's a calisthenics exercise
+                    if viewModel.isCalisthenicsExercise(exercise) {
+                        // If it's a hold-based calisthenics exercise (has targetHoldDuration), use hold card
+                        if exercise.targetHoldDuration != nil {
+                            CalisthenicsHoldExerciseCard(
+                                exercise: exercise,
+                                holdDuration: $holdDuration,
+                                additionalWeight: $calisthenicsWeight,
+                                showPRBadge: viewModel.showPRBadge,
+                                prMessage: viewModel.prMessage,
+                                onCompleteSet: {
+                                    if let duration = Int(holdDuration),
+                                       let weightValue = Double(calisthenicsWeight) {
+                                        viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
+                                    }
                                 }
-                            }
-                        )
-                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                            )
+                            .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                        } else {
+                            // Rep-based calisthenics exercise (reps + additional weight, NO hold duration)
+                            CalisthenicsExerciseCard(
+                                exercise: exercise,
+                                reps: $calisthenicsReps,
+                                additionalWeight: $calisthenicsWeight,
+                                showPRBadge: viewModel.showPRBadge,
+                                prMessage: viewModel.prMessage,
+                                onCompleteSet: {
+                                    if let repsValue = Int(calisthenicsReps),
+                                       let weightValue = Double(calisthenicsWeight) {
+                                        viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
+                                    }
+                                }
+                            )
+                            .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                        }
                     } else {
                         ExerciseCard(
                             exercise: exercise,
@@ -107,18 +129,26 @@ struct WorkoutView: View {
                         .onAppear {
                             viewModel.syncDropsetStateFromCurrentExercise()
                             // Reset calisthenics inputs when exercise appears
-                            if let exercise = viewModel.currentExercise, exercise.type == .hold {
+                            if let exercise = viewModel.currentExercise, viewModel.isCalisthenicsExercise(exercise) {
                                 if calisthenicsWeight.isEmpty || calisthenicsWeight == "" {
                                     calisthenicsWeight = "0"
                                 }
+                                // Set default hold duration if it's a hold exercise
+                                if exercise.targetHoldDuration != nil {
+                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                }
                             }
                         }
-                        .onChange(of: viewModel.currentExerciseIndex) { oldValue, newValue in
+                        .onChange(of: viewModel.currentExerciseIndex) {
                             viewModel.syncDropsetStateFromCurrentExercise()
                             // Reset calisthenics inputs when switching exercises
-                            if let exercise = viewModel.currentExercise, exercise.type == .hold {
+                            if let exercise = viewModel.currentExercise, viewModel.isCalisthenicsExercise(exercise) {
                                 calisthenicsWeight = "0"
-                                calisthenicsReps = "8"
+                                if exercise.targetHoldDuration != nil {
+                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                } else {
+                                    calisthenicsReps = "8"
+                                }
                             }
                         }
                         .onChange(of: exercise.sets.count) { _, _ in
@@ -129,18 +159,45 @@ struct WorkoutView: View {
                 
                 // Rest Timer (appears above alternative exercises)
                 if viewModel.restTimerActive {
-                    RestTimerView(
-                        timeRemaining: max(0, viewModel.restTimeRemaining),
-                        totalDuration: max(1, viewModel.restTimerTotalDuration), // Ensure at least 1 to prevent division by zero
-                        onSkip: { viewModel.skipRest() },
-                        onComplete: { viewModel.completeRest() }
-                    )
+                    VStack(spacing: 16) {
+                        RestTimerView(
+                            timeRemaining: max(0, viewModel.restTimeRemaining),
+                            totalDuration: max(1, viewModel.restTimerTotalDuration), // Ensure at least 1 to prevent division by zero
+                            onSkip: { viewModel.skipRest() },
+                            onComplete: { viewModel.completeRest() }
+                        )
+                        
+                        // PR Badge (shown beneath rest timer when PR is achieved)
+                        if viewModel.showPRBadge {
+                            if !viewModel.prMessage.isEmpty {
+                                PRBadge(message: viewModel.prMessage)
+                                    .transition(.scale.combined(with: .opacity))
+                                    .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
+                                    .zIndex(10)
+                                    .id("pr-badge-\(viewModel.prMessage)")
+                                    .onAppear {
+                                        Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
+                                    }
+                            } else {
+                                // Debug: Badge flag is true but message is empty
+                                Text("PR Badge Debug: showPRBadge=true but prMessage is empty")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                            }
+                        }
+                    }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                    .onChange(of: viewModel.showPRBadge) { oldValue, newValue in
+                        Logger.debug("PR Badge state changed: \(oldValue) -> \(newValue), message: '\(viewModel.prMessage)'", category: .general)
+                    }
+                    .onChange(of: viewModel.prMessage) { oldValue, newValue in
+                        Logger.debug("PR Message changed: '\(oldValue)' -> '\(newValue)', showPRBadge: \(viewModel.showPRBadge)", category: .general)
+                    }
                 }
                 
                 // Alternative Exercises Section (appears after rest timer)
-                if let exercise = viewModel.currentExercise, exercise.type != .hold {
+                if let exercise = viewModel.currentExercise, !viewModel.isCalisthenicsExercise(exercise) {
                     let allAlternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
                     // Limit to 3 alternatives
                     let alternatives = Array(allAlternatives.prefix(3))
@@ -762,11 +819,13 @@ struct ExerciseCard: View {
     } // Close body
 } // Close ExerciseCard struct
 
-// MARK: - Calisthenics Exercise Card
+// MARK: - Calisthenics Exercise Card (Reps + Additional Weight)
 struct CalisthenicsExerciseCard: View {
     let exercise: Exercise
     @Binding var reps: String
     @Binding var additionalWeight: String
+    let showPRBadge: Bool
+    let prMessage: String
     let onCompleteSet: () -> Void
     
     var body: some View {
@@ -804,6 +863,13 @@ struct CalisthenicsExerciseCard: View {
                         .padding(.vertical, 6)
                         .background(AppColors.secondary)
                         .clipShape(Capsule())
+                }
+                
+                // PR Badge
+                if showPRBadge {
+                    PRBadge(message: prMessage)
+                        .transition(.scaleWithFade)
+                        .zIndex(10)
                 }
                 
                 // Reps Input
@@ -854,6 +920,160 @@ struct CalisthenicsExerciseCard: View {
             // Reset additional weight to 0 if empty
             if additionalWeight.isEmpty {
                 additionalWeight = "0"
+            }
+        }
+    }
+}
+
+// MARK: - Calisthenics Hold Exercise Card (Hold Duration + Additional Weight)
+struct CalisthenicsHoldExerciseCard: View {
+    let exercise: Exercise
+    @Binding var holdDuration: String
+    @Binding var additionalWeight: String
+    let showPRBadge: Bool
+    let prMessage: String
+    let onCompleteSet: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Top gradient bar
+            Rectangle()
+                .fill(LinearGradient(
+                    colors: [
+                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
+                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
+                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+                .frame(height: 4)
+            
+            VStack(alignment: .leading, spacing: 20) {
+                // Exercise Header
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "timer")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(AppColors.accent)
+                        
+                        Text(exercise.name)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                    }
+                    
+                    Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(AppColors.secondary)
+                        .clipShape(Capsule())
+                }
+                
+                // PR Badge
+                if showPRBadge {
+                    PRBadge(message: prMessage)
+                        .transition(.scaleWithFade)
+                        .zIndex(10)
+                }
+                
+                // Hold Duration Input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Hold Duration")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    HStack(spacing: 12) {
+                        TextField("", text: $holdDuration)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(AppColors.foreground)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                            .background(AppColors.input)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(AppColors.border, lineWidth: 2)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        
+                        Text("seconds")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                }
+                
+                // Additional Weight Input
+                InputField(
+                    label: "Additional Weight",
+                    value: $additionalWeight,
+                    unit: "lbs",
+                    keyboardType: .decimalPad,
+                    isWeight: true
+                )
+                
+                // Quick Duration Buttons
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Quick Select")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 12) {
+                        ForEach([15, 30, 45, 60], id: \.self) { duration in
+                            Button(action: {
+                                holdDuration = String(duration)
+                            }) {
+                                Text("\(duration)s")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(holdDuration == String(duration) ? AppColors.alabasterGrey : AppColors.foreground)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(holdDuration == String(duration) ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                    }
+                }
+                
+                // Complete Set Button
+                Button(action: onCompleteSet) {
+                    HStack {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 18, weight: .bold))
+                        Text("Complete Set")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    .foregroundColor(AppColors.accentForeground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(LinearGradient.accentGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            .padding(24)
+        }
+        .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .onAppear {
+            // Reset additional weight to 0 if empty
+            if additionalWeight.isEmpty {
+                additionalWeight = "0"
+            }
+            // Set default hold duration if available
+            if holdDuration.isEmpty, let targetDuration = exercise.targetHoldDuration {
+                holdDuration = String(targetDuration)
             }
         }
     }

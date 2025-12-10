@@ -63,6 +63,43 @@ class WorkoutViewModel: ObservableObject {
         return workout.exercises[currentExerciseIndex]
     }
     
+    /// Check if an exercise is a calisthenics exercise
+    func isCalisthenicsExercise(_ exercise: Exercise) -> Bool {
+        // Check if exercise name contains any calisthenics skill name
+        let calisthenicsSkillNames = CalisthenicsSkillManager.shared.skills.map { $0.name }
+        for skillName in calisthenicsSkillNames {
+            if exercise.name.contains(skillName) {
+                return true
+            }
+        }
+        
+        // Check common calisthenics exercise patterns
+        let calisthenicsKeywords = ["Push-up", "Pull-up", "Chin-up", "Dip", "Muscle Up", "Planche", "Handstand", "Lever", "Flag", "L-Sit", "V-Sit"]
+        for keyword in calisthenicsKeywords {
+            if exercise.name.contains(keyword) {
+                return true
+            }
+        }
+        
+        // If exercise type is hold, it's likely calisthenics
+        if exercise.exerciseType == .hold {
+        }
+        
+        return false
+    }
+    
+    /// Check if an exercise is a rep-based calisthenics exercise (not hold-based)
+    func isRepBasedCalisthenics(_ exerciseName: String) -> Bool {
+        // Rep-based calisthenics exercises (these should NOT have hold duration)
+        let repBasedKeywords = ["Push-up", "Pull-up", "Chin-up", "Dip", "Muscle Up"]
+        for keyword in repBasedKeywords {
+            if exerciseName.contains(keyword) {
+                return true
+            }
+        }
+        return false
+    }
+    
     /// Calculate total volume for current exercise (sum of weight × reps)
     var currentExerciseVolume: Int {
         guard let exercise = currentExercise else { return 0 }
@@ -111,6 +148,20 @@ class WorkoutViewModel: ObservableObject {
         self.themeManager = themeManager
         setupAppLifecycleObservers()
         restoreRestTimerState()
+        
+        // Log connection status
+        if progressViewModel != nil {
+            Logger.info("WorkoutViewModel initialized with ProgressViewModel connected", category: .general)
+        } else {
+            Logger.debug("WorkoutViewModel initialized without ProgressViewModel", category: .general)
+        }
+    }
+    
+    /// Reconnect or update the progress view model reference
+    /// This can be called if the progress view model needs to be reconnected
+    func reconnectProgressViewModel(_ progressVM: ProgressViewModel) {
+        progressViewModel = progressVM
+        Logger.info("ProgressViewModel reconnected to WorkoutViewModel", category: .general)
     }
     
     private func setupAppLifecycleObservers() {
@@ -257,8 +308,8 @@ class WorkoutViewModel: ObservableObject {
             let videoURL = ExerciseDataManager.shared.getVideoURL(for: templateExercise.name)
             
             // Use exercise type from template, or determine if not set
-            let exerciseType: ExerciseType
-            let holdDuration: Int?
+            var exerciseType: ExerciseType
+            var holdDuration: Int?
             
             if templateExercise.exerciseType != .weightReps {
                 exerciseType = templateExercise.exerciseType
@@ -267,6 +318,13 @@ class WorkoutViewModel: ObservableObject {
                 let determined = determineExerciseType(for: templateExercise.name)
                 exerciseType = determined.0
                 holdDuration = determined.1
+            }
+            
+            // Auto-correct rep-based calisthenics exercises
+            // These should always be rep-based (reps + additional weight), not hold-based
+            if isRepBasedCalisthenics(templateExercise.name) {
+                exerciseType = .weightReps
+                holdDuration = nil // Rep-based calisthenics don't have hold duration
             }
             
             return Exercise(
@@ -385,6 +443,9 @@ class WorkoutViewModel: ObservableObject {
         pauseStartTime = nil
         pausedTimeAccumulator = 0
         
+        // Clear PR badge when finishing workout
+        clearPRBadge()
+        
         guard let workout = currentWorkout else { return }
         
         // Calculate completion statistics before saving
@@ -476,7 +537,9 @@ class WorkoutViewModel: ObservableObject {
         
         // Store state for undo before making changes
         let setCountBefore = exercise.sets.count
-        let wasPR = checkForPR(exercise: exercise.name, weight: weight, reps: reps, silent: true)
+        // Don't check for PR here - we'll check after the set is added
+        // This prevents the PR from being added twice
+        let wasPR = false // Will be set correctly after we check
         
         // Update dropset configuration from state before completing set
         exercise.hasDropsets = dropsetsEnabled
@@ -536,22 +599,44 @@ class WorkoutViewModel: ObservableObject {
             reps: reps
         )
         
-        // Add initial entry for new exercise or check for PR (only check main set, not dropsets)
+        // Check for PR and set badge message if it's a new PR
+        var isNewPR = false
         if let progressVM = progressViewModel {
-            if !progressVM.availableExercises.contains(exercise.name) {
-                // First time this exercise is being tracked
+            let isFirstTime = !progressVM.availableExercises.contains(exercise.name)
+            Logger.debug("Exercise '\(exercise.name)' - First time: \(isFirstTime), availableExercises count: \(progressVM.availableExercises.count)", category: .general)
+            
+            if isFirstTime {
+                // First time this exercise is being tracked - don't show PR badge
                 progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: weight, reps: reps)
+                Logger.debug("First time exercise - no PR badge", category: .general)
             } else {
-                // Check for PR (show badge)
-                _ = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+                // Check for PR
+                Logger.debug("Checking for PR: \(exercise.name) - \(Int(weight)) lbs × \(reps) reps", category: .general)
+                Logger.debug("BEFORE checkForPR - prMessage: '\(prMessage)'", category: .general)
+                isNewPR = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+                Logger.debug("AFTER checkForPR - isNewPR: \(isNewPR), prMessage: '\(prMessage)'", category: .general)
+                
+                if isNewPR {
+                    // Set PR message immediately - badge will show when rest timer appears
+                    prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
+                    Logger.info("✅ PR MESSAGE SET: '\(prMessage)'", category: .general)
+                    Logger.info("✅ prMessage is now: '\(prMessage)'", category: .general)
+                    Logger.info("✅ About to start rest timer - prMessage will be: '\(prMessage)'", category: .general)
+                } else {
+                    Logger.debug("❌ Not a PR for \(exercise.name): \(Int(weight)) lbs × \(reps) reps", category: .general)
+                    // Make sure message is cleared if not a PR
+                    if !prMessage.isEmpty {
+                        Logger.debug("Clearing old PR message", category: .general)
+                        prMessage = ""
+                    }
+                }
             }
         } else {
-            // No progress view model, just check for PR (shows badge only)
-            _ = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
+            Logger.debug("❌ No progressViewModel - cannot check for PR", category: .general)
         }
         
-        // Store undo state
-        lastCompletedSet = (exerciseIndex: currentExerciseIndex, setCount: setCountBefore, wasPR: wasPR)
+        // Store undo state (use isNewPR which was just calculated)
+        lastCompletedSet = (exerciseIndex: currentExerciseIndex, setCount: setCountBefore, wasPR: isNewPR)
         showUndoButton = true
         
         // Auto-hide undo button after 5 seconds
@@ -565,11 +650,16 @@ class WorkoutViewModel: ObservableObject {
         
         // Check if all sets are completed before starting rest timer
         // If all sets are done, advance to next exercise instead of starting rest
+        Logger.debug("Before rest timer check - prMessage: '\(prMessage)', exercise.currentSet: \(exercise.currentSet), targetSets: \(exercise.targetSets)", category: .general)
         if exercise.currentSet > exercise.targetSets {
             // All sets completed, advance to next exercise immediately
+            // Clear PR badge since we're not showing rest timer
+            Logger.debug("All sets completed - clearing PR badge and advancing", category: .general)
+            clearPRBadge()
             advanceToNextExercise()
         } else {
-            // Start rest timer
+            // Start rest timer (will show PR badge if there's a PR message)
+            Logger.debug("Starting rest timer - prMessage before start: '\(prMessage)'", category: .general)
             startRestTimer()
         }
     }
@@ -711,30 +801,112 @@ class WorkoutViewModel: ObservableObject {
             reps: reps
         )
         
-        // Check for PR (using additional weight + bodyweight approximation or just reps)
+        // Check for PR and set badge message if it's a new PR
+        var isNewPR = false
         if let progressVM = progressViewModel {
             if !progressVM.availableExercises.contains(exercise.name) {
+                // First time this exercise is being tracked - don't show PR badge
                 progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: additionalWeight, reps: reps)
+                Logger.debug("First time calisthenics exercise - no PR badge", category: .general)
             } else {
-                _ = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: reps)
+                // Check for PR
+                isNewPR = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: reps)
+                if isNewPR {
+                    // Set PR message immediately - badge will show when rest timer appears
+                    prMessage = "New PR: \(Int(additionalWeight)) lbs × \(reps) reps"
+                    Logger.info("PR detected! Message set: \(prMessage)", category: .general)
+                }
             }
-        } else {
-            _ = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: reps)
         }
         
         // Check if all sets are completed before starting rest timer
         if exercise.currentSet > exercise.targetSets {
+            // All sets completed, advance to next exercise immediately
+            // Clear PR badge since we're not showing rest timer
+            clearPRBadge()
             advanceToNextExercise()
         } else {
+            // Start rest timer (will show PR badge if there's a PR message)
+            startRestTimer()
+        }
+    }
+    
+    func completeCalisthenicsHoldSet(duration: Int, additionalWeight: Double) {
+        // Validate input
+        guard duration >= AppConstants.Validation.minHoldDuration,
+              duration <= AppConstants.Validation.maxHoldDuration else {
+            Logger.error("Hold duration validation failed: \(duration)", category: .validation)
+            return
+        }
+        
+        guard additionalWeight >= 0,
+              additionalWeight <= AppConstants.Validation.maxWeight else {
+            Logger.error("Additional weight validation failed: \(additionalWeight)", category: .validation)
+            return
+        }
+        
+        guard var exercise = currentExercise,
+              var workout = currentWorkout else { return }
+        
+        // Create set with hold duration and additional weight
+        let set = ExerciseSet(
+            setNumber: exercise.currentSet,
+            weight: additionalWeight, // Store additional weight
+            reps: 0, // No reps for hold exercises
+            holdDuration: duration
+        )
+        
+        exercise.sets.append(set)
+        exercise.currentSet += 1
+        
+        // Update exercise in workout
+        workout.exercises[currentExerciseIndex] = exercise
+        
+        // Force SwiftUI to detect the change
+        objectWillChange.send()
+        currentWorkout = workout
+        
+        // Track exercise history (for hold exercises, use duration as "reps" equivalent)
+        ExerciseHistoryManager.shared.updateLastWeightReps(
+            exerciseName: exercise.name,
+            weight: additionalWeight,
+            reps: duration
+        )
+        
+        // Check for PR and set badge message if it's a new PR
+        var isNewPR = false
+        if let progressVM = progressViewModel {
+            if !progressVM.availableExercises.contains(exercise.name) {
+                // First time this exercise is being tracked - don't show PR badge
+                progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: additionalWeight, reps: duration)
+                Logger.debug("First time hold exercise - no PR badge", category: .general)
+            } else {
+                // Check for PR (using duration as reps equivalent for hold exercises)
+                isNewPR = checkForPR(exercise: exercise.name, weight: additionalWeight, reps: duration)
+                if isNewPR {
+                    // Set PR message immediately - badge will show when rest timer appears
+                    prMessage = "New PR: \(Int(additionalWeight)) lbs × \(duration)s"
+                    Logger.info("PR detected! Message set: \(prMessage)", category: .general)
+                }
+            }
+        }
+        
+        // Check if all sets are completed before starting rest timer
+        if exercise.currentSet > exercise.targetSets {
+            // All sets completed, advance to next exercise immediately
+            // Clear PR badge since we're not showing rest timer
+            clearPRBadge()
+            advanceToNextExercise()
+        } else {
+            // Start rest timer (will show PR badge if there's a PR message)
             startRestTimer()
         }
     }
     
     // Keep old function for backward compatibility (if needed elsewhere)
     func completeHoldSet(duration: Int) {
-        // For calisthenics, use reps=0 and weight=0 as fallback
-        // This maintains backward compatibility but should not be used for new calisthenics exercises
-        completeCalisthenicsSet(reps: 0, additionalWeight: 0)
+        // For calisthenics hold exercises, use additional weight = 0
+        completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
     }
     
     func addExercise(name: String, targetSets: Int, type: ExerciseType, holdDuration: Int?) {
@@ -748,6 +920,15 @@ class WorkoutViewModel: ObservableObject {
             break
         }
         
+        // Auto-correct rep-based calisthenics exercises
+        // These should always be rep-based (reps + additional weight), not hold-based
+        var correctedType = type
+        var correctedHoldDuration = holdDuration
+        if isRepBasedCalisthenics(name) {
+            correctedType = .weightReps
+            correctedHoldDuration = nil // Rep-based calisthenics don't have hold duration
+        }
+        
         guard var workout = currentWorkout else {
             // Create new workout if none exists
             let alternatives = ExerciseDataManager.shared.getAlternatives(for: name)
@@ -755,8 +936,8 @@ class WorkoutViewModel: ObservableObject {
             let exercise = Exercise(
                 name: name,
                 targetSets: targetSets,
-                exerciseType: type,
-                holdDuration: holdDuration,
+                exerciseType: correctedType,
+                holdDuration: correctedHoldDuration,
                 alternatives: alternatives,
                 videoURL: videoURL
             )
@@ -783,8 +964,8 @@ class WorkoutViewModel: ObservableObject {
         let exercise = Exercise(
             name: name,
             targetSets: targetSets,
-            exerciseType: type,
-            holdDuration: holdDuration,
+            exerciseType: correctedType,
+            holdDuration: correctedHoldDuration,
             alternatives: alternatives,
             videoURL: videoURL
         )
@@ -840,6 +1021,40 @@ class WorkoutViewModel: ObservableObject {
     
     private func startRestTimer() {
         restTimerActive = true
+        
+        Logger.debug("startRestTimer called - prMessage: '\(prMessage)', isEmpty: \(prMessage.isEmpty), showPRBadge: \(showPRBadge)", category: .general)
+        
+        // Show PR badge when rest timer appears if there's a PR message
+        if !prMessage.isEmpty {
+            // Set badge state immediately
+            showPRBadge = true
+            Logger.info("✅ SHOWING PR BADGE: '\(prMessage)'", category: .general)
+            Logger.info("✅ showPRBadge = \(showPRBadge), prMessage = '\(prMessage)'", category: .general)
+            
+            // Force UI update
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.objectWillChange.send()
+                Logger.info("✅ UI update triggered - showPRBadge: \(self.showPRBadge)", category: .general)
+            }
+            
+            // Hide PR badge after configured duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) { [weak self] in
+                guard let self = self else { return }
+                self.showPRBadge = false
+                Logger.info("Hiding PR badge after \(AppConstants.PRBadge.displayDuration) seconds", category: .general)
+                // Clear message after badge is hidden
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    guard let self = self else { return }
+                    if !self.showPRBadge {
+                        self.prMessage = ""
+                        Logger.debug("PR message cleared", category: .general)
+                    }
+                }
+            }
+        } else {
+            Logger.debug("❌ No PR message to show - prMessage is empty", category: .general)
+        }
         restTimerOriginalDuration = settingsManager.restTimerDuration
         restTimerTotalDuration = restTimerOriginalDuration
         restTimeRemaining = restTimerOriginalDuration
@@ -893,6 +1108,8 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func skipRest() {
+        // Clear PR badge when skipping rest
+        clearPRBadge()
         restTimer?.invalidate()
         restTimer = nil
         restTimerActive = false
@@ -917,6 +1134,8 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func completeRest() {
+        // Clear PR badge when completing rest
+        clearPRBadge()
         restTimer?.invalidate()
         restTimer = nil
         restTimerActive = false
@@ -1032,7 +1251,15 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
+    private func clearPRBadge() {
+        Logger.debug("clearPRBadge called - clearing showPRBadge and prMessage", category: .general)
+        showPRBadge = false
+        prMessage = ""
+    }
+    
     private func advanceToNextExercise() {
+        // Clear PR badge when advancing to next exercise
+        clearPRBadge()
         guard let workout = currentWorkout else { return }
         
         // Check if all exercises are completed (not just if we're on the last one)
@@ -1162,6 +1389,10 @@ class WorkoutViewModel: ObservableObject {
         
         // Restore state - preserve original total duration for accurate progress calculation
         restTimerActive = true
+        
+        // Note: Don't show PR badge when restoring from background
+        // PR badge should only show when rest timer first appears after completing a set
+        
         restTimeRemaining = newRemaining
         restTimerTotalDuration = totalDuration // Preserve original total duration
         restTimerOriginalDuration = totalDuration // Set to original total, not remaining
@@ -1185,28 +1416,48 @@ class WorkoutViewModel: ObservableObject {
     
     private func checkForPR(exercise: String, weight: Double, reps: Int, silent: Bool = false) -> Bool {
         guard let progressVM = progressViewModel else {
-            // No progress view model connected, just show badge (unless silent)
-            if !silent {
-                showPRBadge = true
-                prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
-                DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
-                    self.showPRBadge = false
-                }
-            }
+            // No progress view model connected - can't determine if it's a PR
+            Logger.debug("checkForPR: No progressViewModel connected for \(exercise)", category: .general)
             return false
         }
         
-        // Add or update PR in ProgressViewModel
-        let isNewPR = progressVM.addOrUpdatePR(exercise: exercise, weight: weight, reps: reps)
+        // Check existing PRs BEFORE calling addOrUpdatePR to determine if it's a new PR
+        // This way we know if it's a PR before adding it to the list
+        let existingPRs = progressVM.prs.filter { $0.exercise == exercise }
+        var isNewPR = false
         
-        if isNewPR && !silent {
-            // Show PR badge
-            showPRBadge = true
-            prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
-            
-            // Hide PR badge after configured duration
-            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.PRBadge.displayDuration) {
-                self.showPRBadge = false
+        if existingPRs.isEmpty {
+            // First PR for this exercise
+            isNewPR = true
+            Logger.debug("checkForPR: \(exercise) - First PR for this exercise", category: .general)
+        } else {
+            // Find the best existing PR
+            if let best = existingPRs.max(by: { pr1, pr2 in
+                if pr1.weight != pr2.weight {
+                    return pr1.weight < pr2.weight
+                }
+                return pr1.reps < pr2.reps
+            }) {
+                Logger.debug("checkForPR: \(exercise) - Best existing PR: \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
+                Logger.debug("checkForPR: \(exercise) - New attempt: \(Int(weight)) lbs × \(reps) reps", category: .general)
+                
+                // New PR if weight is higher, or same weight with more reps
+                isNewPR = weight > best.weight || (weight == best.weight && reps > best.reps)
+                
+                if isNewPR {
+                    Logger.info("✅ NEW PR DETECTED: \(Int(weight)) lbs × \(reps) reps beats \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
+                } else {
+                    Logger.debug("❌ Not a new PR: \(Int(weight)) lbs × \(reps) reps does not beat \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
+                }
+            }
+        }
+        
+        // Only add to ProgressViewModel if it's actually a new PR
+        if isNewPR {
+            let wasAdded = progressVM.addOrUpdatePR(exercise: exercise, weight: weight, reps: reps)
+            if !wasAdded {
+                Logger.error("Failed to add PR to ProgressViewModel even though it's a new PR", category: .general)
+                return false
             }
         }
         

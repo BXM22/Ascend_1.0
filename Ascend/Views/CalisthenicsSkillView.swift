@@ -64,6 +64,8 @@ struct CalisthenicsSkillView: View {
         let exerciseName = "\(skill.name) - \(level.name)"
         
         // Determine exercise type based on level
+        // If it has targetHoldDuration, it's a hold exercise (duration + additional weight)
+        // Otherwise, it's a rep-based exercise (reps + additional weight)
         let exerciseType: ExerciseType = level.targetHoldDuration != nil ? .hold : .weightReps
         let holdDuration = level.targetHoldDuration
         

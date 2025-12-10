@@ -214,7 +214,27 @@ struct RecentActivityCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     
     var recentPRs: [PersonalRecord] {
-        Array(progressViewModel.prs.prefix(3))
+        // Sort PRs by date (newest first)
+        let sortedPRs = progressViewModel.prs.sorted { $0.date > $1.date }
+        
+        // Filter out duplicates by exercise name only - keep only one PR per exercise (the most recent)
+        var seenExercises: Set<String> = []
+        var uniquePRs: [PersonalRecord] = []
+        
+        for pr in sortedPRs {
+            // Only add if we haven't seen this exercise before
+            if !seenExercises.contains(pr.exercise) {
+                seenExercises.insert(pr.exercise)
+                uniquePRs.append(pr)
+                
+                // Stop once we have 3 unique exercises
+                if uniquePRs.count >= 3 {
+                    break
+                }
+            }
+        }
+        
+        return uniquePRs
     }
     
     var body: some View {

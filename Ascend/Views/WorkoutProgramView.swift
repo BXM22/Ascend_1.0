@@ -47,11 +47,20 @@ struct WorkoutProgramView: View {
             let alternatives = ExerciseDataManager.shared.getAlternatives(for: programExercise.name)
             let videoURL = ExerciseDataManager.shared.getVideoURL(for: programExercise.name)
             
+            // Auto-correct rep-based calisthenics exercises
+            // These should always be rep-based (reps + additional weight), not hold-based
+            var correctedType = programExercise.exerciseType
+            var correctedHoldDuration = programExercise.targetHoldDuration
+            if workoutViewModel.isRepBasedCalisthenics(programExercise.name) {
+                correctedType = .weightReps
+                correctedHoldDuration = nil // Rep-based calisthenics don't have hold duration
+            }
+            
             return Exercise(
                 name: programExercise.name,
                 targetSets: programExercise.sets,
-                exerciseType: programExercise.exerciseType,
-                holdDuration: programExercise.targetHoldDuration,
+                exerciseType: correctedType,
+                holdDuration: correctedHoldDuration,
                 alternatives: alternatives,
                 videoURL: videoURL
             )

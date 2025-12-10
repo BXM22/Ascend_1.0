@@ -354,6 +354,7 @@ class ProgressViewModel: ObservableObject {
             
             if let current = currentPR {
                 // New PR if weight is higher, or same weight with more reps
+                // Must be STRICTLY better (not equal)
                 isNewPR = weight > current.weight || (weight == current.weight && reps > current.reps)
             } else {
                 isNewPR = true
@@ -367,6 +368,8 @@ class ProgressViewModel: ObservableObject {
             
             // Update selected exercise if needed
             updateSelectedExerciseIfNeeded()
+            
+            Logger.info("✅ PR ADDED to ProgressViewModel: \(exercise) - \(Int(weight)) lbs × \(reps) reps", category: .general)
         }
         
         return isNewPR

@@ -34,13 +34,22 @@ struct ContentView: View {
         _settingsManager = StateObject(wrappedValue: settingsMgr)
         
         // Create WorkoutViewModel with injected dependencies from the newly created instances
-        _workoutViewModel = StateObject(wrappedValue: WorkoutViewModel(
+        let workoutVM = WorkoutViewModel(
             settingsManager: settingsMgr,
             progressViewModel: progressVM,
             programViewModel: programVM,
             templatesViewModel: templatesVM,
             themeManager: themeMgr
-        ))
+        )
+        
+        // Ensure progressViewModel connection is maintained
+        // Since progressVM is owned by ContentView as @StateObject, it will persist
+        _workoutViewModel = StateObject(wrappedValue: workoutVM)
+        
+        // Verify connection after initialization
+        if workoutVM.progressViewModel == nil {
+            workoutVM.reconnectProgressViewModel(progressVM)
+        }
     }
     
     enum Tab {
