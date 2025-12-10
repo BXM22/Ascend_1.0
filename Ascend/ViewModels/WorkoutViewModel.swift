@@ -83,6 +83,7 @@ class WorkoutViewModel: ObservableObject {
         
         // If exercise type is hold, it's likely calisthenics
         if exercise.exerciseType == .hold {
+            return true
         }
         
         return false
