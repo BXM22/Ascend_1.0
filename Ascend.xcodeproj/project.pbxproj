@@ -25,6 +25,7 @@
 
 /* Begin PBXFileReference section */
 		60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39374E02EE7C0A50090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39376542EE8D3110090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39A3DD82ECC56880043FACF /* Ascend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ascend.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -81,6 +82,13 @@
 
 /* Begin PBXGroup section */
 		60F9A12B2EE62CD100033EE6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E32BBCDE2EE8F4580070566C /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -267,10 +275,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
-					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
-				},
-				{
 					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
 					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
 				},
@@ -283,20 +287,28 @@
 					ProjectRef = 60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = E39DA3422EE69459005FDF84 /* Products */;
-					ProjectRef = E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */;
+					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;
+					ProjectRef = E39D9D122EE3C468005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E32BBCDE2EE8F4580070566C /* Products */;
+					ProjectRef = E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39DA60C2EE7B331005FDF84 /* Products */;
 					ProjectRef = E39DA6052EE7B331005FDF84 /* Ascend.xcodeproj */;
 				},
 				{
+					ProductGroup = E39DA3422EE69459005FDF84 /* Products */;
+					ProjectRef = E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
 					ProductGroup = E39DA4A22EE69BF0005FDF84 /* Products */;
 					ProjectRef = E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;
-					ProjectRef = E39D9D122EE3C468005FDF84 /* Ascend.xcodeproj */;
+					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
+					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -498,6 +510,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8DU7M3QGM7;
@@ -516,6 +529,7 @@
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.com.Ascend;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
