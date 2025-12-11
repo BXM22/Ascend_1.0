@@ -603,7 +603,6 @@ class WorkoutViewModel: ObservableObject {
         let setCountBefore = exercise.sets.count
         // Don't check for PR here - we'll check after the set is added
         // This prevents the PR from being added twice
-        let wasPR = false // Will be set correctly after we check
         
         // Update dropset configuration from state before completing set
         exercise.hasDropsets = dropsetsEnabled
@@ -1543,7 +1542,6 @@ class WorkoutViewModel: ObservableObject {
         guard startTimeInterval > 0 else { return }
         
         let savedStartTime = Date(timeIntervalSince1970: startTimeInterval)
-        let savedElapsed = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
         let savedPausedAccumulator = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
         let savedIsPaused = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
         let pauseStartInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
@@ -1660,9 +1658,6 @@ class WorkoutViewModel: ObservableObject {
               index >= 0 && index < workout.exercises.count else {
             return
         }
-        
-        let exercise = workout.exercises[index]
-        let hasCompletedSets = !exercise.sets.isEmpty
         
         // If exercise has completed sets, we'll show confirmation in the view
         // For now, just remove it

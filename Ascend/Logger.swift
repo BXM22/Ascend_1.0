@@ -13,6 +13,7 @@ enum Logger {
     private static let cloudKit = OSLog(subsystem: subsystem, category: "CloudKit")
     private static let validation = OSLog(subsystem: subsystem, category: "Validation")
     private static let notification = OSLog(subsystem: subsystem, category: "Notification")
+    private static let performance = OSLog(subsystem: subsystem, category: "Performance")
     
     // MARK: - Log Levels
     
@@ -56,6 +57,7 @@ enum Logger {
         case cloudKit
         case validation
         case notification
+        case performance
     }
     
     private static func logForCategory(_ category: Category) -> OSLog {
@@ -70,6 +72,8 @@ enum Logger {
             return validation
         case .notification:
             return notification
+        case .performance:
+            return performance
         }
     }
 }

@@ -6,12 +6,13 @@ struct DashboardView: View {
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartWorkout: () -> Void
+    let onSettings: () -> Void
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 // Header - extends to top of screen
-                DashboardHeader()
+                DashboardHeader(onSettings: onSettings)
                     .ignoresSafeArea(edges: .top)
                 
                 VStack(spacing: AppSpacing.lg) {
@@ -79,6 +80,8 @@ struct DashboardView: View {
 }
 
 struct DashboardHeader: View {
+    let onSettings: () -> Void
+    
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -92,6 +95,20 @@ struct DashboardHeader: View {
             }
             
             Spacer()
+            
+            Button(action: {
+                HapticManager.impact(style: .light)
+                onSettings()
+            }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 44, height: 44)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .accessibilityLabel("Settings")
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
@@ -736,7 +753,8 @@ struct QuickStartButton: View {
         workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         templatesViewModel: TemplatesViewModel(),
         programViewModel: WorkoutProgramViewModel(),
-        onStartWorkout: {}
+        onStartWorkout: {},
+        onSettings: {}
     )
 }
 

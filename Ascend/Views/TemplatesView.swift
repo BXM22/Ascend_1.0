@@ -12,8 +12,19 @@ struct TemplatesView: View {
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartTemplate: () -> Void
+    let onSettings: () -> Void
     @State private var showGenerateSheet = false
     @State private var searchText: String = ""
+    
+    // Cache filtered templates to avoid recalculating on every render
+    private var filteredTemplates: [WorkoutTemplate] {
+        viewModel.templates.filter { template in
+            if template.name.contains("Progression") { return false }
+            if searchText.isEmpty { return true }
+            return template.name.localizedCaseInsensitiveContains(searchText) ||
+                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
     
     var body: some View {
         ScrollView {
@@ -28,7 +39,8 @@ struct TemplatesView: View {
                     },
                     onSettings: {
                         viewModel.showGenerationSettings = true
-                    }
+                    },
+                    onMainSettings: onSettings
                 )
                 
                 // Search Bar
@@ -68,14 +80,7 @@ struct TemplatesView: View {
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.lg)
                         
-                        let filteredTemplates = viewModel.templates.filter { template in
-                            if template.name.contains("Progression") { return false }
-                            if searchText.isEmpty { return true }
-                            return template.name.localizedCaseInsensitiveContains(searchText) ||
-                                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
-                        }
-                        
-                        ForEach(Array(filteredTemplates.enumerated()), id: \.element.id) { index, template in
+                        ForEach(filteredTemplates, id: \.id) { template in
                             TemplateCard(
                                 template: template,
                                 onStart: {
@@ -87,7 +92,6 @@ struct TemplatesView: View {
                                 }
                             )
                             .padding(.horizontal, AppSpacing.lg)
-                            .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
                         }
                     }
                     .padding(.bottom, 100)
@@ -141,7 +145,8 @@ struct TemplatesView: View {
 struct TemplatesHeader: View {
     let onCreate: () -> Void
     let onGenerate: () -> Void
-    let onSettings: () -> Void
+    let onSettings: () -> Void // Generation settings
+    let onMainSettings: () -> Void // Main app settings
     
     var body: some View {
         HStack {
@@ -152,6 +157,21 @@ struct TemplatesHeader: View {
             Spacer()
             
             HStack(spacing: 12) {
+                // Main Settings Button
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onMainSettings()
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(AppColors.primary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColors.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .accessibilityLabel("Settings")
+                
+                // Generation Settings Button
                 Button(action: onSettings) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 18))
@@ -160,6 +180,7 @@ struct TemplatesHeader: View {
                         .background(AppColors.secondary)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .accessibilityLabel("Generation Settings")
                 
                 Button(action: onGenerate) {
                     Image(systemName: "sparkles")
@@ -456,6 +477,7 @@ struct TemplateEditView: View {
     @State private var newExerciseType: ExerciseType = .weightReps
     @State private var newExerciseHoldDuration: Int = 30
     @State private var showAddCustomExercise = false
+    @State private var showClearTemplateConfirmation = false
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     
     private let originalTemplate: WorkoutTemplate?
@@ -523,18 +545,49 @@ struct TemplateEditView: View {
                     
                     // Exercises List
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Exercises")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+                        HStack {
+                            Text("Exercises")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                            
+                            Spacer()
+                            
+                            // Clear Template Button (only show if there are exercises)
+                            if !exercises.isEmpty {
+                                Button(action: {
+                                    showClearTemplateConfirmation = true
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 12))
+                                        Text("Clear All")
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(AppColors.destructive)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(AppColors.destructive.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
+                        }
                         
-                        ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
+                        ForEach(exercises) { exercise in
                             TemplateExerciseEditView(
                                 exercise: Binding(
-                                    get: { exercises[index] },
-                                    set: { exercises[index] = $0 }
+                                    get: { 
+                                        exercises.first(where: { $0.id == exercise.id }) ?? exercise
+                                    },
+                                    set: { newValue in
+                                        if let index = exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                            exercises[index] = newValue
+                                        }
+                                    }
                                 ),
                                 onDelete: {
-                                    exercises.remove(at: index)
+                                    if let index = exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                        exercises.remove(at: index)
+                                    }
                                 }
                             )
                         }
@@ -677,6 +730,14 @@ struct TemplateEditView: View {
                     }
                 }
             }
+            .alert("Clear All Exercises?", isPresented: $showClearTemplateConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    exercises.removeAll()
+                }
+            } message: {
+                Text("This will remove all exercises from the template. This action cannot be undone.")
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -718,6 +779,7 @@ struct TemplateEditView: View {
         viewModel: TemplatesViewModel(),
         workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
         programViewModel: WorkoutProgramViewModel(),
-        onStartTemplate: {}
+        onStartTemplate: {},
+        onSettings: {}
     )
 }

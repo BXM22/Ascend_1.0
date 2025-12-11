@@ -14,7 +14,9 @@ struct ContentView: View {
     @StateObject private var themeManager: ThemeManager
     @StateObject private var settingsManager: SettingsManager
     @StateObject private var workoutViewModel: WorkoutViewModel
+    @StateObject private var onboardingManager = OnboardingManager.shared
     @State private var selectedTab: Tab = .dashboard
+    @State private var showSettingsSheet = false
     @Environment(\.colorScheme) var systemColorScheme
     
     init() {
@@ -83,6 +85,9 @@ struct ContentView: View {
                                 withAnimation(AppAnimations.standard) {
                                     selectedTab = .workout
                                 }
+                            },
+                            onSettings: {
+                                showSettingsSheet = true
                             }
                         )
                         .id(AppColors.themeID)
@@ -92,9 +97,14 @@ struct ContentView: View {
                             .id(AppColors.themeID)
                             .transition(.slideFromBottom)
                     case .progress:
-                        ProgressView(viewModel: progressViewModel)
-                            .id(AppColors.themeID)
-                            .transition(.slideFromBottom)
+                        ProgressView(
+                            viewModel: progressViewModel,
+                            onSettings: {
+                                showSettingsSheet = true
+                            }
+                        )
+                        .id(AppColors.themeID)
+                        .transition(.slideFromBottom)
                     case .templates:
                         TemplatesView(
                             viewModel: templatesViewModel,
@@ -104,6 +114,9 @@ struct ContentView: View {
                                 withAnimation(AppAnimations.standard) {
                                     selectedTab = .workout
                                 }
+                            },
+                            onSettings: {
+                                showSettingsSheet = true
                             }
                         )
                         .id(AppColors.themeID)
@@ -122,6 +135,22 @@ struct ContentView: View {
                     settingsManager: settingsManager
                 )
                 .id(AppColors.themeID)
+            }
+            .tutorialOverlay(onboardingManager: onboardingManager) {
+                // Handle tutorial completion - switch to highlighted tab if needed
+                if let highlightTab = TutorialStep.allCases[onboardingManager.currentTutorialStep].highlightTab {
+                    withAnimation(AppAnimations.standard) {
+                        selectedTab = highlightTab
+                    }
+                }
+            }
+            .onChange(of: onboardingManager.currentTutorialStep) { _, newStep in
+                // Switch to highlighted tab when tutorial step changes
+                if let highlightTab = TutorialStep.allCases[newStep].highlightTab {
+                    withAnimation(AppAnimations.standard) {
+                        selectedTab = highlightTab
+                    }
+                }
             }
             
             // Completion Modal - at ZStack level so it appears above everything
@@ -146,6 +175,15 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(themeManager.colorScheme)
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsView(
+                settingsManager: settingsManager,
+                progressViewModel: progressViewModel,
+                templatesViewModel: templatesViewModel,
+                programViewModel: programViewModel,
+                themeManager: themeManager
+            )
+        }
         .sheet(isPresented: $templatesViewModel.showCreateTemplate) {
             TemplateEditView(
                 template: nil,

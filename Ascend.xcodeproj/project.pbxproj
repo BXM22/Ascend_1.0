@@ -24,6 +24,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6036BB582EEB7BF70020006A /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		606960842EEB4B340069A141 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39374E02EE7C0A50090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
@@ -83,6 +85,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6036BB5F2EEB7BF70020006A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6069608B2EEB4B340069A141 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		60F9A12B2EE62CD100033EE6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -290,6 +306,14 @@
 			productRefGroup = E39A3DD92ECC56880043FACF /* Products */;
 			projectDirPath = "";
 			projectReferences = (
+				{
+					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
+					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = 6069608B2EEB4B340069A141 /* Products */;
+					ProjectRef = 606960842EEB4B340069A141 /* Ascend.xcodeproj */;
+				},
 				{
 					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
 					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
@@ -540,6 +564,7 @@
 				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleExecutable = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -578,6 +603,7 @@
 				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleExecutable = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

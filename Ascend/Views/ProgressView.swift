@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProgressView: View {
     @ObservedObject var viewModel: ProgressViewModel
+    let onSettings: () -> Void
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -18,7 +19,8 @@ struct ProgressView: View {
                 ProgressHeader(
                     selectedView: $viewModel.selectedView,
                     onWeekSelected: { viewModel.selectedView = .week },
-                    onMonthSelected: { viewModel.selectedView = .month }
+                    onMonthSelected: { viewModel.selectedView = .month },
+                    onSettings: onSettings
                 )
                 
                 VStack(spacing: 20) {
@@ -52,6 +54,7 @@ struct ProgressHeader: View {
     @Binding var selectedView: ProgressViewModel.ProgressViewType
     let onWeekSelected: () -> Void
     let onMonthSelected: () -> Void
+    let onSettings: () -> Void
     
     var body: some View {
         HStack {
@@ -62,11 +65,25 @@ struct ProgressHeader: View {
             Spacer()
             
             HStack(spacing: 12) {
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onSettings()
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColors.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .accessibilityLabel("Settings")
+                
                 Button(action: onWeekSelected) {
                     Text("Week")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(selectedView == .week ? AppColors.primary : AppColors.mutedForeground)
-                        .padding(.horizontal, 16)
+                        .frame(minWidth: 60)
+                        .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                         .background(selectedView == .week ? AppColors.secondary : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -76,7 +93,8 @@ struct ProgressHeader: View {
                     Text("Month")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(selectedView == .month ? AppColors.primary : AppColors.mutedForeground)
-                        .padding(.horizontal, 16)
+                        .frame(minWidth: 60)
+                        .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                         .background(selectedView == .month ? AppColors.secondary : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -566,5 +584,8 @@ struct StatCard: View {
 }
 
 #Preview {
-    ProgressView(viewModel: ProgressViewModel())
+    ProgressView(
+        viewModel: ProgressViewModel(),
+        onSettings: {}
+    )
 }

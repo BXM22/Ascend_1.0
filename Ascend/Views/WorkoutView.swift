@@ -30,7 +30,6 @@ struct WorkoutView: View {
                     onFinish: { showFinishConfirmation = true },
                     onSettings: { viewModel.showSettingsSheet = true }
                 )
-                .id("header-volume-\(viewModel.totalWorkoutVolume)")
                 .id("header-\(viewModel.totalWorkoutVolume)")
                 
                 // Workout Timer
@@ -2102,6 +2101,49 @@ struct SettingsView: View {
                                 }
                             }
                         }
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    
+                    // Help & Support Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Help & Support")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                        
+                        Button(action: {
+                            HapticManager.impact(style: .medium)
+                            OnboardingManager.shared.resetTutorial()
+                            dismiss()
+                        }) {
+                            HStack {
+                                Image(systemName: "questionmark.circle.fill")
+                                    .font(.system(size: 20))
+                                Text("Show Tutorial")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(AppColors.mutedForeground)
+                            }
+                            .foregroundColor(AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(AppColors.secondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(AppColors.border, lineWidth: 2)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        
+                        Text("Learn how to use Ascend's key features and navigate the app")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .padding(.top, -8)
                     }
                     .padding(20)
                     .background(AppColors.card)

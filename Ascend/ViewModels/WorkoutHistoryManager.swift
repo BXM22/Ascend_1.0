@@ -92,7 +92,6 @@ class WorkoutHistoryManager: ObservableObject {
         
         // Use binary search on sorted dates for faster lookup
         var results: [Workout] = []
-        let calendar = Calendar.current
         
         // Find workouts within date range using sorted dates
         for date in sortedWorkoutDates {

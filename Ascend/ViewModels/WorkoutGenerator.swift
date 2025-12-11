@@ -67,6 +67,13 @@ class WorkoutGenerator {
             selectedExercises.append(contentsOf: selected.map { $0.name })
         }
         
+        // For cut goals, suggest including cardio if not already included
+        // This helps with fat loss and metabolic stress
+        if settings.trainingGoal == .cut && settings.includeCardio {
+            // Cardio exercises could be added here if we have them in the database
+            // For now, the includeCardio flag is handled by the UI
+        }
+        
         // Limit to max exercises
         if selectedExercises.count > settings.maxExercises {
             selectedExercises = Array(selectedExercises.shuffled().prefix(settings.maxExercises))
@@ -105,23 +112,64 @@ class WorkoutGenerator {
         let workoutName = name ?? generateWorkoutName(settings: settings)
         
         // Convert exercise names to TemplateExercise format with intelligent defaults
+        // Adjust reps and sets based on training type and goal
         let templateExercises = verifiedExercises.enumerated().map { index, exerciseName in
-            // Vary sets and reps based on exercise position and type
             let sets: Int
             let reps: String
             
-            // First exercise: more sets for main compound movement
-            if index == 0 {
-                sets = 4
-                reps = "5-8"
-            } else if index < 3 {
-                // Second and third: moderate sets
-                sets = 3
-                reps = "8-10"
-            } else {
-                // Later exercises: fewer sets, higher reps
-                sets = 3
-                reps = "10-12"
+            // Determine sets and reps based on training type and goal
+            switch (settings.trainingType, settings.trainingGoal) {
+            case (.strength, .bulk):
+                // Strength + Bulk: Lower reps, more sets, higher weight
+                if index == 0 {
+                    sets = 5
+                    reps = "3-5"
+                } else if index < 3 {
+                    sets = 4
+                    reps = "4-6"
+                } else {
+                    sets = 4
+                    reps = "5-8"
+                }
+                
+            case (.strength, .cut):
+                // Strength + Cut: Moderate reps, moderate sets
+                if index == 0 {
+                    sets = 4
+                    reps = "4-6"
+                } else if index < 3 {
+                    sets = 3
+                    reps = "6-8"
+                } else {
+                    sets = 3
+                    reps = "8-10"
+                }
+                
+            case (.endurance, .bulk):
+                // Endurance + Bulk: Higher reps, moderate sets
+                if index == 0 {
+                    sets = 4
+                    reps = "12-15"
+                } else if index < 3 {
+                    sets = 3
+                    reps = "12-15"
+                } else {
+                    sets = 3
+                    reps = "15-18"
+                }
+                
+            case (.endurance, .cut):
+                // Endurance + Cut: Very high reps, fewer sets, more metabolic stress
+                if index == 0 {
+                    sets = 3
+                    reps = "15-20"
+                } else if index < 3 {
+                    sets = 3
+                    reps = "18-22"
+                } else {
+                    sets = 2
+                    reps = "20-25"
+                }
             }
             
             return TemplateExercise(

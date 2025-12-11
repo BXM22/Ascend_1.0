@@ -1,5 +1,35 @@
 import Foundation
 
+// MARK: - Training Type
+enum TrainingType: String, Codable, CaseIterable {
+    case strength = "Strength"
+    case endurance = "Endurance"
+    
+    var description: String {
+        switch self {
+        case .strength:
+            return "Lower reps, higher weight for maximum strength"
+        case .endurance:
+            return "Higher reps, lower weight for muscular endurance"
+        }
+    }
+}
+
+// MARK: - Training Goal
+enum TrainingGoal: String, Codable, CaseIterable {
+    case bulk = "Bulk"
+    case cut = "Cut"
+    
+    var description: String {
+        switch self {
+        case .bulk:
+            return "Build muscle mass with higher volume"
+        case .cut:
+            return "Maintain muscle while cutting fat"
+        }
+    }
+}
+
 // MARK: - Workout Generation Settings
 struct WorkoutGenerationSettings: Codable {
     var exercisesPerMuscleGroup: [String: Int] // Muscle group name -> number of exercises
@@ -8,6 +38,8 @@ struct WorkoutGenerationSettings: Codable {
     var preferredEquipment: [String] // e.g., ["Bodyweight", "Dumbbells", "Barbell"]
     var minExercises: Int
     var maxExercises: Int
+    var trainingType: TrainingType
+    var trainingGoal: TrainingGoal
     
     init() {
         // Default settings
@@ -29,6 +61,8 @@ struct WorkoutGenerationSettings: Codable {
         self.preferredEquipment = ["Bodyweight", "Dumbbells", "Barbell"]
         self.minExercises = 4
         self.maxExercises = 8
+        self.trainingType = .strength
+        self.trainingGoal = .bulk
     }
     
     func getExerciseCount(for muscleGroup: String) -> Int {

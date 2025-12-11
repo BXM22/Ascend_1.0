@@ -32,6 +32,8 @@ enum AppConstants {
         // Exercise usage tracking
         static let recentExercises = "recentExercises"
         static let exerciseUsageCounts = "exerciseUsageCounts"
+        // Tutorial/Onboarding
+        static let hasCompletedTutorial = "hasCompletedTutorial"
         // Workout timer persistence
         static let workoutStartTime = "workoutStartTime"
         static let workoutElapsedTime = "workoutElapsedTime"

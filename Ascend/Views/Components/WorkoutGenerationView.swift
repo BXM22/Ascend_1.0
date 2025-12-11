@@ -18,6 +18,95 @@ struct WorkoutGenerationView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Training Goals Selection
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Training Goals")
+                            .font(AppTypography.heading3)
+                            .foregroundColor(AppColors.textPrimary)
+                        
+                        // Training Type Selection
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Training Type")
+                                .font(AppTypography.heading4)
+                                .foregroundColor(AppColors.textSecondary)
+                            
+                            HStack(spacing: 12) {
+                                ForEach(TrainingType.allCases, id: \.self) { type in
+                                    Button(action: {
+                                        viewModel.generationSettings.trainingType = type
+                                    }) {
+                                        VStack(spacing: 8) {
+                                            Image(systemName: type == .strength ? "bolt.fill" : "flame.fill")
+                                                .font(.system(size: 24))
+                                            Text(type.rawValue)
+                                                .font(AppTypography.bodyMedium)
+                                            Text(type.description)
+                                                .font(AppTypography.caption)
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(2)
+                                        }
+                                        .foregroundColor(viewModel.generationSettings.trainingType == type ? AppColors.alabasterGrey : AppColors.textPrimary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(AppSpacing.md)
+                                        .background(viewModel.generationSettings.trainingType == type ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                        
+                        // Training Goal Selection
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Goal")
+                                .font(AppTypography.heading4)
+                                .foregroundColor(AppColors.textSecondary)
+                            
+                            HStack(spacing: 12) {
+                                ForEach(TrainingGoal.allCases, id: \.self) { goal in
+                                    Button(action: {
+                                        viewModel.generationSettings.trainingGoal = goal
+                                    }) {
+                                        VStack(spacing: 8) {
+                                            Image(systemName: goal == .bulk ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                                                .font(.system(size: 24))
+                                            Text(goal.rawValue)
+                                                .font(AppTypography.bodyMedium)
+                                            Text(goal.description)
+                                                .font(AppTypography.caption)
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(2)
+                                        }
+                                        .foregroundColor(viewModel.generationSettings.trainingGoal == goal ? AppColors.alabasterGrey : AppColors.textPrimary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(AppSpacing.md)
+                                        .background(viewModel.generationSettings.trainingGoal == goal ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                        
+                        // Hint for Cut goal
+                        if viewModel.generationSettings.trainingGoal == .cut {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(AppColors.accent)
+                                Text("Tip: Enable cardio in settings for better fat loss results")
+                                    .font(AppTypography.caption)
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            .padding(AppSpacing.sm)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppColors.secondary.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                    .padding(AppSpacing.md)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    
                     // Workout Type Selection
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Workout Type")
