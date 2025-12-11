@@ -36,6 +36,8 @@
 		E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39DA6052EE7B331005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E39F2E842EE8F70A00A13CE9 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E3AF5C2F2EE8FDC20048924E /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -158,6 +160,20 @@
 			sourceTree = "<group>";
 		};
 		E39DA60C2EE7B331005FDF84 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E39F2E8B2EE8F70A00A13CE9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E3AF5C362EE8FDC20048924E /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -303,8 +319,16 @@
 					ProjectRef = E39DA33B2EE69459005FDF84 /* Ascend.xcodeproj */;
 				},
 				{
+					ProductGroup = E3AF5C362EE8FDC20048924E /* Products */;
+					ProjectRef = E3AF5C2F2EE8FDC20048924E /* Ascend.xcodeproj */;
+				},
+				{
 					ProductGroup = E39DA4A22EE69BF0005FDF84 /* Products */;
 					ProjectRef = E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E39F2E8B2EE8F70A00A13CE9 /* Products */;
+					ProjectRef = E39F2E842EE8F70A00A13CE9 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
@@ -513,7 +537,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = 8DU7M3QGM7;
+				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
