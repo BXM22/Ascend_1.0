@@ -50,6 +50,9 @@ class WorkoutViewModel: ObservableObject {
     private var pauseStartTime: Date? // When the timer was paused
     private var isTimerPaused: Bool = false
     
+    // Weight persistence per exercise
+    private var lastWeightPerExercise: [String: Double] = [:]
+    
     /// Public property to check if timer is paused during rest
     var isTimerPausedDuringRest: Bool {
         return isTimerPaused && settingsManager.pauseTimerDuringRest
@@ -149,6 +152,31 @@ class WorkoutViewModel: ObservableObject {
         self.themeManager = themeManager
         setupAppLifecycleObservers()
         restoreRestTimerState()
+        loadLastWeights()
+        
+        // Restore workout state if no current workout exists
+        if currentWorkout == nil {
+            restoreWorkoutState()
+            // If workout was restored, also restore timer state
+            if currentWorkout != nil {
+                restoreWorkoutTimerState()
+                // Start timer if workout was restored (preserves restored start time)
+                if workoutStartTime != nil {
+                    // Create timer without resetting state
+                    timer?.invalidate()
+                    timer = Timer.scheduledTimer(withTimeInterval: AppConstants.Timer.workoutTimerInterval, repeats: true) { [weak self] _ in
+                        guard let self = self, let startTime = self.workoutStartTime else { return }
+                        if !self.isTimerPaused {
+                            let totalElapsed = Int(Date().timeIntervalSince(startTime))
+                            self.elapsedTime = max(0, totalElapsed - self.pausedTimeAccumulator)
+                        }
+                    }
+                    if let timer = timer {
+                        RunLoop.main.add(timer, forMode: .common)
+                    }
+                }
+            }
+        }
         
         // Log connection status
         if progressViewModel != nil {
@@ -216,6 +244,9 @@ class WorkoutViewModel: ObservableObject {
             pauseStartTime = nil
         }
         
+        // Save workout timer state before invalidating
+        saveWorkoutTimerState()
+        
         // Pause timers when going to background to save battery
         // We'll recalculate time when foregrounding
         timer?.invalidate()
@@ -227,13 +258,24 @@ class WorkoutViewModel: ObservableObject {
         // This ensures we can restore accurately even if app is killed
         saveRestTimerState()
         
-        Logger.debug("App backgrounded - saved rest timer state", category: .persistence)
+        // Save workout state for auto-restore
+        saveWorkoutState()
+        
+        Logger.debug("App backgrounded - saved timer and workout state", category: .persistence)
     }
     
     private func handleAppForegrounded() {
         guard backgroundTime != nil else { return }
-        let backgroundDuration = Date().timeIntervalSince(backgroundTime!)
+        let backgroundDuration = Int(round(Date().timeIntervalSince(backgroundTime!)))
         self.backgroundTime = nil
+        
+        // Restore workout state first if no current workout exists
+        if currentWorkout == nil {
+            restoreWorkoutState()
+        }
+        
+        // Restore workout timer state
+        restoreWorkoutTimerState()
         
         // Update workout timer - recalculate from start time, accounting for paused time
         if let startTime = workoutStartTime {
@@ -252,54 +294,67 @@ class WorkoutViewModel: ObservableObject {
             }
         }
         
-        // Update rest timer - calculate based on time elapsed since timer started
-        if restTimerActive, let restStart = restTimerStartTime {
-            // Calculate total elapsed time since timer started
-            let totalElapsed = Int(Date().timeIntervalSince(restStart))
-            // Use the original total duration for accurate calculation
-            // Prefer restTimerTotalDuration as it's the published value used by UI
-            let originalTotal = restTimerTotalDuration > 0 ? restTimerTotalDuration : restTimerOriginalDuration
-            
-            guard originalTotal > 0 else {
-                Logger.error("Invalid original total duration: \(originalTotal)", category: .persistence)
-                completeRest()
-                return
-            }
-            
-            let newRemaining = max(0, originalTotal - totalElapsed)
-            
-            if newRemaining <= 0 {
-                // Timer completed while in background
-                Logger.info("Rest timer completed while app was in background", category: .persistence)
-                completeRest()
+        // Update rest timer - restore from saved state first if needed
+        // Always check UserDefaults first to see if there's a saved state
+        if UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.restTimerActive) {
+            // There's a saved rest timer state - restore it
+            if !restTimerActive || restTimerStartTime == nil {
+                Logger.debug("Restoring rest timer from saved state", category: .persistence)
+                restoreRestTimerState()
             } else {
-                // Restart timer with remaining time - reset start time to now
-                // The timer will continue counting down from the updated restTimeRemaining
-                restTimeRemaining = newRemaining
-                restTimerStartTime = Date()
+                // We have an active timer, but we need to update it based on time that passed in background
+                // Always recalculate from the saved start time for accuracy
+                let savedTotalDuration = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
+                let savedStartTimeInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+                let savedRemaining = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
                 
-                // Preserve original total duration for accurate progress calculation
-                // Ensure restTimerTotalDuration is set correctly
-                if restTimerTotalDuration == 0 || restTimerTotalDuration != originalTotal {
-                    restTimerTotalDuration = originalTotal
+                if savedStartTimeInterval > 0 && savedTotalDuration > 0 {
+                    // Calculate elapsed time from the original start time
+                    let savedStartTime = Date(timeIntervalSince1970: savedStartTimeInterval)
+                    let elapsedSinceStart = Date().timeIntervalSince(savedStartTime)
+                    let elapsedSinceStartRounded = Int(round(elapsedSinceStart))
+                    
+                    // Calculate remaining time based on elapsed time
+                    let calculatedRemaining = max(0, savedTotalDuration - elapsedSinceStartRounded)
+                    
+                    Logger.debug("Updating rest timer: savedRemaining=\(savedRemaining)s, calculatedRemaining=\(calculatedRemaining)s, elapsedSinceStart=\(elapsedSinceStartRounded)s, totalDuration=\(savedTotalDuration)s, currentRemaining=\(restTimeRemaining)s, backgroundDuration=\(backgroundDuration)s, savedStartTime=\(savedStartTime)", category: .persistence)
+                    
+                    // Validate: calculated remaining should be <= saved remaining (time can only decrease)
+                    // If calculated is greater, it means the saved start time is wrong or was reset
+                    let finalRemaining: Int
+                    if calculatedRemaining > savedRemaining + 1 {
+                        // Calculated is significantly more than saved - this means start time was reset
+                        // Use saved remaining minus background duration as fallback
+                        let fallbackRemaining = max(0, savedRemaining - backgroundDuration)
+                        Logger.error("Calculated remaining (\(calculatedRemaining)s) > saved remaining (\(savedRemaining)s) - using fallback: \(fallbackRemaining)s", category: .persistence)
+                        finalRemaining = fallbackRemaining
+                    } else {
+                        // Use calculated (more accurate)
+                        finalRemaining = calculatedRemaining
+                    }
+                    
+                    if finalRemaining <= 0 {
+                        Logger.info("Rest timer completed while app was in background", category: .persistence)
+                        completeRest()
+                    } else if finalRemaining != restTimeRemaining {
+                        // Always update to calculated value (most accurate)
+                        Logger.debug("Updating rest timer from saved state: \(finalRemaining)s remaining (was \(restTimeRemaining)s)", category: .persistence)
+                        
+                        restTimeRemaining = finalRemaining
+                        restTimerTotalDuration = savedTotalDuration
+                        restTimerOriginalDuration = savedTotalDuration
+                        
+                        // Adjust start time so timer continues correctly
+                        // Set start time to now minus the time that has already elapsed
+                        let timeElapsed = savedTotalDuration - finalRemaining
+                        restTimerStartTime = Date().addingTimeInterval(-TimeInterval(timeElapsed))
+                        
+                        restartRestTimer()
+                        NotificationManager.shared.scheduleRestTimerNotification(duration: finalRemaining)
+                        saveRestTimerState()
+                    }
                 }
-                restTimerOriginalDuration = originalTotal
-                
-                // Restart the timer
-                restartRestTimer()
-                
-                // Reschedule notification with remaining time
-                NotificationManager.shared.scheduleRestTimerNotification(duration: newRemaining)
-                
-                // Save updated state
-                saveRestTimerState()
-                
-                Logger.debug("Restored rest timer after foreground: \(newRemaining)s remaining of \(originalTotal)s total", category: .persistence)
             }
-        } else if restTimerActive {
-            // Timer was active but we lost the start time - try to restore from UserDefaults
-            Logger.debug("Rest timer active but start time missing - attempting restore", category: .persistence)
-            restoreRestTimerState()
         }
     }
     
@@ -379,11 +434,15 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func startTimer() {
-        workoutStartTime = Date()
-        pausedTimeAccumulator = 0
-        isTimerPaused = false
-        pauseStartTime = nil
-        elapsedTime = 0
+        // Only reset timer state if starting a new workout (start time is nil)
+        // If restoring, preserve the restored state
+        if workoutStartTime == nil {
+            workoutStartTime = Date()
+            pausedTimeAccumulator = 0
+            isTimerPaused = false
+            pauseStartTime = nil
+            elapsedTime = 0
+        }
         
         // Invalidate any existing timer first
         timer?.invalidate()
@@ -518,6 +577,10 @@ class WorkoutViewModel: ObservableObject {
             HapticManager.success()
         }
         
+        // Clear saved workout state when workout is finished
+        clearWorkoutState()
+        clearWorkoutTimerState()
+        
         // Don't clear workout state yet if showing modal - wait until modal is dismissed
         // This ensures the modal overlay remains visible
     }
@@ -560,6 +623,10 @@ class WorkoutViewModel: ObservableObject {
         )
         
         exercise.sets.append(mainSet)
+        
+        // Store last weight used for this exercise
+        lastWeightPerExercise[exercise.name] = weight
+        saveLastWeights()
         
         // If dropsets are enabled, automatically create dropset sets
         // Use state variables directly as source of truth
@@ -761,6 +828,11 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func completeCalisthenicsSet(reps: Int, additionalWeight: Double) {
+        // Store last additional weight used for this exercise
+        if let exercise = currentExercise {
+            lastWeightPerExercise[exercise.name] = additionalWeight
+            saveLastWeights()
+        }
         // Validate input
         guard reps >= AppConstants.Validation.minReps,
               reps <= AppConstants.Validation.maxReps else {
@@ -848,6 +920,10 @@ class WorkoutViewModel: ObservableObject {
         
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
+        
+        // Store last additional weight used for this exercise
+        lastWeightPerExercise[exercise.name] = additionalWeight
+        saveLastWeights()
         
         // Create set with hold duration and additional weight
         let set = ExerciseSet(
@@ -1083,7 +1159,11 @@ class WorkoutViewModel: ObservableObject {
     }
     
     private func restartRestTimer() {
-        restTimerStartTime = Date()
+        // Don't reset start time - keep the original start time for accurate restoration
+        // Only set it if it's nil (shouldn't happen, but safety check)
+        if restTimerStartTime == nil {
+            restTimerStartTime = Date()
+        }
         startRestTimerTick()
     }
     
@@ -1349,11 +1429,14 @@ class WorkoutViewModel: ObservableObject {
         UserDefaults.standard.set(max(0, restTimeRemaining), forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
         UserDefaults.standard.set(restTimerTotalDuration, forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
         
+        // Always save the start time - this is the original start time when timer first started
+        // Don't save if it's nil (shouldn't happen, but safety check)
         if let startTime = restTimerStartTime {
             UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+            Logger.debug("Saved rest timer state: \(restTimeRemaining)s remaining of \(restTimerTotalDuration)s total, startTime=\(startTime)", category: .persistence)
+        } else {
+            Logger.error("Cannot save rest timer state - startTime is nil", category: .persistence)
         }
-        
-        Logger.debug("Saved rest timer state: \(restTimeRemaining)s remaining of \(restTimerTotalDuration)s total", category: .persistence)
     }
     
     private func restoreRestTimerState() {
@@ -1369,16 +1452,26 @@ class WorkoutViewModel: ObservableObject {
         
         let totalDuration = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
         let startTimeInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+        let savedRemaining = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
         
         guard startTimeInterval > 0, totalDuration > 0 else {
             clearRestTimerState()
             return
         }
         
-        let startTime = Date(timeIntervalSince1970: startTimeInterval)
-        let elapsed = Int(Date().timeIntervalSince(startTime))
-        // Use the original total duration for accurate calculation
-        let newRemaining = max(0, totalDuration - elapsed)
+        let originalStartTime = Date(timeIntervalSince1970: startTimeInterval)
+        let elapsedSinceStart = Date().timeIntervalSince(originalStartTime)
+        // Round elapsed time to nearest second to avoid fractional second issues
+        let elapsed = Int(round(elapsedSinceStart))
+        
+        // Calculate remaining time based on elapsed time since original start
+        let calculatedRemaining = max(0, totalDuration - elapsed)
+        
+        // Use the calculated remaining time (more accurate than saved value)
+        // The saved value might be slightly off due to timing differences
+        let newRemaining = calculatedRemaining
+        
+        Logger.debug("Restoring rest timer: saved=\(savedRemaining)s, calculated=\(calculatedRemaining)s, elapsed=\(elapsed)s (raw=\(elapsedSinceStart)), total=\(totalDuration)s, originalStart=\(originalStartTime)", category: .persistence)
         
         if newRemaining <= 0 {
             // Timer completed while app was terminated
@@ -1397,7 +1490,12 @@ class WorkoutViewModel: ObservableObject {
         restTimeRemaining = newRemaining
         restTimerTotalDuration = totalDuration // Preserve original total duration
         restTimerOriginalDuration = totalDuration // Set to original total, not remaining
-        restTimerStartTime = Date() // Reset to now for accurate counting
+        
+        // Set start time to now minus the time that has already elapsed
+        // This ensures the timer continues counting down correctly
+        // The elapsed time is the difference between total duration and remaining time
+        let timeElapsed = totalDuration - newRemaining
+        restTimerStartTime = Date().addingTimeInterval(-TimeInterval(timeElapsed))
         
         // Restart the timer
         restartRestTimer()
@@ -1405,7 +1503,7 @@ class WorkoutViewModel: ObservableObject {
         // Reschedule notification with remaining time
         NotificationManager.shared.scheduleRestTimerNotification(duration: newRemaining)
         
-        Logger.debug("Restored rest timer state: \(newRemaining)s remaining of \(totalDuration)s total", category: .persistence)
+        Logger.debug("Restored rest timer state: \(newRemaining)s remaining of \(totalDuration)s total (elapsed: \(elapsed)s, original start: \(originalStartTime))", category: .persistence)
     }
     
     private func clearRestTimerState() {
@@ -1413,6 +1511,194 @@ class WorkoutViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+    }
+    
+    // MARK: - Workout Timer Persistence
+    
+    private func saveWorkoutTimerState() {
+        guard currentWorkout != nil else {
+            clearWorkoutTimerState()
+            return
+        }
+        
+        if let startTime = workoutStartTime {
+            UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.workoutStartTime)
+        }
+        UserDefaults.standard.set(elapsedTime, forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
+        UserDefaults.standard.set(pausedTimeAccumulator, forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
+        UserDefaults.standard.set(isTimerPaused, forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
+        if let pauseStart = pauseStartTime {
+            UserDefaults.standard.set(pauseStart.timeIntervalSince1970, forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+        } else {
+            UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+        }
+        
+        Logger.debug("Saved workout timer state: elapsed=\(elapsedTime)s, paused=\(isTimerPaused)", category: .persistence)
+    }
+    
+    private func restoreWorkoutTimerState() {
+        guard currentWorkout != nil else { return }
+        
+        let startTimeInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.workoutStartTime)
+        guard startTimeInterval > 0 else { return }
+        
+        let savedStartTime = Date(timeIntervalSince1970: startTimeInterval)
+        let savedElapsed = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
+        let savedPausedAccumulator = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
+        let savedIsPaused = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
+        let pauseStartInterval = UserDefaults.standard.double(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+        
+        // Restore state
+        workoutStartTime = savedStartTime
+        pausedTimeAccumulator = savedPausedAccumulator
+        isTimerPaused = savedIsPaused
+        
+        // Recalculate elapsed time based on actual time passed
+        let totalElapsed = Int(Date().timeIntervalSince(savedStartTime))
+        elapsedTime = max(0, totalElapsed - savedPausedAccumulator)
+        
+        if savedIsPaused && pauseStartInterval > 0 {
+            pauseStartTime = Date(timeIntervalSince1970: pauseStartInterval)
+        }
+        
+        Logger.debug("Restored workout timer state: elapsed=\(elapsedTime)s, paused=\(savedIsPaused)", category: .persistence)
+    }
+    
+    private func clearWorkoutTimerState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutStartTime)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+    }
+    
+    // MARK: - Workout State Persistence
+    
+    private func saveWorkoutState() {
+        guard let workout = currentWorkout else {
+            clearWorkoutState()
+            return
+        }
+        
+        do {
+            let workoutData = try JSONEncoder().encode(workout)
+            UserDefaults.standard.set(workoutData, forKey: AppConstants.UserDefaultsKeys.currentWorkout)
+            UserDefaults.standard.set(currentExerciseIndex, forKey: AppConstants.UserDefaultsKeys.currentExerciseIndex)
+            UserDefaults.standard.set(isFromTemplate, forKey: AppConstants.UserDefaultsKeys.isFromTemplate)
+            
+            Logger.debug("Saved workout state: \(workout.exercises.count) exercises, index=\(currentExerciseIndex)", category: .persistence)
+        } catch {
+            Logger.error("Failed to save workout state", error: error, category: .persistence)
+        }
+    }
+    
+    private func restoreWorkoutState() {
+        guard currentWorkout == nil else { return }
+        
+        guard let workoutData = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.currentWorkout) else {
+            return
+        }
+        
+        do {
+            let workout = try JSONDecoder().decode(Workout.self, from: workoutData)
+            let savedIndex = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.currentExerciseIndex)
+            let savedIsFromTemplate = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.isFromTemplate)
+            
+            // Validate index
+            let validIndex = min(max(0, savedIndex), workout.exercises.count - 1)
+            
+            currentWorkout = workout
+            currentExerciseIndex = validIndex
+            isFromTemplate = savedIsFromTemplate
+            
+            Logger.debug("Restored workout state: \(workout.exercises.count) exercises, index=\(validIndex)", category: .persistence)
+        } catch {
+            Logger.error("Failed to restore workout state", error: error, category: .persistence)
+            clearWorkoutState()
+        }
+    }
+    
+    private func clearWorkoutState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentWorkout)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentExerciseIndex)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.isFromTemplate)
+    }
+    
+    // MARK: - Weight Persistence
+    
+    private func saveLastWeights() {
+        do {
+            let data = try JSONEncoder().encode(lastWeightPerExercise)
+            UserDefaults.standard.set(data, forKey: AppConstants.UserDefaultsKeys.lastWeightPerExercise)
+        } catch {
+            Logger.error("Failed to save last weights", error: error, category: .persistence)
+        }
+    }
+    
+    private func loadLastWeights() {
+        guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.lastWeightPerExercise) else {
+            return
+        }
+        
+        do {
+            lastWeightPerExercise = try JSONDecoder().decode([String: Double].self, from: data)
+        } catch {
+            Logger.error("Failed to load last weights", error: error, category: .persistence)
+            lastWeightPerExercise = [:]
+        }
+    }
+    
+    /// Get the last weight used for an exercise
+    func getLastWeight(for exerciseName: String) -> Double? {
+        return lastWeightPerExercise[exerciseName]
+    }
+    
+    // MARK: - Exercise Deletion
+    
+    func removeExercise(at index: Int) {
+        guard var workout = currentWorkout,
+              index >= 0 && index < workout.exercises.count else {
+            return
+        }
+        
+        let exercise = workout.exercises[index]
+        let hasCompletedSets = !exercise.sets.isEmpty
+        
+        // If exercise has completed sets, we'll show confirmation in the view
+        // For now, just remove it
+        workout.exercises.remove(at: index)
+        
+        // Adjust current exercise index if needed
+        if index == currentExerciseIndex {
+            // If we deleted the current exercise, move to the previous one (or first if at start)
+            if workout.exercises.isEmpty {
+                // No exercises left, clear workout
+                currentWorkout = nil
+                currentExerciseIndex = 0
+                pauseWorkout()
+                clearWorkoutState()
+                clearWorkoutTimerState()
+            } else {
+                // Move to previous exercise, or stay at 0 if we were at 0
+                currentExerciseIndex = max(0, index - 1)
+            }
+        } else if index < currentExerciseIndex {
+            // If we deleted an exercise before the current one, decrement the index
+            currentExerciseIndex -= 1
+        }
+        
+        // Update workout
+        currentWorkout = workout
+        
+        // If no exercises left, finish workout
+        if workout.exercises.isEmpty {
+            pauseWorkout()
+            clearWorkoutState()
+            clearWorkoutTimerState()
+        }
+        
+        HapticManager.selection()
+        Logger.debug("Removed exercise at index \(index)", category: .general)
     }
     
     private func checkForPR(exercise: String, weight: Double, reps: Int, silent: Bool = false) -> Bool {

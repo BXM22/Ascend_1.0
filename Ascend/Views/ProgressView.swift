@@ -174,10 +174,20 @@ struct ExercisePRTrackerView: View {
     @ObservedObject var viewModel: ProgressViewModel
     @Environment(\.colorScheme) var colorScheme
     @State private var showExercisePicker = false
+    @State private var searchText: String = ""
+    @State private var selectedBodyPart: String? = nil
+    
+    private var filteredExercises: [String] {
+        viewModel.getFilteredExercises(searchText: searchText, bodyPart: selectedBodyPart)
+    }
+    
+    private var availableBodyParts: [String] {
+        viewModel.getAvailableBodyParts()
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Header with Exercise Picker
+            // Header
             HStack(spacing: 12) {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 20))
@@ -188,53 +198,126 @@ struct ExercisePRTrackerView: View {
                     .foregroundColor(AppColors.foreground)
                 
                 Spacer()
+            }
+            
+            // Search Bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(AppColors.mutedForeground)
                 
-                // Exercise Dropdown
-                if !viewModel.availableExercises.isEmpty {
-                    Menu {
-                        ForEach(viewModel.availableExercises, id: \.self) { exercise in
-                            Button(action: {
-                                viewModel.selectedExercise = exercise
-                            }) {
-                                HStack {
-                                    Text(exercise)
-                                        .foregroundColor(AppColors.textPrimary)
-                                    if viewModel.selectedExercise == exercise {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(AppColors.primary)
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text(viewModel.selectedExercise.isEmpty ? "Select Exercise" : viewModel.selectedExercise)
-                                .font(AppTypography.bodyMedium)
-                                .foregroundColor(AppColors.accentForeground)
-                            
-                            Image(systemName: "chevron.down")
-                                .font(AppTypography.captionMedium)
-                                .foregroundColor(AppColors.accentForeground)
-                        }
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.vertical, AppSpacing.sm)
-                        .background(LinearGradient.primaryGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                TextField("Search exercises...", text: $searchText)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .foregroundColor(AppColors.foreground)
+                
+                if !searchText.isEmpty {
+                    Button(action: {
+                        searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(AppColors.mutedForeground)
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(AppColors.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
             
-            if viewModel.selectedExercise.isEmpty || viewModel.availableExercises.isEmpty {
+            // Body Part Filter
+            if !availableBodyParts.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        // "All" option
+                        Button(action: {
+                            selectedBodyPart = nil
+                        }) {
+                            Text("All")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(selectedBodyPart == nil ? AppColors.alabasterGrey : AppColors.foreground)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(selectedBodyPart == nil ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                                .clipShape(Capsule())
+                        }
+                        
+                        ForEach(availableBodyParts, id: \.self) { bodyPart in
+                            Button(action: {
+                                selectedBodyPart = bodyPart
+                            }) {
+                                Text(bodyPart)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(selectedBodyPart == bodyPart ? AppColors.alabasterGrey : AppColors.foreground)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(selectedBodyPart == bodyPart ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+            
+            // Exercise Dropdown
+            if !filteredExercises.isEmpty {
+                Menu {
+                    ForEach(filteredExercises, id: \.self) { exercise in
+                        Button(action: {
+                            viewModel.selectedExercise = exercise
+                        }) {
+                            HStack {
+                                Text(exercise)
+                                    .foregroundColor(AppColors.textPrimary)
+                                if viewModel.selectedExercise == exercise {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(AppColors.primary)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(viewModel.selectedExercise.isEmpty ? "Select Exercise" : viewModel.selectedExercise)
+                            .font(AppTypography.bodyMedium)
+                            .foregroundColor(AppColors.accentForeground)
+                        
+                        Image(systemName: "chevron.down")
+                            .font(AppTypography.captionMedium)
+                            .foregroundColor(AppColors.accentForeground)
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(LinearGradient.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            
+            if viewModel.selectedExercise.isEmpty || filteredExercises.isEmpty {
                 // Empty State
                 VStack(spacing: 12) {
-                    Text("No PRs yet")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    Text("Complete sets to earn your first PR!")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(AppColors.mutedForeground)
-                        .multilineTextAlignment(.center)
+                    if filteredExercises.isEmpty && (!searchText.isEmpty || selectedBodyPart != nil) {
+                        Text("No exercises found")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Text("Try adjusting your search or filter")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Text("No PRs yet")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Text("Complete sets to earn your first PR!")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)

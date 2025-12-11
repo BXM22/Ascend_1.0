@@ -16,6 +16,8 @@ struct WorkoutView: View {
     @State private var calisthenicsWeight: String = "0"
     @State private var showFinishConfirmation = false
     @State private var selectedExerciseForHistory: String?
+    @State private var showDeleteExerciseConfirmation = false
+    @State private var exerciseToDelete: Int?
     
     var body: some View {
         ScrollView {
@@ -48,6 +50,15 @@ struct WorkoutView: View {
                         onSelect: { index in
                             viewModel.currentExerciseIndex = index
                             viewModel.syncDropsetStateFromCurrentExercise()
+                        },
+                        onDelete: { index in
+                            let exercise = workout.exercises[index]
+                            if !exercise.sets.isEmpty {
+                                showDeleteExerciseConfirmation = true
+                                exerciseToDelete = index
+                            } else {
+                                viewModel.removeExercise(at: index)
+                            }
                         }
                     )
                     .padding(EdgeInsets(top: 16, leading: 20, bottom: 0, trailing: 20))
@@ -74,6 +85,28 @@ struct WorkoutView: View {
                                 }
                             )
                             .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                            .onAppear {
+                                // Load last additional weight for hold-based calisthenics
+                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                } else {
+                                    calisthenicsWeight = "0"
+                                }
+                                if exercise.targetHoldDuration != nil {
+                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                }
+                            }
+                            .onChange(of: viewModel.currentExerciseIndex) {
+                                // Load last additional weight when switching exercises
+                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                } else {
+                                    calisthenicsWeight = "0"
+                                }
+                                if exercise.targetHoldDuration != nil {
+                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                }
+                            }
                         } else {
                             // Rep-based calisthenics exercise (reps + additional weight, NO hold duration)
                             CalisthenicsExerciseCard(
@@ -90,6 +123,23 @@ struct WorkoutView: View {
                                 }
                             )
                             .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                            .onAppear {
+                                // Load last additional weight for rep-based calisthenics
+                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                } else {
+                                    calisthenicsWeight = "0"
+                                }
+                            }
+                            .onChange(of: viewModel.currentExerciseIndex) {
+                                // Load last additional weight when switching exercises
+                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                } else {
+                                    calisthenicsWeight = "0"
+                                }
+                                calisthenicsReps = "8"
+                            }
                         }
                     } else {
                         ExerciseCard(
@@ -128,26 +178,48 @@ struct WorkoutView: View {
                         .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                         .onAppear {
                             viewModel.syncDropsetStateFromCurrentExercise()
-                            // Reset calisthenics inputs when exercise appears
-                            if let exercise = viewModel.currentExercise, viewModel.isCalisthenicsExercise(exercise) {
-                                if calisthenicsWeight.isEmpty || calisthenicsWeight == "" {
-                                    calisthenicsWeight = "0"
-                                }
-                                // Set default hold duration if it's a hold exercise
-                                if exercise.targetHoldDuration != nil {
-                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                            // Load last weight for current exercise
+                            if let exercise = viewModel.currentExercise {
+                                if viewModel.isCalisthenicsExercise(exercise) {
+                                    // For calisthenics, load last additional weight
+                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                        calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                    } else {
+                                        calisthenicsWeight = "0"
+                                    }
+                                    // Set default hold duration if it's a hold exercise
+                                    if exercise.targetHoldDuration != nil {
+                                        holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                    }
+                                } else {
+                                    // For regular exercises, load last weight
+                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
+                                        weight = String(format: "%.0f", lastWeight)
+                                    }
                                 }
                             }
                         }
                         .onChange(of: viewModel.currentExerciseIndex) {
                             viewModel.syncDropsetStateFromCurrentExercise()
-                            // Reset calisthenics inputs when switching exercises
-                            if let exercise = viewModel.currentExercise, viewModel.isCalisthenicsExercise(exercise) {
-                                calisthenicsWeight = "0"
-                                if exercise.targetHoldDuration != nil {
-                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
+                            // Load last weight when switching exercises
+                            if let exercise = viewModel.currentExercise {
+                                if viewModel.isCalisthenicsExercise(exercise) {
+                                    // For calisthenics, load last additional weight
+                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                        calisthenicsWeight = String(format: "%.0f", lastWeight)
+                                    } else {
+                                        calisthenicsWeight = "0"
+                                    }
+                                    if exercise.targetHoldDuration != nil {
+                                        holdDuration = String(exercise.targetHoldDuration ?? 30)
+                                    } else {
+                                        calisthenicsReps = "8"
+                                    }
                                 } else {
-                                    calisthenicsReps = "8"
+                                    // For regular exercises, load last weight
+                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
+                                        weight = String(format: "%.0f", lastWeight)
+                                    }
                                 }
                             }
                         }
@@ -274,6 +346,25 @@ struct WorkoutView: View {
             }
         } message: {
             Text("Are you sure you want to finish this workout? This action cannot be undone.")
+        }
+        .alert("Delete Exercise?", isPresented: $showDeleteExerciseConfirmation) {
+            Button("Cancel", role: .cancel) {
+                exerciseToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let index = exerciseToDelete {
+                    viewModel.removeExercise(at: index)
+                }
+                exerciseToDelete = nil
+            }
+        } message: {
+            if let index = exerciseToDelete,
+               let workout = viewModel.currentWorkout,
+               index < workout.exercises.count {
+                Text("Are you sure you want to delete '\(workout.exercises[index].name)'? This will remove all completed sets for this exercise.")
+            } else {
+                Text("Are you sure you want to delete this exercise? This will remove all completed sets.")
+            }
         }
         .sheet(isPresented: $viewModel.showAddExerciseSheet) {
             AddExerciseView(
@@ -1729,6 +1820,7 @@ struct ExerciseNavigationView: View {
     let exercises: [Exercise]
     let currentIndex: Int
     let onSelect: (Int) -> Void
+    let onDelete: ((Int) -> Void)?
     
     // Count only working sets (exclude warm-up sets)
     private func workingSetsCount(for exercise: Exercise) -> Int {
@@ -1793,6 +1885,15 @@ struct ExerciseNavigationView: View {
                         .animation(AppAnimations.selection, value: currentIndex)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .contextMenu {
+                        if let onDelete = onDelete {
+                            Button(role: .destructive, action: {
+                                onDelete(index)
+                            }) {
+                                Label("Delete Exercise", systemImage: "trash")
+                            }
+                        }
+                    }
                     .id("\(exercise.id)-\(workingSetsCount(for: exercise))")
                 }
             }

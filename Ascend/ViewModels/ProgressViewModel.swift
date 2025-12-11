@@ -30,6 +30,41 @@ class ProgressViewModel: ObservableObject {
         return exercises
     }
     
+    // Get filtered exercises based on search text and body part
+    func getFilteredExercises(searchText: String, bodyPart: String?) -> [String] {
+        var exercises = availableExercises
+        
+        // Filter by search text
+        if !searchText.isEmpty {
+            exercises = exercises.filter { exercise in
+                exercise.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        
+        // Filter by body part
+        if let bodyPart = bodyPart, !bodyPart.isEmpty {
+            exercises = exercises.filter { exerciseName in
+                let (primary, secondary) = ExerciseDataManager.shared.getMuscleGroups(for: exerciseName)
+                return primary.contains(bodyPart) || secondary.contains(bodyPart)
+            }
+        }
+        
+        return exercises
+    }
+    
+    // Get all unique body parts from exercises with PRs
+    func getAvailableBodyParts() -> [String] {
+        var bodyParts: Set<String> = []
+        
+        for exerciseName in availableExercises {
+            let (primary, secondary) = ExerciseDataManager.shared.getMuscleGroups(for: exerciseName)
+            bodyParts.formUnion(primary)
+            bodyParts.formUnion(secondary)
+        }
+        
+        return Array(bodyParts).sorted()
+    }
+    
     // Invalidate exercise cache
     private func invalidateExerciseCache() {
         cachedAvailableExercises = nil

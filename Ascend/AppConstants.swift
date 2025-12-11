@@ -32,6 +32,17 @@ enum AppConstants {
         // Exercise usage tracking
         static let recentExercises = "recentExercises"
         static let exerciseUsageCounts = "exerciseUsageCounts"
+        // Workout timer persistence
+        static let workoutStartTime = "workoutStartTime"
+        static let workoutElapsedTime = "workoutElapsedTime"
+        static let workoutPausedTimeAccumulator = "workoutPausedTimeAccumulator"
+        static let workoutIsPaused = "workoutIsPaused"
+        static let workoutPauseStartTime = "workoutPauseStartTime"
+        // Workout state persistence
+        static let currentWorkout = "currentWorkout"
+        static let currentExerciseIndex = "currentExerciseIndex"
+        static let isFromTemplate = "isFromTemplate"
+        static let lastWeightPerExercise = "lastWeightPerExercise"
     }
     
     // MARK: - Timer Constants
