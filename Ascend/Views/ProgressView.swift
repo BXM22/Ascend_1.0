@@ -65,6 +65,8 @@ struct ProgressHeader: View {
             Spacer()
             
             HStack(spacing: 12) {
+                HelpButton(pageType: .progress)
+                
                 Button(action: {
                     HapticManager.impact(style: .light)
                     onSettings()
@@ -78,26 +80,44 @@ struct ProgressHeader: View {
                 }
                 .accessibilityLabel("Settings")
                 
-                Button(action: onWeekSelected) {
-                    Text("Week")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(selectedView == .week ? AppColors.primary : AppColors.mutedForeground)
-                        .frame(minWidth: 60)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(selectedView == .week ? AppColors.secondary : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                
-                Button(action: onMonthSelected) {
-                    Text("Month")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(selectedView == .month ? AppColors.primary : AppColors.mutedForeground)
-                        .frame(minWidth: 60)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(selectedView == .month ? AppColors.secondary : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                Menu {
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onWeekSelected()
+                    }) {
+                        HStack {
+                            Text("Week")
+                            if selectedView == .week {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onMonthSelected()
+                    }) {
+                        HStack {
+                            Text("Month")
+                            if selectedView == .month {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(selectedView == .week ? "Week" : "Month")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.primary)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(AppColors.primary)
+                    }
+                    .frame(minWidth: 80)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(AppColors.secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -193,10 +213,12 @@ struct ExercisePRTrackerView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showExercisePicker = false
     @State private var searchText: String = ""
+    @State private var debouncedSearchText: String = ""
     @State private var selectedBodyPart: String? = nil
+    @State private var debounceTask: Task<Void, Never>?
     
     private var filteredExercises: [String] {
-        viewModel.getFilteredExercises(searchText: searchText, bodyPart: selectedBodyPart)
+        viewModel.getFilteredExercises(searchText: debouncedSearchText, bodyPart: selectedBodyPart)
     }
     
     private var availableBodyParts: [String] {
@@ -226,10 +248,23 @@ struct ExercisePRTrackerView: View {
                 TextField("Search exercises...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
                     .foregroundColor(AppColors.foreground)
+                    .onChange(of: searchText) { _, newValue in
+                        // Cancel previous debounce task
+                        debounceTask?.cancel()
+                        
+                        // Debounce the search
+                        debounceTask = Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                            if !Task.isCancelled {
+                                debouncedSearchText = newValue
+                            }
+                        }
+                    }
                 
                 if !searchText.isEmpty {
                     Button(action: {
                         searchText = ""
+                        debouncedSearchText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(AppColors.mutedForeground)
@@ -317,7 +352,7 @@ struct ExercisePRTrackerView: View {
             if viewModel.selectedExercise.isEmpty || filteredExercises.isEmpty {
                 // Empty State
                 VStack(spacing: 12) {
-                    if filteredExercises.isEmpty && (!searchText.isEmpty || selectedBodyPart != nil) {
+                    if filteredExercises.isEmpty && (!debouncedSearchText.isEmpty || selectedBodyPart != nil) {
                         Text("No exercises found")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(AppColors.mutedForeground)

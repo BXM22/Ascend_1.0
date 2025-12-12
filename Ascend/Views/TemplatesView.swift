@@ -15,14 +15,16 @@ struct TemplatesView: View {
     let onSettings: () -> Void
     @State private var showGenerateSheet = false
     @State private var searchText: String = ""
+    @State private var debouncedSearchText: String = ""
+    @State private var debounceTask: Task<Void, Never>?
     
     // Cache filtered templates to avoid recalculating on every render
     private var filteredTemplates: [WorkoutTemplate] {
         viewModel.templates.filter { template in
             if template.name.contains("Progression") { return false }
-            if searchText.isEmpty { return true }
-            return template.name.localizedCaseInsensitiveContains(searchText) ||
-                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
+            if debouncedSearchText.isEmpty { return true }
+            return template.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
+                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }
         }
     }
     
@@ -50,6 +52,18 @@ struct TemplatesView: View {
                     TextField("Search templates...", text: $searchText)
                         .font(.system(size: 16))
                         .foregroundColor(AppColors.foreground)
+                        .onChange(of: searchText) { _, newValue in
+                            // Cancel previous debounce task
+                            debounceTask?.cancel()
+                            
+                            // Debounce the search
+                            debounceTask = Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                                if !Task.isCancelled {
+                                    debouncedSearchText = newValue
+                                }
+                            }
+                        }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -157,6 +171,8 @@ struct TemplatesHeader: View {
             Spacer()
             
             HStack(spacing: 12) {
+                HelpButton(pageType: .templates)
+                
                 // Main Settings Button
                 Button(action: {
                     HapticManager.impact(style: .light)

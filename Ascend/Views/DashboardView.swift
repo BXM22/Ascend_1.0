@@ -96,19 +96,23 @@ struct DashboardHeader: View {
             
             Spacer()
             
-            Button(action: {
-                HapticManager.impact(style: .light)
-                onSettings()
-            }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 44, height: 44)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            HStack(spacing: 12) {
+                HelpButton(pageType: .dashboard)
+                
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onSettings()
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Settings")
             }
-            .buttonStyle(ScaleButtonStyle())
-            .accessibilityLabel("Settings")
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)

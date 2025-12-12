@@ -433,6 +433,8 @@ struct WorkoutHeader: View {
             Spacer()
             
             HStack(spacing: AppSpacing.md) {
+                HelpButton(pageType: .workout)
+                
                 Button(action: {
                     HapticManager.impact(style: .light)
                     onSettings()
