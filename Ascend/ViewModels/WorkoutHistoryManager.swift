@@ -86,6 +86,18 @@ class WorkoutHistoryManager: ObservableObject {
         Logger.info("✅ Workout added to history - Name: '\(workout.name)', Exercises: \(workout.exercises.count), Total workouts: \(completedWorkouts.count)", category: .general)
     }
     
+    func deleteWorkout(_ workout: Workout) {
+        completedWorkouts.removeAll { $0.id == workout.id }
+        Logger.info("🗑️ Workout deleted from history - Name: '\(workout.name)', Remaining workouts: \(completedWorkouts.count)", category: .general)
+    }
+    
+    func deleteWorkout(at index: Int) {
+        guard index >= 0 && index < completedWorkouts.count else { return }
+        let workout = completedWorkouts[index]
+        completedWorkouts.remove(at: index)
+        Logger.info("🗑️ Workout deleted from history - Name: '\(workout.name)', Remaining workouts: \(completedWorkouts.count)", category: .general)
+    }
+    
     func getWorkouts(in dateRange: DateInterval) -> [Workout] {
         // Use indexed lookup if available, otherwise fall back to filtering
         guard !workoutsByDate.isEmpty else {

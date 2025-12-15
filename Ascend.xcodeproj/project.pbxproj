@@ -33,6 +33,7 @@
 		60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E34E66752EEFE5CD00A2D7A2 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E34E683D2EF006D500A2D7A2 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39374E02EE7C0A50090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39376542EE8D3110090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39A3DD82ECC56880043FACF /* Ascend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ascend.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,6 +138,13 @@
 			sourceTree = "<group>";
 		};
 		E34E667C2EEFE5CD00A2D7A2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E34E68442EF006D500A2D7A2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -366,8 +374,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
-					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
+					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
+					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39374E72EE7C0A50090E148 /* Products */;
@@ -392,6 +400,10 @@
 				{
 					ProductGroup = E3AF5C362EE8FDC20048924E /* Products */;
 					ProjectRef = E3AF5C2F2EE8FDC20048924E /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E34E68442EF006D500A2D7A2 /* Products */;
+					ProjectRef = E34E683D2EF006D500A2D7A2 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = 6069608B2EEB4B340069A141 /* Products */;
@@ -434,8 +446,8 @@
 					ProjectRef = E39F2E842EE8F70A00A13CE9 /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
-					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
+					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
+					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
 				},
 			);
 			projectRoot = "";

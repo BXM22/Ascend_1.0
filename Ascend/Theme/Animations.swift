@@ -26,6 +26,12 @@ struct AppAnimations {
     // Celebration animations (bouncy for achievements)
     static let celebration = Animation.spring(response: 0.3, dampingFraction: 0.6)
     
+    // Bouncy animation for playful interactions
+    static let bouncy = Animation.spring(response: 0.5, dampingFraction: 0.6)
+    
+    // Snappy animation for quick transitions
+    static let snappy = Animation.spring(response: 0.3, dampingFraction: 0.8)
+    
     // List item animations (staggered entrance)
     static let listItem = Animation.spring(response: 0.35, dampingFraction: 0.75)
     

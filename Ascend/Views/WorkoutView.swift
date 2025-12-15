@@ -421,7 +421,7 @@ struct WorkoutHeader: View {
     
     var body: some View {
         HStack {
-            HStack(spacing: AppSpacing.sm) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(AppTypography.largeTitleBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
@@ -429,16 +429,26 @@ struct WorkoutHeader: View {
                     .minimumScaleFactor(0.7)
                 
                 if totalVolume > 0 {
-                    Text("\(formatVolume(totalVolume)) lbs")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppColors.accent)
+                        
+                        Text("\(formatVolume(totalVolume)) lbs")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.accent)
+                            .contentTransition(.numericText())
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(AppColors.accent.opacity(0.15))
+                    .clipShape(Capsule())
                 }
             }
             
             Spacer()
             
-            HStack(spacing: AppSpacing.md) {
+            HStack(spacing: 10) {
                 HelpButton(pageType: .workout)
                 
                 Button(action: {
@@ -446,51 +456,62 @@ struct WorkoutHeader: View {
                     onSettings()
                 }) {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 18))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
+                        )
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Settings")
-                .accessibilityHint("Opens workout settings")
                 
                 Button(action: {
                     HapticManager.impact(style: .light)
                     onPause()
                 }) {
                     Image(systemName: "pause.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 18))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .rotationEffect(.degrees(0))
-                        .animation(AppAnimations.quick, value: UUID())
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
+                        )
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Pause Workout")
-                .accessibilityHint("Pauses the current workout")
                 
                 Button(action: {
                     HapticManager.success()
                     onFinish()
                 }) {
-                    Image(systemName: "checkmark")
+                    Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: AppConstants.UI.minimumButtonSize, height: AppConstants.UI.minimumButtonSize)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .foregroundColor(AppColors.alabasterGrey)
+                        .frame(width: 44, height: 44)
+                        .background(LinearGradient.primaryGradient)
+                        .clipShape(Circle())
+                        .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .accessibilityLabel("Finish Workout")
-                .accessibilityHint("Completes and saves the current workout")
             }
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(AppColors.border.opacity(0.1)),
+            alignment: .bottom
+        )
     }
 }
 
@@ -584,36 +605,48 @@ struct ExerciseCard: View {
         AppColors.categoryGradient(for: exercise.name)
     }
     
+    private var collapsedView: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(AppColors.foreground)
+                    .lineLimit(1)
+                
+                Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "clock.fill")
+                .font(.system(size: 16))
+                .foregroundColor(AppColors.accent)
+        }
+        .padding(16)
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+    }
+    
     var body: some View {
         CategoryBorderedCard(muscleGroup: exercise.name, borderWidth: 3) {
             VStack(alignment: .leading, spacing: 0) {
-            // Removed top gradient bar in favor of gradient border
-            
-            if isCollapsed {
-                // Collapsed view - show only essential info
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(exercise.name)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                            .lineLimit(1)
-                        
-                        Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(AppColors.accent)
+                // Removed top gradient bar in favor of gradient border
+                
+                if isCollapsed {
+                    collapsedView
+                } else {
+                    expandedView
                 }
-                .padding(16)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            } else {
-                // Expanded view - show all content
-                VStack(alignment: .leading, spacing: 20) {
+            }
+            .padding(20)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+    }
+    
+    private var expandedView: some View {
+        VStack(alignment: .leading, spacing: 20) {
                     // Exercise Header
                     HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -633,24 +666,41 @@ struct ExerciseCard: View {
                                 FavoriteButton(exerciseName: exercise.name)
                             }
                             
-                            HStack(spacing: 12) {
-                                Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(AppColors.mutedForeground)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(AppColors.secondary)
-                                    .clipShape(Capsule())
-                                
-                                // Exercise Volume
-                                if currentExerciseVolume > 0 {
-                                    Text("\(formatVolume(currentExerciseVolume)) lbs")
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 12) {
+                                    Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
                                         .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(AppColors.accent)
+                                        .foregroundColor(AppColors.mutedForeground)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(AppColors.accent.opacity(0.1))
+                                        .background(AppColors.secondary)
                                         .clipShape(Capsule())
+                                    
+                                    // Exercise Volume
+                                    if currentExerciseVolume > 0 {
+                                        Text("\(formatVolume(currentExerciseVolume)) lbs")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(AppColors.accent)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(AppColors.accent.opacity(0.1))
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                                
+                                // Set Progress Dots
+                                HStack(spacing: 8) {
+                                    ForEach(1...exercise.targetSets, id: \.self) { setNumber in
+                                        Circle()
+                                            .fill(setNumber <= exercise.sets.count ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                                            .frame(width: setNumber <= exercise.sets.count ? 10 : 8, height: setNumber <= exercise.sets.count ? 10 : 8)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(setNumber == exercise.currentSet ? AppColors.primary : Color.clear, lineWidth: 2)
+                                                    .padding(-2)
+                                            )
+                                            .animation(AppAnimations.snappy, value: exercise.sets.count)
+                                    }
                                 }
                             }
                         }
@@ -672,29 +722,134 @@ struct ExerciseCard: View {
                         reps: $reps
                     )
                     
-                    // Weight Input
-                    InputField(
-                        label: "Weight",
-                        value: $weight,
-                        unit: "lbs",
-                        keyboardType: .decimalPad,
-                        isWeight: true
-                    )
+                    // Weight Input with Stepper
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Weight")
+                            .font(AppTypography.subheadlineMedium)
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        HStack(spacing: 12) {
+                            // Decrement button
+                            Button(action: {
+                                if let currentWeight = Double(weight) {
+                                    weight = String(format: "%.0f", max(0, currentWeight - 5))
+                                    HapticManager.impact(style: .light)
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(AppColors.primary)
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Weight display/input
+                            TextField("0", text: $weight)
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(AppColors.foreground)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 20)
+                                .inputFieldStyle()
+                            
+                            Text("lbs")
+                                .font(AppTypography.bodyMedium)
+                                .foregroundColor(AppColors.mutedForeground)
+                                .frame(width: 40, alignment: .leading)
+                            
+                            // Increment button
+                            Button(action: {
+                                if let currentWeight = Double(weight) {
+                                    weight = String(format: "%.0f", currentWeight + 5)
+                                    HapticManager.impact(style: .light)
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(AppColors.primary)
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
                     
                     // Plate Calculator
                     if let weightValue = Double(weight), weightValue > 0 {
                         PlateCalculator(weight: weightValue, barWeight: barWeight)
                     }
                     
-                    // Reps Input
-                    InputField(
-                        label: "Reps",
-                        value: $reps,
-                        unit: "reps",
-                        keyboardType: .numberPad,
-                        isWeight: false,
-                        presets: [5, 8, 10, 12, 15]
-                    )
+                    // Reps Input with Stepper
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Reps")
+                            .font(AppTypography.subheadlineMedium)
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        HStack(spacing: 12) {
+                            // Decrement button
+                            Button(action: {
+                                if let currentReps = Int(reps), currentReps > 1 {
+                                    reps = String(currentReps - 1)
+                                    HapticManager.impact(style: .light)
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Reps display/input
+                            TextField("0", text: $reps)
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(AppColors.foreground)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 20)
+                                .inputFieldStyle()
+                            
+                            Text("reps")
+                                .font(AppTypography.bodyMedium)
+                                .foregroundColor(AppColors.mutedForeground)
+                                .frame(width: 40, alignment: .leading)
+                            
+                            // Increment button
+                            Button(action: {
+                                if let currentReps = Int(reps) {
+                                    reps = String(currentReps + 1)
+                                    HapticManager.impact(style: .light)
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                        
+                        // Quick preset buttons
+                        HStack(spacing: 8) {
+                            ForEach([5, 8, 10, 12, 15], id: \.self) { preset in
+                                Button(action: {
+                                    reps = String(preset)
+                                    HapticManager.impact(style: .light)
+                                }) {
+                                    Text("\(preset)")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(reps == String(preset) ? AppColors.alabasterGrey : AppColors.foreground)
+                                        .frame(minWidth: 44, minHeight: 32)
+                                        .background(reps == String(preset) ? AppColors.accent : AppColors.secondary)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                    }
                     
                     // Warm-up Toggle
                     Button(action: {
@@ -863,20 +1018,38 @@ struct ExerciseCard: View {
                     }
                 )
                 
-                // Complete Set Button
-                Button(action: onCompleteSet) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .bold))
+                // Complete Set Button - Enhanced
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onCompleteSet()
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 24, weight: .bold))
                         Text("Complete Set")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                     }
-                    .foregroundColor(AppColors.accentForeground)
+                    .foregroundColor(AppColors.alabasterGrey)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(LinearGradient.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .padding(.vertical, 22)
+                    .background(
+                        ZStack {
+                            LinearGradient.accentGradient
+                            
+                            // Subtle shimmer effect
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0),
+                                    Color.white.opacity(0.2),
+                                    Color.white.opacity(0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
+                    .applyElevation(.prominent)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 
@@ -902,14 +1075,8 @@ struct ExerciseCard: View {
                     .buttonStyle(ScaleButtonStyle())
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                } // Close inner VStack (expanded view content)
-            } // Close else block
-            } // Close outer VStack
-            .padding(24)
-        } // Close CategoryBorderedCard
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    } // Close body
+        }
+    }
 } // Close ExerciseCard struct
 
 // MARK: - Calisthenics Exercise Card (Reps + Additional Weight)
@@ -1174,81 +1341,144 @@ struct CalisthenicsHoldExerciseCard: View {
 
 struct PRBadge: View {
     let message: String
-    @State private var scale: CGFloat = 0.8
-    @State private var rotation: Double = -5
+    @State private var scale: CGFloat = 0.5
+    @State private var rotation: Double = -15
     @State private var glowIntensity: Double = 0
     @State private var showConfetti = false
+    @State private var shimmerPhase: CGFloat = -200
+    
+    private var confettiView: some View {
+        Group {
+            if showConfetti {
+                ForEach(0..<12) { index in
+                    confettiParticle(index: index)
+                }
+            }
+        }
+    }
+    
+    private func confettiParticle(index: Int) -> some View {
+        let iconNames = ["star.fill", "sparkles", "star.circle.fill"]
+        let colors: [Color] = [.yellow, .orange, .white]
+        
+        return Image(systemName: iconNames[index % 3])
+            .font(.system(size: CGFloat.random(in: 10...16)))
+            .foregroundColor(colors[index % 3])
+            .offset(
+                x: cos(Double(index) * .pi / 6) * Double.random(in: 40...80),
+                y: sin(Double(index) * .pi / 6) * Double.random(in: 40...80)
+            )
+            .opacity(showConfetti ? 0 : 1)
+            .scaleEffect(showConfetti ? 0.3 : 1.2)
+            .animation(
+                Animation.easeOut(duration: 0.8)
+                    .delay(Double(index) * 0.05),
+                value: showConfetti
+            )
+    }
+    
+    private var badgeContent: some View {
+        HStack(spacing: 12) {
+                // Gold trophy with gradient
+                ZStack {
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(hex: "FFD700"), Color(hex: "FFA500"), Color(hex: "FFD700")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: Color.yellow.opacity(0.6), radius: 8, x: 0, y: 0)
+                        .rotationEffect(.degrees(rotation))
+                    
+                    // Shimmer overlay
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0),
+                            Color.white.opacity(0.6),
+                            Color.white.opacity(0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 40)
+                    .offset(x: shimmerPhase)
+                    .mask(
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 32, weight: .bold))
+                    )
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NEW PR!")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(Color(hex: "FFD700"))
+                        .tracking(1)
+                    
+                    Text(message)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(AppColors.alabasterGrey)
+                }
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.sm)
+            .background(
+                ZStack {
+                    // Dark background with gold accent
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "1a1a1a"),
+                            Color(hex: "2d2d2d")
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    
+                    // Gold border glow
+                    RoundedRectangle(cornerRadius: AppCornerRadius.large)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color(hex: "FFD700").opacity(0.8), Color(hex: "FFA500").opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
+            .scaleEffect(scale)
+            .shadow(color: Color(hex: "FFD700").opacity(0.5 + glowIntensity), radius: 20 + (glowIntensity * 10), x: 0, y: 8)
+            .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 6)
+    }
     
     var body: some View {
         ZStack {
-            // Confetti effect using SF Symbols
-            if showConfetti {
-                HStack(spacing: 8) {
-                    ForEach(0..<5) { index in
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 12))
-                            .foregroundColor(.yellow)
-                            .offset(
-                                x: CGFloat.random(in: -20...20),
-                                y: CGFloat.random(in: -30...10)
-                            )
-                            .opacity(showConfetti ? 1 : 0)
-                    }
-                }
-                .animation(
-                    Animation.easeOut(duration: 0.6)
-                        .delay(0.1),
-                    value: showConfetti
-                )
-            }
-            
-            // Main badge
-            HStack(spacing: 8) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 16))
-                    .rotationEffect(.degrees(rotation))
-                Text("PR! \(message)")
-                    .font(.system(size: 15, weight: .bold))
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-            }
-            .foregroundColor(AppColors.alabasterGrey)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(LinearGradient(
-                colors: [
-                    Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
-                    Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                    Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            ))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .scaleEffect(scale)
-            .shadow(
-                color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.4 + glowIntensity),
-                radius: 20 + (glowIntensity * 10),
-                x: 0,
-                y: 8
-            )
-            .shadow(
-                color: Color(light: AppColors.prussianBlue, dark: Color(hex: "000000")).opacity(0.2 + glowIntensity),
-                radius: 8 + (glowIntensity * 5),
-                x: 0,
-                y: 4
-            )
+            confettiView
+            badgeContent
         }
         .onAppear {
-            // Trigger haptic feedback
+            // Trigger strong haptic feedback
             HapticManager.success()
+            HapticManager.impact(style: .heavy)
             
-            // Celebration animation sequence
-            withAnimation(AppAnimations.celebration) {
-                scale = 1.1
+            // Explosive entrance animation
+            withAnimation(AppAnimations.bouncy) {
+                scale = 1.15
                 rotation = 5
-                glowIntensity = 0.3
                 showConfetti = true
+            }
+            
+            // Shimmer animation
+            withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                shimmerPhase = 200
+            }
+            
+            // Pulsing glow
+            withAnimation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                glowIntensity = 0.4
             }
             
             // Settle animation
@@ -1835,56 +2065,74 @@ struct ExerciseNavigationView: View {
         return workingSets >= exercise.targetSets
     }
     
+    private func exerciseButtonContent(exercise: Exercise, index: Int) -> some View {
+        let workingSets = workingSetsCount(for: exercise)
+        let isCompleted = isExerciseCompleted(exercise)
+        let isSelected = index == currentIndex
+        
+        return VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Text(exercise.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(isSelected ? AppColors.alabasterGrey : AppColors.foreground)
+                    .lineLimit(1)
+                
+                // Checkmark for completed exercises
+                if isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(isSelected ? AppColors.alabasterGrey : AppColors.accent)
+                }
+            }
+            
+            Text("\(workingSets)/\(exercise.targetSets)")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(isSelected ? AppColors.alabasterGrey.opacity(0.8) : AppColors.mutedForeground)
+                .contentTransition(.numericText())
+                .animation(AppAnimations.quick, value: workingSets)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(buttonBackground(isSelected: isSelected, isCompleted: isCompleted))
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(AppAnimations.snappy, value: currentIndex)
+        .animation(AppAnimations.snappy, value: isCompleted)
+    }
+    
+    @ViewBuilder
+    private func buttonBackground(isSelected: Bool, isCompleted: Bool) -> some View {
+        if isSelected {
+            Capsule()
+                .fill(LinearGradient.primaryGradient)
+                .shadow(color: AppColors.primary.opacity(0.4), radius: 8, x: 0, y: 4)
+        } else if isCompleted {
+            Capsule()
+                .fill(AppColors.accent.opacity(0.15))
+                .overlay(
+                    Capsule()
+                        .stroke(AppColors.accent.opacity(0.4), lineWidth: 1.5)
+                )
+        } else {
+            Capsule()
+                .fill(AppColors.secondary)
+                .overlay(
+                    Capsule()
+                        .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+                )
+        }
+    }
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 12) {
                 ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
                     Button(action: {
-                        withAnimation(AppAnimations.quick) {
+                        HapticManager.impact(style: .light)
+                        withAnimation(AppAnimations.snappy) {
                             onSelect(index)
                         }
                     }) {
-                        VStack(spacing: 4) {
-                            HStack(spacing: 4) {
-                                Text(exercise.name)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.foreground)
-                                    .lineLimit(1)
-                                
-                                // Checkmark for completed exercises
-                                if isExerciseCompleted(exercise) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(index == currentIndex ? AppColors.alabasterGrey : AppColors.accent)
-                                }
-                            }
-                            
-                            let workingSets = workingSetsCount(for: exercise)
-                            Text("\(workingSets)/\(exercise.targetSets)")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(index == currentIndex ? AppColors.alabasterGrey.opacity(0.8) : AppColors.mutedForeground)
-                                .contentTransition(.numericText())
-                                .animation(AppAnimations.quick, value: workingSets)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            index == currentIndex ?
-                            LinearGradient.primaryGradient :
-                            (isExerciseCompleted(exercise) ?
-                             LinearGradient(colors: [AppColors.accent.opacity(0.2)], startPoint: .top, endPoint: .bottom) :
-                             LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(
-                                    index == currentIndex ? Color.clear :
-                                    (isExerciseCompleted(exercise) ? AppColors.accent.opacity(0.5) : AppColors.border),
-                                    lineWidth: isExerciseCompleted(exercise) ? 2 : 1
-                                )
-                        )
-                        .animation(AppAnimations.selection, value: currentIndex)
+                        exerciseButtonContent(exercise: exercise, index: index)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .contextMenu {

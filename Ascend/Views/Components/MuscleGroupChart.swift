@@ -33,39 +33,46 @@ struct MuscleGroupChart: View {
     }
     
     private func calculateMuscleGroupDistribution() -> [MuscleGroupData] {
-        // Get workouts from last 30 days
-        let calendar = Calendar.current
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        // Track all completed workouts for muscle distribution
+        let allWorkouts = workoutHistoryManager.completedWorkouts
         
         // Add logging
-        Logger.info("📊 Calculating muscle groups - Total workouts: \(workoutHistoryManager.completedWorkouts.count)", category: .general)
-        
-        var recentWorkouts = workoutHistoryManager.completedWorkouts.filter { workout in
-            workout.startDate >= thirtyDaysAgo
-        }
-        
-        // Fallback: if no recent workouts, use all history so chart still shows data
-        if recentWorkouts.isEmpty {
-            Logger.info("📊 No recent workouts in 30 days, using all completed workouts (\(workoutHistoryManager.completedWorkouts.count))", category: .general)
-            recentWorkouts = workoutHistoryManager.completedWorkouts
-        } else {
-            Logger.info("📊 Recent workouts (30 days): \(recentWorkouts.count)", category: .general)
-        }
+        Logger.info("📊 Calculating muscle groups - Total workouts: \(allWorkouts.count)", category: .general)
         
         var muscleGroupCounts: [String: Int] = [:]
         
-        for workout in recentWorkouts {
+        // Process all completed workouts
+        for workout in allWorkouts {
             Logger.debug("📊 Processing workout: \(workout.name) with \(workout.exercises.count) exercises", category: .general)
             
             for exercise in workout.exercises {
-                let (primary, _) = ExerciseDataManager.shared.getMuscleGroups(for: exercise.name)
-                Logger.debug("📊 Exercise: \(exercise.name) → Muscle groups: \(primary)", category: .general)
+                // Get both primary and secondary muscle groups
+                let (primary, secondary) = ExerciseDataManager.shared.getMuscleGroups(for: exercise.name)
                 
-                for muscleGroup in primary {
-                    let normalized = normalizeMuscleGroup(muscleGroup)
-                    let setCount = exercise.sets.count
-                    muscleGroupCounts[normalized, default: 0] += setCount
-                    Logger.debug("📊 Added \(setCount) sets to \(normalized)", category: .general)
+                // Count completed sets (only count sets that have been completed)
+                let completedSets = exercise.sets.filter { set in
+                    // A set is considered completed if it has reps > 0 or weight > 0
+                    set.reps > 0 || set.weight > 0 || set.holdDuration != nil
+                }
+                let setCount = completedSets.count
+                
+                if setCount > 0 {
+                    Logger.debug("📊 Exercise: \(exercise.name) → Primary: \(primary), Secondary: \(secondary), Sets: \(setCount)", category: .general)
+                    
+                    // Count primary muscle groups (full weight)
+                    for muscleGroup in primary {
+                        let normalized = normalizeMuscleGroup(muscleGroup)
+                        muscleGroupCounts[normalized, default: 0] += setCount
+                        Logger.debug("📊 Added \(setCount) sets to \(normalized) (primary)", category: .general)
+                    }
+                    
+                    // Count secondary muscle groups (half weight)
+                    for muscleGroup in secondary {
+                        let normalized = normalizeMuscleGroup(muscleGroup)
+                        // Secondary muscles get half credit
+                        muscleGroupCounts[normalized, default: 0] += max(1, setCount / 2)
+                        Logger.debug("📊 Added \(setCount / 2) sets to \(normalized) (secondary)", category: .general)
+                    }
                 }
             }
         }
@@ -80,7 +87,9 @@ struct MuscleGroupChart: View {
         }
         .sorted { $0.count > $1.count }
         
-        debugLog("calc complete", data: ["entries": result.count, "totalSets": result.reduce(0) { $0 + $1.count }])
+        let totalSets = result.reduce(0) { $0 + $1.count }
+        Logger.info("📊 Chart calculation complete - Muscle groups: \(result.count), Total sets: \(totalSets)", category: .general)
+        debugLog("calc complete", data: ["entries": result.count, "totalSets": totalSets, "workouts": allWorkouts.count])
         return result
     }
     
@@ -155,7 +164,7 @@ struct MuscleGroupChart: View {
                         .stroke(AppColors.border.opacity(0.1), lineWidth: 22)
                         .frame(width: 160, height: 160)
                     
-                    // Muscle group segments
+                    // Muscle group segments - draw in order
                     ForEach(Array(cachedMuscleGroupData.enumerated()), id: \.element.id) { index, data in
                         MuscleGroupSegment(
                             data: data,
@@ -175,6 +184,10 @@ struct MuscleGroupChart: View {
                         Text("Total Sets")
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(AppColors.mutedForeground)
+                        
+                        Text("All Workouts")
+                            .font(.system(size: 8, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground.opacity(0.7))
                     }
                 }
             }
@@ -184,7 +197,14 @@ struct MuscleGroupChart: View {
             
             // Legend below (compact grid)
             if !cachedMuscleGroupData.isEmpty {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
                     ForEach(cachedMuscleGroupData) { data in
                         CompactMuscleGroupLegendItem(data: data, total: cachedTotalSets)
                     }
@@ -207,12 +227,18 @@ struct MuscleGroupChart: View {
     }
     
     private func cumulativeFraction(for index: Int) -> Double {
-        guard cachedTotalSets > 0 else { return 0 }
+        guard cachedTotalSets > 0, index < cachedMuscleGroupData.count, index >= 0 else { return 0 }
+        
+        if index == 0 {
+            return 0.0
+        }
+        
         let previousData = cachedMuscleGroupData.prefix(index)
         let previousPercentage = previousData.reduce(0.0) { total, data in
             total + (Double(data.count) / Double(cachedTotalSets))
         }
-        return previousPercentage
+        // Ensure we don't exceed 1.0 and handle floating point precision
+        return min(1.0, max(0.0, previousPercentage))
     }
 }
 
@@ -240,15 +266,26 @@ struct MuscleGroupSegment: View {
     }
     
     private var endFraction: Double {
-        min(1.0, startFraction + percentage)
+        let calculatedEnd = startFraction + percentage
+        // Ensure we don't exceed 1.0 and handle floating point precision
+        return min(1.0, max(startFraction, calculatedEnd))
     }
     
     var body: some View {
         Circle()
-            .trim(from: CGFloat(startFraction), to: CGFloat(endFraction))
-            .stroke(data.gradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+            .trim(from: max(0, min(1, CGFloat(startFraction))), to: max(0, min(1, CGFloat(endFraction))))
+            .stroke(
+                data.gradient,
+                style: StrokeStyle(
+                    lineWidth: strokeWidth,
+                    lineCap: .round,
+                    lineJoin: .round
+                )
+            )
             .frame(width: size, height: size)
             .rotationEffect(.degrees(-90))
+            .animation(.easeInOut(duration: 0.3), value: startFraction)
+            .animation(.easeInOut(duration: 0.3), value: endFraction)
     }
 }
 

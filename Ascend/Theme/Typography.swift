@@ -23,6 +23,7 @@ struct AppTypography {
     static let heading4 = Font.custom(avenirMedium, size: 19, relativeTo: .title3)
     static let bodyBold = Font.custom(avenirBold, size: 17, relativeTo: .body)
     static let bodyMedium = Font.custom(avenirMedium, size: 17, relativeTo: .body)
+    static let subheadlineMedium = Font.custom(avenirMedium, size: 15, relativeTo: .subheadline)
     static let captionMedium = Font.custom(avenirMedium, size: 13, relativeTo: .caption)
     static let largeTitleBold = Font.custom(avenirBold, size: 36, relativeTo: .largeTitle)
     

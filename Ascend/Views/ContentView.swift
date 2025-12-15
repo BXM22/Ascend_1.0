@@ -238,7 +238,8 @@ struct BottomNavigationBar: View {
                 .background(.ultraThinMaterial)
             }
             
-            HStack(spacing: 0) {
+            // Connected circles design
+            HStack(spacing: -8) {
                 NavButton(
                     icon: "house.fill",
                     title: "Home",
@@ -249,8 +250,6 @@ struct BottomNavigationBar: View {
                         selectedTab = .dashboard
                     }
                 }
-                
-                Spacer()
                 
                 NavButton(
                     icon: "dumbbell.fill",
@@ -263,8 +262,6 @@ struct BottomNavigationBar: View {
                     }
                 }
                 
-                Spacer()
-                
                 NavButton(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "Progress",
@@ -276,8 +273,6 @@ struct BottomNavigationBar: View {
                     }
                 }
                 
-                Spacer()
-                
                 NavButton(
                     icon: "list.bullet.rectangle",
                     title: "Templates",
@@ -288,8 +283,6 @@ struct BottomNavigationBar: View {
                         selectedTab = .templates
                     }
                 }
-                
-                Spacer()
                 
                 // Theme Toggle Button
                 ThemeToggleButton(
@@ -303,16 +296,11 @@ struct BottomNavigationBar: View {
                     }
                 )
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 25, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: -2)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 25, style: .continuous)
-                    .strokeBorder(AppColors.border.opacity(0.15), lineWidth: 0.5)
+                // Connected circles background
+                ConnectedCirclesBackground()
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -574,13 +562,38 @@ struct NavButton: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 ZStack {
-                    // Circular background for selected tab
-                    if isSelected {
-                        Circle()
-                            .fill(LinearGradient.primaryGradient)
-                            .frame(width: 50, height: 50)
-                            .shadow(color: AppColors.primary.opacity(0.4), radius: 8, x: 0, y: 2)
-                    }
+                    // Circular background - always visible but styled differently
+                    Circle()
+                        .fill(
+                            isSelected
+                                ? LinearGradient.primaryGradient
+                                : LinearGradient(
+                                    colors: [
+                                        AppColors.card.opacity(0.8),
+                                        AppColors.card.opacity(0.6)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                        )
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(
+                                    isSelected
+                                        ? Color.clear
+                                        : AppColors.border.opacity(0.2),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(
+                            color: isSelected
+                                ? AppColors.primary.opacity(0.4)
+                                : AppColors.foreground.opacity(0.05),
+                            radius: isSelected ? 8 : 4,
+                            x: 0,
+                            y: isSelected ? 2 : 1
+                        )
                     
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .semibold))
@@ -607,6 +620,49 @@ struct NavButton: View {
         .accessibilityLabel(title)
         .accessibilityHint(isSelected ? "Currently selected \(title) tab" : "Switch to \(title) tab")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Connected Circles Background
+
+struct ConnectedCirclesBackground: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let circleRadius: CGFloat = 25
+            let circleDiameter = circleRadius * 2
+            let totalWidth = geometry.size.width
+            let totalHeight = geometry.size.height
+            let circleCount: CGFloat = 5 // 4 nav buttons + 1 theme button
+            let spacing = (totalWidth - (circleCount * circleDiameter)) / (circleCount - 1)
+            
+            ZStack {
+                // Background blur
+                RoundedRectangle(cornerRadius: totalHeight / 2)
+                    .fill(.ultraThinMaterial)
+                    .frame(width: totalWidth, height: totalHeight)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: -2)
+                
+                // Connecting lines between circles
+                ForEach(0..<Int(circleCount - 1), id: \.self) { index in
+                    let startX = circleRadius + CGFloat(index) * (circleDiameter + spacing)
+                    let endX = startX + spacing + circleDiameter
+                    let centerY = totalHeight / 2
+                    
+                    Path { path in
+                        path.move(to: CGPoint(x: startX + circleRadius, y: centerY))
+                        path.addLine(to: CGPoint(x: endX - circleRadius, y: centerY))
+                    }
+                    .stroke(
+                        AppColors.border.opacity(0.15),
+                        style: StrokeStyle(lineWidth: 1, lineCap: .round)
+                    )
+                }
+                
+                // Border around the entire shape
+                RoundedRectangle(cornerRadius: totalHeight / 2)
+                    .strokeBorder(AppColors.border.opacity(0.15), lineWidth: 0.5)
+            }
+        }
     }
 }
 

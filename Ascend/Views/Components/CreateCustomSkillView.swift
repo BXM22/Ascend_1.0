@@ -316,3 +316,7 @@ struct CreateCustomSkillView: View {
     CreateCustomSkillView(skillManager: CalisthenicsSkillManager.shared)
 }
 
+
+
+
+

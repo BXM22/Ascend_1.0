@@ -7,14 +7,49 @@ struct DashboardView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
+    @State private var showGenerateTypeDialog = false
+    @State private var showWorkoutHistory = false
+    
+    private enum GeneratedDayType {
+        case custom, push, pull, legs, fullBody
+    }
+    
+    private func generateAndStartWorkout(for type: GeneratedDayType) {
+        let template: WorkoutTemplate
+        switch type {
+        case .custom:
+            template = templatesViewModel.generateWorkout()
+        case .push:
+            template = templatesViewModel.generatePushWorkout()
+        case .pull:
+            template = templatesViewModel.generatePullWorkout()
+        case .legs:
+            template = templatesViewModel.generateLegWorkout()
+        case .fullBody:
+            template = templatesViewModel.generateFullBodyWorkout()
+        }
+        
+        workoutViewModel.startWorkoutFromTemplate(template)
+        onStartWorkout()
+    }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header
-                YourActivityHeader(onSettings: onSettings)
-                
-                VStack(spacing: 20) {
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Hero Section with Greeting and Quick Stats
+                    HeroSection(
+                        progressViewModel: progressViewModel,
+                        onGenerateWorkout: {
+                            showGenerateTypeDialog = true
+                        }
+                    )
+                    .padding(.top, 60) // Add top padding to account for buttons
+                    
+                    // Header with Title
+                    YourActivityHeader()
+                    
+                    VStack(spacing: 20) {
                     // Weekly Calendar (with program indicator if active)
                     WeeklyCalendarWidget(
                         progressViewModel: progressViewModel,
@@ -39,17 +74,10 @@ struct DashboardView: View {
                             programViewModel: programViewModel,
                             onStartWorkout: onStartWorkout
                         )
-                        
-                        RandomWorkoutGeneratorCard(
-                            templatesViewModel: templatesViewModel,
-                            workoutViewModel: workoutViewModel,
-                            progressViewModel: progressViewModel,
-                            onStartWorkout: onStartWorkout
-                        )
                     }
                     
                     // Stat Cards (Recent PRs + Top Exercise)
-                    HStack(spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         RecentPRsStatCard(progressViewModel: progressViewModel)
                         TopExerciseStatCard(progressViewModel: progressViewModel)
                     }
@@ -60,21 +88,60 @@ struct DashboardView: View {
                     // Muscle Group Chart
                     MuscleGroupChart(progressViewModel: progressViewModel)
                         .padding(.bottom, 100)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
             }
+            
+            // Top Right Buttons (Info, History, Settings)
+            HStack(spacing: 12) {
+                HelpButton(pageType: .dashboard)
+                
+                // Workout History Button
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    showWorkoutHistory = true
+                }) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppColors.card)
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppColors.foreground)
+                    }
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Workout History")
+                
+                SettingsButton(onSettings: onSettings)
+            }
+            .padding(.top, 8)
+            .padding(.trailing, AppSpacing.lg)
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
+        .confirmationDialog("Generate workout", isPresented: $showGenerateTypeDialog, titleVisibility: .visible) {
+            Button("Custom") { generateAndStartWorkout(for: .custom) }
+            Button("Push") { generateAndStartWorkout(for: .push) }
+            Button("Pull") { generateAndStartWorkout(for: .pull) }
+            Button("Legs") { generateAndStartWorkout(for: .legs) }
+            Button("Full Body") { generateAndStartWorkout(for: .fullBody) }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Select the day type to auto-generate and start your workout.")
+        }
+        .sheet(isPresented: $showWorkoutHistory) {
+            WorkoutHistoryView()
+        }
     }
 }
 
 // MARK: - Header
 
 struct YourActivityHeader: View {
-    let onSettings: () -> Void
-    
     var body: some View {
         HStack {
             Text("Your Activity")
@@ -84,27 +151,34 @@ struct YourActivityHeader: View {
                 .minimumScaleFactor(0.7)
             
             Spacer()
-            
-            HStack(spacing: 12) {
-                HelpButton(pageType: .dashboard)
-                
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Settings")
-            }
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
+    }
+}
+
+// MARK: - Settings Button
+
+struct SettingsButton: View {
+    let onSettings: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            onSettings()
+        }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(AppColors.card)
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppColors.foreground)
+            }
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel("Settings")
     }
 }
 
@@ -119,40 +193,103 @@ struct RecentPRsStatCard: View {
         return progressViewModel.prs.filter { $0.date >= weekAgo }.count
     }
     
+    private var trendData: (change: Int, percentage: Double, isNew: Bool) {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Current period: Last 7 days
+        let currentPeriodStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let currentCount = progressViewModel.prs.filter { $0.date >= currentPeriodStart }.count
+        
+        // Previous period: 7 days before that (days 8-14 ago)
+        let previousPeriodStart = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let previousPeriodEnd = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let previousCount = progressViewModel.prs.filter { 
+            $0.date >= previousPeriodStart && $0.date < previousPeriodEnd 
+        }.count
+        
+        let change = currentCount - previousCount
+        let percentage: Double
+        let isNew: Bool
+        
+        if previousCount == 0 {
+            percentage = currentCount > 0 ? 100.0 : 0.0
+            isNew = true
+        } else {
+            percentage = (Double(change) / Double(previousCount)) * 100.0
+            isNew = false
+        }
+        
+        return (change: change, percentage: percentage, isNew: isNew)
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Icon with sparkle effect
             ZStack {
                 Circle()
-                    .fill(AppColors.chestGradientEnd.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .fill(LinearGradient.chestGradient.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                    .shadow(color: AppColors.chestGradientEnd.opacity(0.3), radius: 8, x: 0, y: 4)
                 
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(LinearGradient.chestGradient)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(recentPRsCount)")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(LinearGradient.chestGradient)
                 
+                if recentPRsCount > 0 {
+                    SparkleEffect(count: 4, iconSize: 60)
+                }
+            }
+            .frame(height: 60)
+            
+            Spacer(minLength: 0)
+            
+            // Number with pulse animation
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(recentPRsCount)")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(LinearGradient.chestGradient)
+                    .contentTransition(.numericText())
+                    .pulseEffect(scale: 1.02, duration: 2.0)
+                    .frame(height: 52)
+                
                 Text("PRs This Week")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(AppColors.mutedForeground)
+                    .frame(height: 18)
+                
+                // Trend indicator
+                if recentPRsCount > 0 {
+                    TrendIndicator(
+                        change: trendData.change,
+                        percentage: trendData.percentage,
+                        isNew: trendData.isNew
+                    )
+                    .frame(height: 24)
+                } else {
+                    Spacer()
+                        .frame(height: 24)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .frame(height: 140)
+        .padding(24)
+        .frame(height: 220)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(AppColors.card)
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(AppColors.card)
+                
+                // Gradient overlay
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient.chestGradient.opacity(0.12))
+            }
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(LinearGradient.chestGradient.opacity(0.2), lineWidth: 1.5)
+                .strokeBorder(LinearGradient.chestGradient.opacity(0.3), lineWidth: 2)
         )
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
     }
 }
 
@@ -167,152 +304,180 @@ struct TopExerciseStatCard: View {
         return exerciseCounts.first.map { ($0.key, $0.value) }
     }
     
+    private var trendData: (change: Int, percentage: Double, isNew: Bool) {
+        guard let exercise = topExercise else {
+            return (change: 0, percentage: 0, isNew: false)
+        }
+        
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Current period: Last 7 days
+        let currentPeriodStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let currentCount = progressViewModel.prs.filter { 
+            $0.exercise == exercise.name && $0.date >= currentPeriodStart 
+        }.count
+        
+        // Previous period: 7 days before that (days 8-14 ago)
+        let previousPeriodStart = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let previousPeriodEnd = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let previousCount = progressViewModel.prs.filter { 
+            $0.exercise == exercise.name && 
+            $0.date >= previousPeriodStart && $0.date < previousPeriodEnd 
+        }.count
+        
+        let change = currentCount - previousCount
+        let percentage: Double
+        let isNew: Bool
+        
+        if previousCount == 0 {
+            percentage = currentCount > 0 ? 100.0 : 0.0
+            isNew = true
+        } else {
+            percentage = (Double(change) / Double(previousCount)) * 100.0
+            isNew = false
+        }
+        
+        return (change: change, percentage: percentage, isNew: isNew)
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Icon with glow
             ZStack {
                 Circle()
-                    .fill(AppColors.backGradientEnd.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .fill(LinearGradient.backGradient.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                    .shadow(color: AppColors.backGradientEnd.opacity(0.3), radius: 8, x: 0, y: 4)
                 
                 Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(LinearGradient.backGradient)
             }
+            .frame(height: 60)
+            
+            Spacer(minLength: 0)
             
             if let exercise = topExercise {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(exercise.name)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(LinearGradient.backGradient)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
+                        .frame(height: 44, alignment: .top)
                     
                     Text("\(exercise.count) PRs")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 18)
+                    
+                    // Trend indicator
+                    if exercise.count > 0 {
+                        TrendIndicator(
+                            change: trendData.change,
+                            percentage: trendData.percentage,
+                            isNew: trendData.isNew
+                        )
+                        .frame(height: 24)
+                    } else {
+                        Spacer()
+                            .frame(height: 24)
+                    }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("No Data")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 44, alignment: .top)
                     
                     Text("Start tracking")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 18)
+                    
+                    Spacer()
+                        .frame(height: 24)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .frame(height: 140)
+        .padding(24)
+        .frame(height: 220)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(AppColors.card)
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(AppColors.card)
+                
+                // Gradient overlay
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient.backGradient.opacity(0.12))
+            }
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(LinearGradient.backGradient.opacity(0.2), lineWidth: 1.5)
+                .strokeBorder(LinearGradient.backGradient.opacity(0.3), lineWidth: 2)
         )
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
     }
 }
 
-// MARK: - Random Workout Generator Card
-struct RandomWorkoutGeneratorCard: View {
-    @ObservedObject var templatesViewModel: TemplatesViewModel
-    @ObservedObject var workoutViewModel: WorkoutViewModel
-    @ObservedObject var progressViewModel: ProgressViewModel
-    let onStartWorkout: () -> Void
+// MARK: - Trend Indicator
+
+struct TrendIndicator: View {
+    let change: Int
+    let percentage: Double
+    let isNew: Bool
     
-    @State private var selectedSplit: SplitOption = .push
-    
-    enum SplitOption: String, CaseIterable, Identifiable {
-        case push = "Push"
-        case pull = "Pull"
-        case legs = "Legs"
-        case upper = "Upper"
-        case lower = "Lower"
-        var id: String { rawValue }
+    private var trendColor: Color {
+        if isNew {
+            return AppColors.success
+        } else if change > 0 {
+            return AppColors.success
+        } else if change < 0 {
+            return AppColors.mutedForeground
+        } else {
+            return AppColors.mutedForeground
+        }
     }
     
-    private func generateTemplate(for split: SplitOption) -> WorkoutTemplate {
-        switch split {
-        case .push: return templatesViewModel.generatePushWorkout()
-        case .pull: return templatesViewModel.generatePullWorkout()
-        case .legs: return templatesViewModel.generateLegWorkout()
-        case .upper: return templatesViewModel.generateWorkout(name: "Upper Body")
-        case .lower: return templatesViewModel.generateWorkout(name: "Lower Body")
+    private var trendIcon: String {
+        if isNew {
+            return "sparkles"
+        } else if change > 0 {
+            return "arrow.up"
+        } else if change < 0 {
+            return "arrow.down"
+        } else {
+            return "minus"
+        }
+    }
+    
+    private var trendText: String {
+        if isNew {
+            return "New"
+        } else if change == 0 {
+            return "0%"
+        } else {
+            let sign = change > 0 ? "+" : ""
+            return "\(sign)\(Int(abs(percentage)))%"
         }
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Quick Generate")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(AppColors.foreground)
-                Spacer()
-            }
+        HStack(spacing: 4) {
+            Image(systemName: trendIcon)
+                .font(.system(size: 10, weight: .semibold))
             
-            Text("Generate a random workout by split")
-                .font(.system(size: 13))
-                .foregroundColor(AppColors.mutedForeground)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Choose split")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(AppColors.mutedForeground)
-                
-                Menu {
-                    ForEach(SplitOption.allCases) { option in
-                        Button(option.rawValue) {
-                            selectedSplit = option
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedSplit.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(AppColors.mutedForeground)
-                    }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 12)
-                    .background(AppColors.secondary.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-            
-            Button(action: {
-                let template = generateTemplate(for: selectedSplit)
-                templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                onStartWorkout()
-            }) {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .semibold))
-                    Text("Generate")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundColor(AppColors.alabasterGrey)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
-                .frame(maxWidth: .infinity)
-                .background(LinearGradient.primaryGradient)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            Text(trendText)
+                .font(.system(size: 12, weight: .semibold))
         }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 10, x: 0, y: 3)
+        .foregroundColor(trendColor)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(trendColor.opacity(0.15))
+        .clipShape(Capsule())
     }
 }
 
@@ -364,13 +529,28 @@ struct RestDayButton: View {
 
 // MARK: - Preview
 
-#Preview {
-    DashboardView(
-        progressViewModel: ProgressViewModel(),
-        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
-        templatesViewModel: TemplatesViewModel(),
-        programViewModel: WorkoutProgramViewModel(),
-        onStartWorkout: {},
-        onSettings: {}
-    )
+struct DashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        let progressVM = ProgressViewModel()
+        let settingsMgr = SettingsManager()
+        let templatesVM = TemplatesViewModel()
+        let programVM = WorkoutProgramViewModel()
+        let themeMgr = ThemeManager()
+        let workoutVM = WorkoutViewModel(
+            settingsManager: settingsMgr,
+            progressViewModel: progressVM,
+            programViewModel: programVM,
+            templatesViewModel: templatesVM,
+            themeManager: themeMgr
+        )
+        
+        return DashboardView(
+            progressViewModel: progressVM,
+            workoutViewModel: workoutVM,
+            templatesViewModel: templatesVM,
+            programViewModel: programVM,
+            onStartWorkout: {},
+            onSettings: {}
+        )
+    }
 }

@@ -355,5 +355,73 @@ class WorkoutProgramViewModel: ObservableObject {
         }
         return isDayCompleted(dayIndex, inProgram: programId)
     }
+    
+    // MARK: - Intensity and Progress Calculation
+    
+    /// Calculate workout intensity from WorkoutDay data
+    func calculateIntensity(from workoutDay: WorkoutDay) -> WorkoutIntensity {
+        // Filter out warm-up exercises (notes contain "Warm-up")
+        let mainExercises = workoutDay.exercises.filter { 
+            !($0.notes?.lowercased().contains("warm-up") ?? false) 
+        }
+        
+        // If it's a rest day, return light
+        if workoutDay.isRestDay {
+            return .light
+        }
+        
+        // If no exercises, return light
+        guard !mainExercises.isEmpty else {
+            return .light
+        }
+        
+        let exerciseCount = mainExercises.count
+        let totalSets = mainExercises.reduce(0) { $0 + $1.sets }
+        let duration = workoutDay.estimatedDuration
+        
+        // Scoring: exercise count (40%), sets (40%), duration (20%)
+        // Normalize: exercise count (max 10), sets (max 20), duration (max 90 min)
+        let exerciseScore = min(Double(exerciseCount) / 10.0, 1.0) * 0.4
+        let setsScore = min(Double(totalSets) / 20.0, 1.0) * 0.4
+        let durationScore = min(Double(duration) / 90.0, 1.0) * 0.2
+        
+        let totalScore = exerciseScore + setsScore + durationScore
+        
+        switch totalScore {
+        case 0..<0.3:
+            return .light
+        case 0.3..<0.6:
+            return .moderate
+        case 0.6..<0.85:
+            return .intense
+        default:
+            return .extreme
+        }
+    }
+    
+    /// Get exercise completion progress for a date (0.0 to 1.0)
+    func getCompletionProgress(for date: Date, inProgram programId: UUID) -> Double {
+        // Check if workout was completed for that date
+        if isDateCompleted(date, inProgram: programId) {
+            return 1.0
+        }
+        
+        // Check if there's a completed workout in WorkoutHistoryManager for that date
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        
+        let workouts = WorkoutHistoryManager.shared.getWorkouts(
+            in: DateInterval(start: dayStart, end: dayEnd)
+        )
+        
+        // If there's a completed workout for that date, return 1.0
+        if !workouts.isEmpty {
+            return 1.0
+        }
+        
+        // Otherwise, return 0.0 (no completion)
+        return 0.0
+    }
 }
 
