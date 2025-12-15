@@ -124,8 +124,8 @@ struct RestTimerView: View {
         .padding(24)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
         .scaleEffect(scale)
         .opacity(opacity)
         .onAppear {

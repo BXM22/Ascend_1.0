@@ -20,19 +20,28 @@ class ProgressViewModel: ObservableObject {
     // Cache for available exercises
     private var cachedAvailableExercises: [String]?
     
-    // Get all unique exercise names from PRs (cached)
+    // Get all unique exercise names from PRs (cached and sorted by muscle group)
     var availableExercises: [String] {
         if let cached = cachedAvailableExercises {
             return cached
         }
-        let exercises = Array(Set(prs.map { $0.exercise })).sorted()
+        let uniqueExercises = Array(Set(prs.map { $0.exercise }))
+        let exercises = sortExercisesByMuscleGroup(uniqueExercises)
         cachedAvailableExercises = exercises
         return exercises
     }
     
-    // Get filtered exercises based on search text and body part
+    // Get filtered exercises based on search text and body part, sorted by muscle group
     func getFilteredExercises(searchText: String, bodyPart: String?) -> [String] {
         var exercises = availableExercises
+        
+        // Filter by body part first (more specific)
+        if let bodyPart = bodyPart, !bodyPart.isEmpty {
+            exercises = exercises.filter { exerciseName in
+                let (primary, secondary) = ExerciseDataManager.shared.getMuscleGroups(for: exerciseName)
+                return primary.contains(bodyPart) || secondary.contains(bodyPart)
+            }
+        }
         
         // Filter by search text
         if !searchText.isEmpty {
@@ -41,15 +50,52 @@ class ProgressViewModel: ObservableObject {
             }
         }
         
-        // Filter by body part
-        if let bodyPart = bodyPart, !bodyPart.isEmpty {
-            exercises = exercises.filter { exerciseName in
-                let (primary, secondary) = ExerciseDataManager.shared.getMuscleGroups(for: exerciseName)
-                return primary.contains(bodyPart) || secondary.contains(bodyPart)
+        // Sort filtered results by muscle group
+        return sortExercisesByMuscleGroup(exercises)
+    }
+    
+    // Sort exercises by muscle group, then alphabetically within each group
+    private func sortExercisesByMuscleGroup(_ exercises: [String]) -> [String] {
+        // Group exercises by their primary muscle group
+        var muscleGroupMap: [String: [String]] = [:]
+        
+        for exercise in exercises {
+            let (primary, _) = ExerciseDataManager.shared.getMuscleGroups(for: exercise)
+            let primaryMuscle = primary.first ?? "Other"
+            
+            if muscleGroupMap[primaryMuscle] == nil {
+                muscleGroupMap[primaryMuscle] = []
+            }
+            muscleGroupMap[primaryMuscle]?.append(exercise)
+        }
+        
+        // Define muscle group order (matches app color scheme)
+        let muscleGroupOrder = [
+            "Chest", "Pectorals", "Push",
+            "Back", "Lats", "Pull",
+            "Legs", "Quadriceps", "Hamstrings", "Glutes", "Calves",
+            "Arms", "Biceps", "Triceps", "Forearms",
+            "Shoulders", "Deltoids",
+            "Core", "Abdominals", "Abs",
+            "Cardio",
+            "Other"
+        ]
+        
+        // Build sorted list
+        var sortedExercises: [String] = []
+        for muscleGroup in muscleGroupOrder {
+            if let exercises = muscleGroupMap[muscleGroup] {
+                // Sort alphabetically within each muscle group
+                sortedExercises.append(contentsOf: exercises.sorted())
             }
         }
         
-        return exercises
+        // Add any remaining exercises not in the predefined order
+        let addedExercises = Set(sortedExercises)
+        let remaining = exercises.filter { !addedExercises.contains($0) }.sorted()
+        sortedExercises.append(contentsOf: remaining)
+        
+        return sortedExercises
     }
     
     // Get all unique body parts from exercises with PRs
@@ -142,6 +188,9 @@ class ProgressViewModel: ObservableObject {
         if !availableExercises.isEmpty {
             selectedExercise = availableExercises[0]
         }
+        
+        // Log initial state for debugging
+        Logger.info("📊 ProgressViewModel initialized - PRs: \(prs.count), Workout dates: \(workoutDates.count), Streak: \(currentStreak)", category: .general)
     }
     
     private func setupObservers() {
@@ -331,6 +380,7 @@ class ProgressViewModel: ObservableObject {
             invalidateStreakCache()
             // Calculate streaks immediately and synchronously
             calculateStreaks()
+            Logger.info("✅ Workout date added - Total workout days: \(workoutDates.count)", category: .general)
         }
     }
     
@@ -401,10 +451,13 @@ class ProgressViewModel: ObservableObject {
             let newPR = PersonalRecord(exercise: exercise, weight: weight, reps: reps, date: date)
             prs.append(newPR)
             
+            // Immediately save PR to ensure persistence
+            savePRsImmediately()
+            
             // Update selected exercise if needed
             updateSelectedExerciseIfNeeded()
             
-            Logger.info("✅ PR ADDED to ProgressViewModel: \(exercise) - \(Int(weight)) lbs × \(reps) reps", category: .general)
+            Logger.info("✅ PR ADDED to ProgressViewModel: \(exercise) - \(Int(weight)) lbs × \(reps) reps | Total PRs: \(prs.count)", category: .general)
         }
         
         return isNewPR
@@ -519,15 +572,30 @@ class ProgressViewModel: ObservableObject {
         }
     }
     
+    /// Immediately save PRs without debouncing (for critical updates like new PRs)
+    private func savePRsImmediately() {
+        do {
+            let encoded = try JSONEncoder().encode(prs)
+            UserDefaults.standard.set(encoded, forKey: AppConstants.UserDefaultsKeys.personalRecords)
+            Logger.info("✅ PRs saved immediately - Total: \(prs.count)", category: .persistence)
+        } catch {
+            Logger.error("Failed to save PRs immediately", error: error, category: .persistence)
+        }
+    }
+    
     private func loadPRs() {
         guard let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.personalRecords) else {
+            Logger.info("No PR data found in UserDefaults - starting fresh", category: .persistence)
             return
         }
         
         do {
             let decoded = try JSONDecoder().decode([PersonalRecord].self, from: data)
             prs = decoded
-            Logger.debug("Loaded \(decoded.count) PRs", category: .persistence)
+            Logger.info("✅ Loaded \(decoded.count) PRs from UserDefaults", category: .persistence)
+            if !decoded.isEmpty {
+                Logger.debug("First 3 PRs: \(decoded.prefix(3).map { "\($0.exercise): \(Int($0.weight))lbs × \($0.reps)reps" }.joined(separator: ", "))", category: .persistence)
+            }
         } catch {
             Logger.error("Failed to load PRs", error: error, category: .persistence)
             // Clear invalid data

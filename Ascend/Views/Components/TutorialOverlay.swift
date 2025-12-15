@@ -196,7 +196,7 @@ struct TutorialCalloutView: View {
             .padding(20)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .shadow(color: AppColors.foreground.opacity(0.3), radius: 20, x: 0, y: 10)
             .frame(width: min(280, geometry.size.width * 0.85))
             .position(x: calloutFrame.midX, y: calloutFrame.midY)
             
@@ -403,7 +403,7 @@ struct CenteredCalloutView: View {
             .padding(24)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .shadow(color: AppColors.foreground.opacity(0.3), radius: 20, x: 0, y: 10)
             .frame(width: min(320, geometry.size.width * 0.9))
             .position(x: geometry.size.width / 2, y: geometry.size.height * 0.4)
         }
@@ -500,7 +500,7 @@ struct TutorialOverlayView: View {
                                     .padding(.vertical, 14)
                                     .background(AppColors.card)
                                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
+                                    .shadow(color: AppColors.foreground.opacity(0.2), radius: 10, x: 0, y: 4)
                             }
                         }
                         

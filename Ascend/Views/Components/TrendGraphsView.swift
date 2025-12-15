@@ -70,7 +70,7 @@ struct PRTrendGraphView: View {
                     AxisMarks(values: .automatic) { _ in
                         AxisGridLine()
                             .foregroundStyle(AppColors.border.opacity(0.3))
-                        AxisValueLabel()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                             .foregroundStyle(AppColors.mutedForeground)
                             .font(.system(size: 10))
                     }
@@ -130,7 +130,7 @@ struct RepTrendGraphView: View {
                     AxisMarks(values: .automatic) { _ in
                         AxisGridLine()
                             .foregroundStyle(AppColors.border.opacity(0.3))
-                        AxisValueLabel()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                             .foregroundStyle(AppColors.mutedForeground)
                             .font(.system(size: 10))
                     }
@@ -187,7 +187,7 @@ struct VolumeTrendGraphView: View {
                     AxisMarks(values: .automatic) { _ in
                         AxisGridLine()
                             .foregroundStyle(AppColors.border.opacity(0.3))
-                        AxisValueLabel()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                             .foregroundStyle(AppColors.mutedForeground)
                             .font(.system(size: 10))
                     }
@@ -244,7 +244,7 @@ struct WorkoutFrequencyGraphView: View {
                     AxisMarks(values: .automatic) { _ in
                         AxisGridLine()
                             .foregroundStyle(AppColors.border.opacity(0.3))
-                        AxisValueLabel()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                             .foregroundStyle(AppColors.mutedForeground)
                             .font(.system(size: 10))
                     }
@@ -304,8 +304,8 @@ struct GraphCard<Content: View>: View {
         .frame(width: 320)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
 

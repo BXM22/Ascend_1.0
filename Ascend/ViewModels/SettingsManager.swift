@@ -190,9 +190,10 @@ class SettingsManager: ObservableObject {
         // Reset ExerciseDataManager (shared singleton)
         ExerciseDataManager.shared.clearAllCustomExercises()
         
-        // Reset TemplatesViewModel - but preserve default templates
-        templatesViewModel.templates = []
-        // Reload default templates after reset
+        // Reset TemplatesViewModel - preserve default templates only
+        let defaultTemplates = templatesViewModel.templates.filter { $0.isDefault }
+        templatesViewModel.templates = defaultTemplates
+        // Ensure all default templates are present
         templatesViewModel.loadDefaultTemplates()
         templatesViewModel.loadCalisthenicsTemplates()
         

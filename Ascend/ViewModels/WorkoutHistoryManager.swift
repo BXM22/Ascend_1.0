@@ -31,6 +31,7 @@ class WorkoutHistoryManager: ObservableObject {
     
     private init() {
         loadWorkouts()
+        Logger.info("📝 WorkoutHistoryManager initialized - Workouts: \(completedWorkouts.count)", category: .general)
     }
     
     func loadWorkouts() {
@@ -82,6 +83,7 @@ class WorkoutHistoryManager: ObservableObject {
     
     func addCompletedWorkout(_ workout: Workout) {
         completedWorkouts.append(workout)
+        Logger.info("✅ Workout added to history - Name: '\(workout.name)', Exercises: \(workout.exercises.count), Total workouts: \(completedWorkouts.count)", category: .general)
     }
     
     func getWorkouts(in dateRange: DateInterval) -> [Workout] {
@@ -146,7 +148,9 @@ class WorkoutHistoryManager: ObservableObject {
         return workouts.reduce(0) { total, workout in
             let workoutVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
                 let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
-                    return setTotal + Int(set.weight * Double(set.reps))
+                    let volume = set.weight * Double(set.reps)
+                    guard volume.isFinite else { return setTotal }
+                    return setTotal + Int(volume)
                 }
                 return exerciseTotal + exerciseVolume
             }

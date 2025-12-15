@@ -490,15 +490,83 @@ class ExerciseDataManager: ObservableObject {
     func getMuscleGroups(for exerciseName: String) -> (primary: [String], secondary: [String]) {
         // Check custom exercises first
         if let custom = getCustomExercise(name: exerciseName) {
+            Logger.debug("Found custom exercise: \(exerciseName) → \(custom.primaryMuscleGroups)", category: .general)
             return (custom.primaryMuscleGroups, custom.secondaryMuscleGroups)
         }
         
         // Check ExRx directory
         if let exRx = ExRxDirectoryManager.shared.findExercise(name: exerciseName) {
+            Logger.debug("Found ExRx exercise: \(exerciseName) → \(exRx.muscleGroup)", category: .general)
             return ([exRx.muscleGroup], [])
         }
         
+        // Fallback: Detect muscle groups based on exercise name keywords
+        let fallbackGroups = detectMuscleGroupsFromName(exerciseName)
+        if !fallbackGroups.isEmpty {
+            Logger.info("Using fallback detection for: \(exerciseName) → \(fallbackGroups)", category: .general)
+            return (fallbackGroups, [])
+        }
+        
+        Logger.debug("No muscle groups found for: \(exerciseName)", category: .general)
         return ([], [])
+    }
+    
+    private func detectMuscleGroupsFromName(_ exerciseName: String) -> [String] {
+        let lowercasedName = exerciseName.lowercased()
+        var detectedGroups: [String] = []
+        
+        // Chest exercises
+        if lowercasedName.contains("bench") || lowercasedName.contains("press") && (lowercasedName.contains("chest") || lowercasedName.contains("pec")) ||
+           lowercasedName.contains("push") && !lowercasedName.contains("down") ||
+           lowercasedName.contains("fly") || lowercasedName.contains("flye") ||
+           lowercasedName.contains("dip") && !lowercasedName.contains("skull") {
+            detectedGroups.append("Chest")
+        }
+        
+        // Back exercises
+        if lowercasedName.contains("pull") || lowercasedName.contains("row") ||
+           lowercasedName.contains("lat") || lowercasedName.contains("deadlift") ||
+           lowercasedName.contains("back") {
+            detectedGroups.append("Back")
+        }
+        
+        // Leg exercises
+        if lowercasedName.contains("squat") || lowercasedName.contains("leg") ||
+           lowercasedName.contains("lunge") || lowercasedName.contains("calf") ||
+           lowercasedName.contains("quad") || lowercasedName.contains("ham") ||
+           lowercasedName.contains("glute") {
+            detectedGroups.append("Legs")
+        }
+        
+        // Shoulder exercises
+        if lowercasedName.contains("shoulder") || lowercasedName.contains("delt") ||
+           (lowercasedName.contains("press") && (lowercasedName.contains("overhead") || lowercasedName.contains("military") || lowercasedName.contains("arnold"))) ||
+           lowercasedName.contains("raise") && (lowercasedName.contains("lateral") || lowercasedName.contains("front") || lowercasedName.contains("rear")) {
+            detectedGroups.append("Shoulders")
+        }
+        
+        // Arm exercises
+        if lowercasedName.contains("curl") || lowercasedName.contains("bicep") ||
+           lowercasedName.contains("tricep") || lowercasedName.contains("extension") && !lowercasedName.contains("leg") ||
+           lowercasedName.contains("skull") || lowercasedName.contains("forearm") {
+            detectedGroups.append("Arms")
+        }
+        
+        // Core exercises
+        if lowercasedName.contains("crunch") || lowercasedName.contains("ab") ||
+           lowercasedName.contains("plank") || lowercasedName.contains("core") ||
+           lowercasedName.contains("sit") && lowercasedName.contains("up") {
+            detectedGroups.append("Core")
+        }
+        
+        // Cardio
+        if lowercasedName.contains("run") || lowercasedName.contains("bike") ||
+           lowercasedName.contains("cardio") || lowercasedName.contains("treadmill") ||
+           lowercasedName.contains("elliptical") {
+            detectedGroups.append("Cardio")
+        }
+        
+        return detectedGroups
     }
     
     func getAlternatives(for exerciseName: String) -> [String] {

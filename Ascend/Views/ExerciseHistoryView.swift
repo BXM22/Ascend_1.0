@@ -107,6 +107,63 @@ struct ExerciseHistoryView: View {
                         .padding(.vertical, 60)
                     }
                     
+                    // PR Trend Chart
+                    if prs.count >= 2 {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("PR Progression")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(AppColors.foreground)
+                                .padding(.horizontal, 20)
+                            
+                            Chart {
+                                ForEach(prs.sorted { $0.date < $1.date }, id: \.id) { pr in
+                                    LineMark(
+                                        x: .value("Date", pr.date, unit: .day),
+                                        y: .value("Weight", pr.weight)
+                                    )
+                                    .foregroundStyle(LinearGradient.primaryGradient)
+                                    .interpolationMethod(.catmullRom)
+                                    .lineStyle(StrokeStyle(lineWidth: 3))
+                                    
+                                    PointMark(
+                                        x: .value("Date", pr.date, unit: .day),
+                                        y: .value("Weight", pr.weight)
+                                    )
+                                    .foregroundStyle(AppColors.accent)
+                                    .symbolSize(100)
+                                    .symbol {
+                                        Image(systemName: "trophy.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(AppColors.accent)
+                                    }
+                                }
+                            }
+                            .chartYAxis {
+                                AxisMarks(position: .leading) { value in
+                                    AxisGridLine()
+                                    AxisValueLabel {
+                                        if let weight = value.as(Double.self) {
+                                            Text("\(Int(weight)) lbs")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(AppColors.mutedForeground)
+                                        }
+                                    }
+                                }
+                            }
+                            .chartXAxis {
+                                AxisMarks(values: .stride(by: .day, count: max(1, prs.count / 5))) { value in
+                                    AxisGridLine()
+                                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                                }
+                            }
+                            .frame(height: 220)
+                            .padding()
+                            .background(AppColors.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                    
                     // PR Section
                     if !prs.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {

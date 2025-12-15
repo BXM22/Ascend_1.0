@@ -18,6 +18,7 @@ struct WorkoutView: View {
     @State private var selectedExerciseForHistory: String?
     @State private var showDeleteExerciseConfirmation = false
     @State private var exerciseToDelete: Int?
+    @State private var currentSetIsWarmup = false
     
     var body: some View {
         ScrollView {
@@ -150,6 +151,7 @@ struct WorkoutView: View {
                             dropsetsEnabled: $viewModel.dropsetsEnabled,
                             numberOfDropsets: $viewModel.numberOfDropsets,
                             weightReductionPerDropset: $viewModel.weightReductionPerDropset,
+                            currentSetIsWarmup: $currentSetIsWarmup,
                             isCollapsed: viewModel.restTimerActive,
                             showUndoButton: viewModel.showUndoButton,
                             barWeight: viewModel.settingsManager.barWeight,
@@ -159,7 +161,8 @@ struct WorkoutView: View {
                                 viewModel.updateCurrentExerciseDropsetConfiguration()
                                 if let weightValue = Double(weight),
                                    let repsValue = Int(reps) {
-                                    viewModel.completeSet(weight: weightValue, reps: repsValue)
+                                    viewModel.completeSet(weight: weightValue, reps: repsValue, isWarmup: currentSetIsWarmup)
+                                    currentSetIsWarmup = false
                                 }
                             },
                             onUndoSet: {
@@ -418,15 +421,18 @@ struct WorkoutHeader: View {
     
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: AppSpacing.sm) {
                 Text(title)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTypography.largeTitleBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 
                 if totalVolume > 0 {
                     Text("\(formatVolume(totalVolume)) lbs")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(AppColors.mutedForeground)
+                        .lineLimit(1)
                 }
             }
             
@@ -485,13 +491,6 @@ struct WorkoutHeader: View {
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
-        .background(AppColors.card)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border.opacity(0.3)),
-            alignment: .bottom
-        )
     }
 }
 
@@ -501,59 +500,45 @@ struct WorkoutTimerBar: View {
     let onAbort: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: isPaused ? "pause.circle.fill" : "timer")
-                .font(.system(size: 16))
-                .foregroundColor(isPaused ? AppColors.accent : AppColors.mutedForeground)
+        VStack(spacing: 16) {
+            // Large centered timer with Akira Expanded font
+            Text(time)
+                .font(.custom("Akira Expanded", size: 56))
+                .foregroundStyle(isPaused ? AnyShapeStyle(AppColors.accent) : AnyShapeStyle(LinearGradient.primaryGradient))
+                .contentTransition(.numericText())
+                .animation(AppAnimations.quick, value: time)
+                .frame(maxWidth: .infinity)
             
-            HStack(spacing: 4) {
-                Text(time)
+            if isPaused {
+                Text("(Paused)")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isPaused ? AppColors.accent : AppColors.mutedForeground)
-                    .contentTransition(.numericText())
-                    .animation(AppAnimations.quick, value: time)
-                
-                if isPaused {
-                    Text("(Paused)")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.accent)
-                }
+                    .foregroundColor(AppColors.accent)
             }
-            .accessibilityLabel(isPaused ? "Workout time paused: \(time)" : "Workout time: \(time)")
-            .accessibilityValue(time)
             
-            Spacer()
-            
-            Button(action: onAbort) {
-                HStack(spacing: 6) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                    Text("Reset")
-                        .font(.system(size: 13, weight: .semibold))
+            // Reset button
+            Button(action: {
+                HapticManager.impact(style: .medium)
+                onAbort()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 15))
+                    Text("Reset Timer")
+                        .font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundColor(AppColors.destructive)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(AppColors.destructive.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(AppColors.card)
+                .clipShape(Capsule())
+                .shadow(color: AppColors.foreground.opacity(0.1), radius: 8, x: 0, y: 2)
             }
+            .buttonStyle(ScaleButtonStyle())
             .accessibilityLabel("Reset Timer")
             .accessibilityHint("Resets the workout timer to zero")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(AppColors.card)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border.opacity(0.3)),
-            alignment: .bottom
-        )
+        .padding(.vertical, 24)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -566,6 +551,7 @@ struct ExerciseCard: View {
     @Binding var dropsetsEnabled: Bool
     @Binding var numberOfDropsets: Int
     @Binding var weightReductionPerDropset: Double
+    @Binding var currentSetIsWarmup: Bool
     let isCollapsed: Bool
     let showUndoButton: Bool
     let barWeight: Double
@@ -594,20 +580,14 @@ struct ExerciseCard: View {
         exercise.videoURL ?? ExerciseDataManager.shared.getVideoURL(for: exercise.name)
     }
     
+    private var gradient: LinearGradient {
+        AppColors.categoryGradient(for: exercise.name)
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Top gradient bar
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [
-                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
-                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ))
-                .frame(height: 4)
+        CategoryBorderedCard(muscleGroup: exercise.name, borderWidth: 3) {
+            VStack(alignment: .leading, spacing: 0) {
+            // Removed top gradient bar in favor of gradient border
             
             if isCollapsed {
                 // Collapsed view - show only essential info
@@ -715,6 +695,30 @@ struct ExerciseCard: View {
                         isWeight: false,
                         presets: [5, 8, 10, 12, 15]
                     )
+                    
+                    // Warm-up Toggle
+                    Button(action: {
+                        currentSetIsWarmup.toggle()
+                        HapticManager.impact(style: .light)
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: currentSetIsWarmup ? "flame.fill" : "flame")
+                                .font(.system(size: 14))
+                            Text("Warm-up Set")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(currentSetIsWarmup ? .orange : AppColors.mutedForeground)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(currentSetIsWarmup ? Color.orange.opacity(0.15) : AppColors.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(currentSetIsWarmup ? Color.orange.opacity(0.3) : AppColors.border.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
                     // Dropset Configuration
                 VStack(alignment: .leading, spacing: 12) {
@@ -900,12 +904,9 @@ struct ExerciseCard: View {
                 }
                 } // Close inner VStack (expanded view content)
             } // Close else block
-        } // Close outer VStack
-        .padding(24)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+            } // Close outer VStack
+            .padding(24)
+        } // Close CategoryBorderedCard
         .padding(.horizontal, 20)
         .padding(.top, 20)
     } // Close body
@@ -1004,8 +1005,8 @@ struct CalisthenicsExerciseCard: View {
         }
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .onAppear {
@@ -1154,8 +1155,8 @@ struct CalisthenicsHoldExerciseCard: View {
         }
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .onAppear {
@@ -2020,11 +2021,8 @@ struct SettingsView: View {
                     .padding(20)
                     .background(AppColors.card)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Warm-up Sets Section
-                    WarmupSettingsSection(settingsManager: settingsManager)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                     
                     // Reset Data Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -2055,8 +2053,8 @@ struct SettingsView: View {
                     .padding(20)
                     .background(AppColors.card)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                     
                     // Custom Exercises Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -2107,8 +2105,8 @@ struct SettingsView: View {
                     .padding(20)
                     .background(AppColors.card)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                     
                     // Help & Support Section
                     VStack(alignment: .leading, spacing: 16) {
@@ -2150,8 +2148,8 @@ struct SettingsView: View {
                     .padding(20)
                     .background(AppColors.card)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)
@@ -2369,8 +2367,8 @@ struct WarmupSettingsSection: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
 

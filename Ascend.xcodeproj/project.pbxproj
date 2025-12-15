@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E3E2FB262EEFDF2A0069604E /* Avenir Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E3E2FB252EEFDF2A0069604E /* Avenir Regular.ttf */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E39A3DE62ECC56890043FACF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -28,6 +32,7 @@
 		606960842EEB4B340069A141 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E34E66752EEFE5CD00A2D7A2 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39374E02EE7C0A50090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39376542EE8D3110090E148 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39A3DD82ECC56880043FACF /* Ascend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ascend.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -40,11 +45,29 @@
 		E39DA6052EE7B331005FDF84 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E39F2E842EE8F70A00A13CE9 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 		E3AF5C2F2EE8FDC20048924E /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E3BD532B2EEFA5A300E7F2A5 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E3BD54132EEFB43C00E7F2A5 /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E3E2FAB52EEFDC6C0069604E /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
+		E3E2FB252EEFDF2A0069604E /* Avenir Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Avenir Regular.ttf"; sourceTree = "<group>"; };
+		E3F1AE082EED08DF00CFD45C /* Ascend.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Ascend.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E3E2FB3A2EEFDF9B0069604E /* Exceptions for "Ascend" folder in "Ascend" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E39A3DD72ECC56870043FACF /* Ascend */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E39A3DDA2ECC56880043FACF /* Ascend */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E3E2FB3A2EEFDF9B0069604E /* Exceptions for "Ascend" folder in "Ascend" target */,
+			);
 			path = Ascend;
 			sourceTree = "<group>";
 		};
@@ -113,6 +136,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		E34E667C2EEFE5CD00A2D7A2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		E39374E72EE7C0A50090E148 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -130,6 +160,7 @@
 		E39A3DCF2ECC56870043FACF = {
 			isa = PBXGroup;
 			children = (
+				E3E2FB252EEFDF2A0069604E /* Avenir Regular.ttf */,
 				E39A3DDA2ECC56880043FACF /* Ascend */,
 				E39A3DE82ECC56890043FACF /* AscendTests */,
 				E39A3DF22ECC56890043FACF /* AscendUITests */,
@@ -190,6 +221,34 @@
 			sourceTree = "<group>";
 		};
 		E3AF5C362EE8FDC20048924E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E3BD53322EEFA5A300E7F2A5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E3BD541A2EEFB43C00E7F2A5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E3E2FABB2EEFDC6C0069604E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E3F1AE0F2EED08DF00CFD45C /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -307,24 +366,12 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
-					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
-				},
-				{
-					ProductGroup = 6069608B2EEB4B340069A141 /* Products */;
-					ProjectRef = 606960842EEB4B340069A141 /* Ascend.xcodeproj */;
-				},
-				{
-					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
-					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
+					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
+					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39374E72EE7C0A50090E148 /* Products */;
 					ProjectRef = E39374E02EE7C0A50090E148 /* Ascend.xcodeproj */;
-				},
-				{
-					ProductGroup = 60F9A12B2EE62CD100033EE6 /* Products */;
-					ProjectRef = 60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39D9D152EE3C468005FDF84 /* Products */;
@@ -335,8 +382,8 @@
 					ProjectRef = E32BBCD72EE8F4580070566C /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = E39DA60C2EE7B331005FDF84 /* Products */;
-					ProjectRef = E39DA6052EE7B331005FDF84 /* Ascend.xcodeproj */;
+					ProductGroup = E3BD541A2EEFB43C00E7F2A5 /* Products */;
+					ProjectRef = E3BD54132EEFB43C00E7F2A5 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39DA3422EE69459005FDF84 /* Products */;
@@ -347,6 +394,38 @@
 					ProjectRef = E3AF5C2F2EE8FDC20048924E /* Ascend.xcodeproj */;
 				},
 				{
+					ProductGroup = 6069608B2EEB4B340069A141 /* Products */;
+					ProjectRef = 606960842EEB4B340069A141 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E39D9D6F2EE4C97B005FDF84 /* Products */;
+					ProjectRef = E39D9D682EE4C97B005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E3BD53322EEFA5A300E7F2A5 /* Products */;
+					ProjectRef = E3BD532B2EEFA5A300E7F2A5 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = 60F9A12B2EE62CD100033EE6 /* Products */;
+					ProjectRef = 60F9A1242EE62CD100033EE6 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E3F1AE0F2EED08DF00CFD45C /* Products */;
+					ProjectRef = E3F1AE082EED08DF00CFD45C /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E3E2FABB2EEFDC6C0069604E /* Products */;
+					ProjectRef = E3E2FAB52EEFDC6C0069604E /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E39DA60C2EE7B331005FDF84 /* Products */;
+					ProjectRef = E39DA6052EE7B331005FDF84 /* Ascend.xcodeproj */;
+				},
+				{
+					ProductGroup = E34E667C2EEFE5CD00A2D7A2 /* Products */;
+					ProjectRef = E34E66752EEFE5CD00A2D7A2 /* Ascend.xcodeproj */;
+				},
+				{
 					ProductGroup = E39DA4A22EE69BF0005FDF84 /* Products */;
 					ProjectRef = E39DA49B2EE69BF0005FDF84 /* Ascend.xcodeproj */;
 				},
@@ -355,8 +434,8 @@
 					ProjectRef = E39F2E842EE8F70A00A13CE9 /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
-					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
+					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
+					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -373,6 +452,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E3E2FB262EEFDF2A0069604E /* Avenir Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -564,6 +644,7 @@
 				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ascend/Info.plist;
 				INFOPLIST_KEY_CFBundleExecutable = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -603,6 +684,7 @@
 				DEVELOPMENT_TEAM = ZNNWAD9F59;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ascend/Info.plist;
 				INFOPLIST_KEY_CFBundleExecutable = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

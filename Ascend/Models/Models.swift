@@ -110,6 +110,7 @@ struct WorkoutTemplate: Identifiable, Codable {
     var exercises: [TemplateExercise] // Changed from [String] to [TemplateExercise]
     let estimatedDuration: Int
     var intensity: WorkoutIntensity? // Optional intensity level
+    var isDefault: Bool // True for default templates that shouldn't be deleted
     
     // Legacy initializer for backward compatibility
     init(id: UUID = UUID(), name: String, exercises: [String], estimatedDuration: Int) {
@@ -117,17 +118,19 @@ struct WorkoutTemplate: Identifiable, Codable {
         self.name = name
         self.estimatedDuration = estimatedDuration
         self.intensity = nil
+        self.isDefault = false
         // Convert old format to new format
         self.exercises = exercises.map { TemplateExercise(name: $0) }
     }
     
     // New initializer with TemplateExercise array
-    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil) {
+    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil, isDefault: Bool = false) {
         self.id = id
         self.name = name
         self.exercises = exercises
         self.estimatedDuration = estimatedDuration
         self.intensity = intensity
+        self.isDefault = isDefault
     }
 }
 

@@ -1,8 +1,9 @@
 import Foundation
+import Combine
 
 // MARK: - Skill Progression Level
-struct SkillProgressionLevel: Identifiable {
-    let id = UUID()
+struct SkillProgressionLevel: Identifiable, Codable {
+    let id: UUID
     let level: Int
     let name: String
     let description: String
@@ -10,7 +11,8 @@ struct SkillProgressionLevel: Identifiable {
     let targetReps: Int? // For rep-based exercises
     let isCompleted: Bool
     
-    init(level: Int, name: String, description: String, targetHoldDuration: Int? = nil, targetReps: Int? = nil, isCompleted: Bool = false) {
+    init(id: UUID = UUID(), level: Int, name: String, description: String, targetHoldDuration: Int? = nil, targetReps: Int? = nil, isCompleted: Bool = false) {
+        self.id = id
         self.level = level
         self.name = name
         self.description = description
@@ -21,28 +23,44 @@ struct SkillProgressionLevel: Identifiable {
 }
 
 // MARK: - Calisthenics Skill
-struct CalisthenicsSkill: Identifiable {
-    let id = UUID()
+struct CalisthenicsSkill: Identifiable, Codable {
+    let id: UUID
     let name: String
     let icon: String
     let description: String
     let progressionLevels: [SkillProgressionLevel]
     let videoURL: String?
     let category: SkillCategory
+    let isCustom: Bool
     
-    enum SkillCategory: String {
+    enum SkillCategory: String, Codable {
         case push = "Push"
         case pull = "Pull"
         case core = "Core"
         case fullBody = "Full Body"
     }
+    
+    init(id: UUID = UUID(), name: String, icon: String, description: String, progressionLevels: [SkillProgressionLevel], videoURL: String? = nil, category: SkillCategory, isCustom: Bool = false) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.description = description
+        self.progressionLevels = progressionLevels
+        self.videoURL = videoURL
+        self.category = category
+        self.isCustom = isCustom
+    }
 }
 
 // MARK: - Calisthenics Skill Manager
-class CalisthenicsSkillManager {
+class CalisthenicsSkillManager: ObservableObject {
     static let shared = CalisthenicsSkillManager()
     
-    let skills: [CalisthenicsSkill] = [
+    @Published var skills: [CalisthenicsSkill] = []
+    
+    private let customSkillsKey = "customCalisthenicsSkills"
+    
+    private let builtInSkills: [CalisthenicsSkill] = [
         CalisthenicsSkill(
             name: "Planche",
             icon: "figure.strengthtraining.traditional",
@@ -157,7 +175,54 @@ class CalisthenicsSkillManager {
         )
     ]
     
-    private init() {}
+    private init() {
+        loadCustomSkills()
+    }
+    
+    // MARK: - Persistence
+    private func loadCustomSkills() {
+        var allSkills = builtInSkills
+        
+        if let data = UserDefaults.standard.data(forKey: customSkillsKey),
+           let customSkills = try? JSONDecoder().decode([CalisthenicsSkill].self, from: data) {
+            allSkills.append(contentsOf: customSkills)
+        }
+        
+        skills = allSkills
+    }
+    
+    private func saveCustomSkills() {
+        let customSkills = skills.filter { $0.isCustom }
+        if let data = try? JSONEncoder().encode(customSkills) {
+            UserDefaults.standard.set(data, forKey: customSkillsKey)
+        }
+    }
+    
+    // MARK: - Public Methods
+    func addCustomSkill(_ skill: CalisthenicsSkill) {
+        var customSkill = skill
+        // Ensure the skill is marked as custom
+        if !customSkill.isCustom {
+            customSkill = CalisthenicsSkill(
+                id: skill.id,
+                name: skill.name,
+                icon: skill.icon,
+                description: skill.description,
+                progressionLevels: skill.progressionLevels,
+                videoURL: skill.videoURL,
+                category: skill.category,
+                isCustom: true
+            )
+        }
+        skills.append(customSkill)
+        saveCustomSkills()
+    }
+    
+    func deleteCustomSkill(_ skill: CalisthenicsSkill) {
+        guard skill.isCustom else { return }
+        skills.removeAll { $0.id == skill.id }
+        saveCustomSkills()
+    }
     
     func getSkill(named name: String) -> CalisthenicsSkill? {
         return skills.first { $0.name == name }
