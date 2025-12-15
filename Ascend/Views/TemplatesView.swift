@@ -14,6 +14,7 @@ struct TemplatesView: View {
     let onStartTemplate: () -> Void
     let onSettings: () -> Void
     @State private var showGenerateSheet = false
+    @State private var showCalisthenicProgression = false
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
     @State private var debounceTask: Task<Void, Never>?
@@ -34,7 +35,7 @@ struct TemplatesView: View {
                 // Header
                 TemplatesHeader(
                     onCreate: {
-                        viewModel.createTemplate()
+                        // Removed direct create button from header
                     },
                     onGenerate: {
                         showGenerateSheet = true
@@ -84,8 +85,12 @@ struct TemplatesView: View {
                     .padding(.top, AppSpacing.lg)
                     
                     // Calisthenics Skills Section
-                    CalisthenicsSkillsSection(workoutViewModel: workoutViewModel, onStart: onStartTemplate)
-                        .padding(.horizontal, AppSpacing.lg)
+                    CalisthenicsSkillsSection(
+                        workoutViewModel: workoutViewModel,
+                        templatesViewModel: viewModel,
+                        onStart: onStartTemplate
+                    )
+                    .padding(.horizontal, AppSpacing.lg)
                     
                     // Regular Templates Section
                     VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -93,6 +98,34 @@ struct TemplatesView: View {
                             .font(AppTypography.heading2)
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.lg)
+                        
+                        // Stacked action buttons under header
+                        VStack(spacing: 10) {
+                            Button(action: {
+                                viewModel.createTemplate()
+                            }) {
+                                Text("Add Template")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(AppColors.alabasterGrey)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(LinearGradient.primaryGradient)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            
+                            Button(action: {
+                                showCalisthenicProgression = true
+                            }) {
+                                Text("Add Calisthenic Skill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(AppColors.alabasterGrey)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(LinearGradient(colors: [AppColors.backGradientStart, AppColors.backGradientEnd], startPoint: .leading, endPoint: .trailing))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
                         
                         ForEach(filteredTemplates, id: \.id) { template in
                             TemplateCard(
@@ -103,6 +136,9 @@ struct TemplatesView: View {
                                 },
                                 onEdit: {
                                     viewModel.editTemplate(template)
+                                },
+                                onDelete: template.isDefault ? nil : {
+                                    viewModel.deleteTemplate(template)
                                 }
                             )
                             .padding(.horizontal, AppSpacing.lg)
@@ -153,6 +189,9 @@ struct TemplatesView: View {
         .sheet(isPresented: $showGenerateSheet) {
             WorkoutGenerationView(viewModel: viewModel, onStart: onStartTemplate)
         }
+        .sheet(isPresented: $showCalisthenicProgression) {
+            CreateCustomSkillView(skillManager: CalisthenicsSkillManager.shared)
+        }
     }
 }
 
@@ -165,8 +204,10 @@ struct TemplatesHeader: View {
     var body: some View {
         HStack {
             Text("Templates")
-                .font(.system(size: 24, weight: .bold))
+                .font(AppTypography.largeTitleBold)
                 .foregroundStyle(LinearGradient.primaryGradient)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             
             Spacer()
             
@@ -180,9 +221,9 @@ struct TemplatesHeader: View {
                 }) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(AppColors.primary)
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(width: 40, height: 40)
-                        .background(AppColors.secondary)
+                        .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .accessibilityLabel("Settings")
@@ -191,9 +232,9 @@ struct TemplatesHeader: View {
                 Button(action: onSettings) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 18))
-                        .foregroundColor(AppColors.primary)
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(width: 40, height: 40)
-                        .background(AppColors.secondary)
+                        .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .accessibilityLabel("Generation Settings")
@@ -207,29 +248,10 @@ struct TemplatesHeader: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onCreate()
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20))
-                        .foregroundColor(AppColors.primary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(SubtleButtonStyle())
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(AppColors.card)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border.opacity(0.3)),
-            alignment: .bottom
-        )
     }
 }
 
@@ -237,75 +259,167 @@ struct TemplateCard: View {
     let template: WorkoutTemplate
     let onStart: () -> Void
     let onEdit: () -> Void
+    let onDelete: (() -> Void)?
     @State private var isHovered = false
+    @State private var showDeleteConfirmation = false
+    
+    // Determine muscle group from first exercise
+    private var muscleGroup: String {
+        template.exercises.first?.name ?? "General"
+    }
+    
+    private var gradient: LinearGradient {
+        AppColors.categoryGradient(for: muscleGroup)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Template Header
-            HStack {
-                Text(template.name)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(AppColors.foreground)
+        GradientBorderedCard(gradient: gradient) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Template Header with icon
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(gradient.opacity(0.2))
+                            .frame(width: 50, height: 50)
+                        
+                        Image(systemName: "dumbbell.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(gradient)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(template.name)
+                            .font(AppTypography.heading3)
+                            .foregroundColor(AppColors.foreground)
+                        
+                        Text("\(template.exercises.count) exercises")
+                            .font(AppTypography.body)
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 8) {
+                        // Delete button for custom templates
+                        if !template.isDefault {
+                            Button(action: {
+                                showDeleteConfirmation = true
+                            }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(AppColors.destructive)
+                                    .frame(width: 32, height: 32)
+                                    .background(AppColors.destructive.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        
+                        // Intensity badge
+                        if let intensity = template.intensity {
+                            Text(intensity.rawValue)
+                                .font(AppTypography.captionMedium)
+                                .foregroundStyle(gradient)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(gradient.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
                 
-                Spacer()
-            }
-            
-            // Template Info
-            HStack {
-                Text("\(template.exercises.count) exercises")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(AppColors.mutedForeground)
-                
-                if let intensity = template.intensity {
-                    Text("• \(intensity.rawValue)")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(AppColors.accent.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                // Action Buttons
+                HStack(spacing: 12) {
+                    Button(action: onStart) {
+                        Text("Start")
+                            .font(AppTypography.bodyBold)
+                            .foregroundColor(AppColors.alabasterGrey)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(gradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(color: AppColors.foreground.opacity(0.15), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    
+                    Button(action: onEdit) {
+                        Text("Edit")
+                            .font(AppTypography.bodyMedium)
+                            .foregroundColor(AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppColors.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(ScaleButtonStyle())
                 }
             }
-            
-            // Action Buttons
-            HStack(spacing: 12) {
-                Button(action: onStart) {
-                    Text("Start")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(AppColors.alabasterGrey)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(LinearGradient.primaryGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                
-                Button(action: onEdit) {
-                    Text("Edit")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppColors.foreground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(AppColors.secondary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(ScaleButtonStyle())
-            }
+            .padding(AppSpacing.md)
         }
-        .padding(24)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: isHovered ? 24 : 20, x: 0, y: isHovered ? 6 : 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
-        .scaleEffect(isHovered ? 1.01 : 1.0)
-        .animation(AppAnimations.quick, value: isHovered)
-        .onHover { hovering in
-            isHovered = hovering
+        .alert("Delete Template?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDelete?()
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(template.name)\"? This action cannot be undone.")
+        }
+    }
+}
+
+// MARK: - Calisthenic Progression Sheet
+struct CalisthenicProgressionSheet: View {
+    let skills: [CalisthenicsSkill]
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(skills) { skill in
+                    Section {
+                        Text("Goal: \(skill.description)")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.mutedForeground)
+                            .padding(.bottom, 4)
+                        
+                        Text("Levels: \(skill.progressionLevels.count)")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.textPrimary)
+                            .padding(.bottom, 6)
+                        
+                        ForEach(skill.progressionLevels) { level in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Level \(level.level): \(level.name)")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                                
+                                Text(level.description)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(AppColors.mutedForeground)
+                                
+                                if let hold = level.targetHoldDuration {
+                                    Text("Target: \(hold) sec hold")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(AppColors.foreground)
+                                } else if let reps = level.targetReps {
+                                    Text("Target: \(reps) reps")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(AppColors.foreground)
+                                } else {
+                                    Text("Target: reps or hold time")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(AppColors.foreground)
+                                }
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    } header: {
+                        Text(skill.name)
+                            .font(.headline)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Skill Progressions")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -710,8 +824,8 @@ struct TemplateEditView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
-                    // Delete Button (only for editing)
-                    if onDelete != nil {
+                    // Delete Button (only for editing non-default templates)
+                    if onDelete != nil && !(originalTemplate?.isDefault ?? false) {
                         Button(action: {
                             onDelete?()
                         }) {
@@ -727,6 +841,21 @@ struct TemplateEditView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
+                    }
+                    
+                    // Show message for default templates
+                    if originalTemplate?.isDefault ?? false {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(AppColors.primary)
+                            Text("This is a default template and cannot be deleted")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(AppColors.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
                 .padding(24)

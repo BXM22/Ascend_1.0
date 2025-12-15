@@ -113,7 +113,7 @@ struct AlternativeExercisesView: View {
         .padding(.vertical, AppSpacing.sm)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.3), radius: 8, x: 0, y: 4)
         .sheet(isPresented: $showExRxDirectory) {
             ExRxDirectoryView(
                 searchQuery: exerciseName,
@@ -443,7 +443,7 @@ struct ExRxExerciseCard: View {
             .padding(AppSpacing.md)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .shadow(color: AppColors.foreground.opacity(0.1), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
     }

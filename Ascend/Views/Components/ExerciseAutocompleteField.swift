@@ -291,7 +291,7 @@ struct ExerciseAutocompleteField: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(AppColors.border, lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .shadow(color: AppColors.foreground.opacity(0.1), radius: 8, x: 0, y: 4)
                 .padding(.top, 8)
                 .transition(.smoothScale)
             }

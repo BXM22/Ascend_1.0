@@ -3,6 +3,7 @@ import SwiftUI
 struct PreviousSetsView: View {
     let sets: [ExerciseSet]
     let onDeleteSet: (UUID) -> Void
+    var exerciseName: String = "General" // For gradient color
     
     // Separate warm-up sets and working sets
     private var warmupSets: [ExerciseSet] {
@@ -80,15 +81,19 @@ struct PreviousSetsView: View {
                             onDeleteSet(setId)
                         }
                     )
-                    .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
+                        .id("\(group.setNumber)-\(group.mainSet.id)-\(group.dropsets.count)")
                 }
             }
         }
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(AppColors.border.opacity(0.1), lineWidth: 1)
+        )
     }
 }
 
@@ -133,15 +138,15 @@ struct SetRowGroup: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(PlainButtonStyle())
+                
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent.opacity(0.1))
+                        .frame(width: 32, height: 32)
                     
-                    ZStack {
-                        Circle()
-                            .fill(AppColors.accent.opacity(0.1))
-                            .frame(width: 32, height: 32)
-                        
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(AppColors.accent)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(AppColors.accent)
                     }
                 }
             }
@@ -188,15 +193,15 @@ struct SetRowGroup: View {
                                     .clipShape(Circle())
                             }
                             .buttonStyle(PlainButtonStyle())
+                        
+                        ZStack {
+                            Circle()
+                                .fill(AppColors.accent.opacity(0.08))
+                                .frame(width: 28, height: 28)
                             
-                            ZStack {
-                                Circle()
-                                    .fill(AppColors.accent.opacity(0.08))
-                                    .frame(width: 28, height: 28)
-                                
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(AppColors.accent.opacity(0.7))
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(AppColors.accent.opacity(0.7))
                             }
                         }
                     }
@@ -301,31 +306,35 @@ struct WarmupSetRow: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(PlainButtonStyle())
+            
+            ZStack {
+                Circle()
+                    .fill(AppColors.accent.opacity(0.08))
+                    .frame(width: 28, height: 28)
                 
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent.opacity(0.08))
-                        .frame(width: 28, height: 28)
-                    
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(AppColors.accent.opacity(0.6))
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(AppColors.accent.opacity(0.6))
                 }
             }
         }
         .padding(.vertical, 8)
         .padding(.leading, 8)
-        .background(AppColors.secondary.opacity(0.3))
+        .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(AppColors.accent.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 
 #Preview {
     PreviousSetsView(
         sets: [
-            ExerciseSet(setNumber: 1, weight: 185, reps: 8),
-            ExerciseSet(setNumber: 2, weight: 185, reps: 8),
-            ExerciseSet(setNumber: 3, weight: 185, reps: 7)
+        ExerciseSet(setNumber: 1, weight: 185, reps: 8),
+        ExerciseSet(setNumber: 2, weight: 185, reps: 8),
+        ExerciseSet(setNumber: 3, weight: 185, reps: 7)
         ],
         onDeleteSet: { _ in }
     )

@@ -228,6 +228,78 @@ struct AppColors {
             defaultDark: Color(hex: "7ab8ff") // Lighter blue gradient end for dark mode
         )
     }
+    
+    // MARK: - Category Gradient Colors
+    
+    // Chest/Push exercises - Purple/Pink
+    static let chestGradientStart = Color(hex: "9333ea")
+    static let chestGradientEnd = Color(hex: "ec4899")
+    
+    // Back/Pull exercises - Blue/Cyan
+    static let backGradientStart = Color(hex: "2563eb")
+    static let backGradientEnd = Color(hex: "06b6d4")
+    
+    // Legs exercises - Green/Emerald
+    static let legsGradientStart = Color(hex: "16a34a")
+    static let legsGradientEnd = Color(hex: "10b981")
+    
+    // Arms exercises - Orange/Amber
+    static let armsGradientStart = Color(hex: "ea580c")
+    static let armsGradientEnd = Color(hex: "f59e0b")
+    
+    // Core exercises - Red/Rose
+    static let coreGradientStart = Color(hex: "dc2626")
+    static let coreGradientEnd = Color(hex: "f43f5e")
+    
+    // Cardio/Conditioning - Teal/Sky
+    static let cardioGradientStart = Color(hex: "0891b2")
+    static let cardioGradientEnd = Color(hex: "0ea5e9")
+    
+    // Helper function to get gradient based on muscle group
+    static func categoryGradient(for muscleGroup: String) -> LinearGradient {
+        let lowercased = muscleGroup.lowercased()
+        
+        if lowercased.contains("chest") || lowercased.contains("push") || lowercased.contains("shoulder") {
+            return LinearGradient(
+                colors: [chestGradientStart, chestGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if lowercased.contains("back") || lowercased.contains("pull") || lowercased.contains("lat") || lowercased.contains("row") {
+            return LinearGradient(
+                colors: [backGradientStart, backGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if lowercased.contains("leg") || lowercased.contains("quad") || lowercased.contains("hamstring") || lowercased.contains("calf") || lowercased.contains("glute") || lowercased.contains("squat") {
+            return LinearGradient(
+                colors: [legsGradientStart, legsGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if lowercased.contains("arm") || lowercased.contains("bicep") || lowercased.contains("tricep") || lowercased.contains("curl") {
+            return LinearGradient(
+                colors: [armsGradientStart, armsGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if lowercased.contains("core") || lowercased.contains("ab") || lowercased.contains("plank") {
+            return LinearGradient(
+                colors: [coreGradientStart, coreGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if lowercased.contains("cardio") || lowercased.contains("run") || lowercased.contains("conditioning") {
+            return LinearGradient(
+                colors: [cardioGradientStart, cardioGradientEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            // Default to primary gradient
+            return LinearGradient.primaryGradient
+        }
+    }
 }
 
 extension Color {
@@ -309,6 +381,55 @@ extension LinearGradient {
     static var cardGradient: LinearGradient {
         LinearGradient(
             colors: [AppColors.secondary, AppColors.card],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    // Category gradients for easy access
+    static var chestGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.chestGradientStart, AppColors.chestGradientEnd],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    static var backGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.backGradientStart, AppColors.backGradientEnd],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    static var legsGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.legsGradientStart, AppColors.legsGradientEnd],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    static var armsGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.armsGradientStart, AppColors.armsGradientEnd],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    static var coreGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.coreGradientStart, AppColors.coreGradientEnd],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    static var cardioGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.cardioGradientStart, AppColors.cardioGradientEnd],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

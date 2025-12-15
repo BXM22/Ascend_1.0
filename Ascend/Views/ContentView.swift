@@ -71,64 +71,65 @@ struct ContentView: View {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             
-            VStack(spacing: 0) {
-                // Main Content
-                Group {
-                    switch selectedTab {
-                    case .dashboard:
-                        DashboardView(
-                            progressViewModel: progressViewModel,
-                            workoutViewModel: workoutViewModel,
-                            templatesViewModel: templatesViewModel,
-                            programViewModel: programViewModel,
-                            onStartWorkout: {
-                                withAnimation(AppAnimations.standard) {
-                                    selectedTab = .workout
-                                }
-                            },
-                            onSettings: {
-                                showSettingsSheet = true
+            // Main Content
+            Group {
+                switch selectedTab {
+                case .dashboard:
+                    DashboardView(
+                        progressViewModel: progressViewModel,
+                        workoutViewModel: workoutViewModel,
+                        templatesViewModel: templatesViewModel,
+                        programViewModel: programViewModel,
+                        onStartWorkout: {
+                            withAnimation(AppAnimations.standard) {
+                                selectedTab = .workout
                             }
-                        )
+                        },
+                        onSettings: {
+                            showSettingsSheet = true
+                        }
+                    )
+                    .id(AppColors.themeID)
+                    .transition(.slideFromBottom)
+                case .workout:
+                    WorkoutView(viewModel: workoutViewModel)
                         .id(AppColors.themeID)
                         .transition(.slideFromBottom)
-                    case .workout:
-                        WorkoutView(viewModel: workoutViewModel)
-                            .id(AppColors.themeID)
-                            .transition(.slideFromBottom)
-                    case .progress:
-                        ProgressView(
-                            viewModel: progressViewModel,
-                            onSettings: {
-                                showSettingsSheet = true
+                case .progress:
+                    ProgressView(
+                        viewModel: progressViewModel,
+                        onSettings: {
+                            showSettingsSheet = true
+                        }
+                    )
+                    .id(AppColors.themeID)
+                    .transition(.slideFromBottom)
+                case .templates:
+                    TemplatesView(
+                        viewModel: templatesViewModel,
+                        workoutViewModel: workoutViewModel,
+                        programViewModel: programViewModel,
+                        onStartTemplate: {
+                            withAnimation(AppAnimations.standard) {
+                                selectedTab = .workout
                             }
-                        )
-                        .id(AppColors.themeID)
-                        .transition(.slideFromBottom)
-                    case .templates:
-                        TemplatesView(
-                            viewModel: templatesViewModel,
-                            workoutViewModel: workoutViewModel,
-                            programViewModel: programViewModel,
-                            onStartTemplate: {
-                                withAnimation(AppAnimations.standard) {
-                                    selectedTab = .workout
-                                }
-                            },
-                            onSettings: {
-                                showSettingsSheet = true
-                            }
-                        )
-                        .id(AppColors.themeID)
-                        .transition(.slideFromBottom)
-                    }
+                        },
+                        onSettings: {
+                            showSettingsSheet = true
+                        }
+                    )
+                    .id(AppColors.themeID)
+                    .transition(.slideFromBottom)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(AppAnimations.standard, value: selectedTab)
-                .environmentObject(settingsManager)
-                .environmentObject(ColorThemeProvider.shared)
-                
-                // Bottom Navigation
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(AppAnimations.standard, value: selectedTab)
+            .environmentObject(settingsManager)
+            .environmentObject(ColorThemeProvider.shared)
+            
+            // Floating Bottom Navigation Bar
+            VStack {
+                Spacer()
                 BottomNavigationBar(
                     selectedTab: $selectedTab,
                     themeManager: themeManager,
@@ -136,6 +137,7 @@ struct ContentView: View {
                 )
                 .id(AppColors.themeID)
             }
+            .ignoresSafeArea(.keyboard)
             .tutorialOverlay(onboardingManager: onboardingManager) {
                 // Handle tutorial completion - switch to highlighted tab if needed
                 if let highlightTab = TutorialStep.allCases[onboardingManager.currentTutorialStep].highlightTab {
@@ -231,15 +233,13 @@ struct BottomNavigationBar: View {
                     themeManager: themeManager,
                     settingsManager: settingsManager
                 )
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(
-                        .ultraThinMaterial,
-                        in: RoundedRectangle(cornerRadius: 0)
-                    )
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
             }
             
-            HStack(spacing: 0) {
+            // Connected circles design
+            HStack(spacing: -8) {
                 NavButton(
                     icon: "house.fill",
                     title: "Home",
@@ -250,8 +250,6 @@ struct BottomNavigationBar: View {
                         selectedTab = .dashboard
                     }
                 }
-                
-                Spacer()
                 
                 NavButton(
                     icon: "dumbbell.fill",
@@ -264,8 +262,6 @@ struct BottomNavigationBar: View {
                     }
                 }
                 
-                Spacer()
-                
                 NavButton(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "Progress",
@@ -277,8 +273,6 @@ struct BottomNavigationBar: View {
                     }
                 }
                 
-                Spacer()
-                
                 NavButton(
                     icon: "list.bullet.rectangle",
                     title: "Templates",
@@ -289,8 +283,6 @@ struct BottomNavigationBar: View {
                         selectedTab = .templates
                     }
                 }
-                
-                Spacer()
                 
                 // Theme Toggle Button
                 ThemeToggleButton(
@@ -304,15 +296,14 @@ struct BottomNavigationBar: View {
                     }
                 )
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
-            .background(AppColors.card)
-            .overlay(
-                Rectangle()
-                    .frame(height: 1)
-                    .foregroundColor(AppColors.border),
-                alignment: .top
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                // Connected circles background
+                ConnectedCirclesBackground()
             )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
     }
 }
@@ -537,13 +528,21 @@ struct ThemeToggleButton: View {
     
     var body: some View {
         Button(action: action) {
-            Image(systemName: iconName)
-                .font(AppTypography.heading3)
-                .foregroundColor(AppColors.textSecondary)
-                .frame(width: 44, height: 44)
-                .scaleEffect(isHovered ? 1.1 : 1.0)
-                .opacity(isHovered ? 0.8 : 1.0)
-                .animation(AppAnimations.quick, value: isHovered)
+            ZStack {
+                // Circular background when selected
+                if isSelected {
+                    Circle()
+                        .fill(AppColors.secondary)
+                        .frame(width: 44, height: 44)
+                }
+                
+                Image(systemName: iconName)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
+                    .scaleEffect(isHovered ? 1.1 : 1.0)
+                    .animation(AppAnimations.quick, value: isHovered)
+            }
+            .frame(width: 50, height: 50)
         }
         .buttonStyle(PlainButtonStyle())
         .onHover { hovering in
@@ -561,25 +560,54 @@ struct NavButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: AppSpacing.xs) {
-                Image(systemName: icon)
-                    .font(AppTypography.heading3)
-                    .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
-                    .scaleEffect(isSelected ? 1.1 : (isHovered ? 1.05 : 1.0))
-                    .animation(AppAnimations.selection, value: isSelected)
-                    .animation(AppAnimations.quick, value: isHovered)
+            VStack(spacing: 6) {
+                ZStack {
+                    // Circular background - always visible but styled differently
+                    Circle()
+                        .fill(
+                            isSelected
+                                ? LinearGradient.primaryGradient
+                                : LinearGradient(
+                                    colors: [
+                                        AppColors.card.opacity(0.8),
+                                        AppColors.card.opacity(0.6)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                        )
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(
+                                    isSelected
+                                        ? Color.clear
+                                        : AppColors.border.opacity(0.2),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(
+                            color: isSelected
+                                ? AppColors.primary.opacity(0.4)
+                                : AppColors.foreground.opacity(0.05),
+                            radius: isSelected ? 8 : 4,
+                            x: 0,
+                            y: isSelected ? 2 : 1
+                        )
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(isSelected ? .white : AppColors.textSecondary)
+                        .scaleEffect(isSelected ? 1.0 : (isHovered ? 1.05 : 1.0))
+                        .animation(AppAnimations.selection, value: isSelected)
+                        .animation(AppAnimations.quick, value: isHovered)
+                }
+                .frame(width: 50, height: 50)
                 
                 Text(title)
-                    .font(AppTypography.captionMedium)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
                     .opacity(isHovered && !isSelected ? 0.8 : 1.0)
-                
-                // Selection indicator
-                Rectangle()
-                    .fill(isSelected ? AppColors.primary : Color.clear)
-                    .frame(height: 2)
-                    .frame(maxWidth: isSelected ? nil : 0)
-                    .animation(AppAnimations.selection, value: isSelected)
             }
             .frame(maxWidth: .infinity)
             .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
@@ -592,6 +620,49 @@ struct NavButton: View {
         .accessibilityLabel(title)
         .accessibilityHint(isSelected ? "Currently selected \(title) tab" : "Switch to \(title) tab")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Connected Circles Background
+
+struct ConnectedCirclesBackground: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let circleRadius: CGFloat = 25
+            let circleDiameter = circleRadius * 2
+            let totalWidth = geometry.size.width
+            let totalHeight = geometry.size.height
+            let circleCount: CGFloat = 5 // 4 nav buttons + 1 theme button
+            let spacing = (totalWidth - (circleCount * circleDiameter)) / (circleCount - 1)
+            
+            ZStack {
+                // Background blur
+                RoundedRectangle(cornerRadius: totalHeight / 2)
+                    .fill(.ultraThinMaterial)
+                    .frame(width: totalWidth, height: totalHeight)
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: -2)
+                
+                // Connecting lines between circles
+                ForEach(0..<Int(circleCount - 1), id: \.self) { index in
+                    let startX = circleRadius + CGFloat(index) * (circleDiameter + spacing)
+                    let endX = startX + spacing + circleDiameter
+                    let centerY = totalHeight / 2
+                    
+                    Path { path in
+                        path.move(to: CGPoint(x: startX + circleRadius, y: centerY))
+                        path.addLine(to: CGPoint(x: endX - circleRadius, y: centerY))
+                    }
+                    .stroke(
+                        AppColors.border.opacity(0.15),
+                        style: StrokeStyle(lineWidth: 1, lineCap: .round)
+                    )
+                }
+                
+                // Border around the entire shape
+                RoundedRectangle(cornerRadius: totalHeight / 2)
+                    .strokeBorder(AppColors.border.opacity(0.15), lineWidth: 0.5)
+            }
+        }
     }
 }
 

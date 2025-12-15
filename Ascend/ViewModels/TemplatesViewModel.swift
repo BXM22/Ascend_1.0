@@ -44,10 +44,8 @@ class TemplatesViewModel: ObservableObject {
                 let decoded = try JSONDecoder().decode([WorkoutTemplate].self, from: data)
                 DispatchQueue.main.async {
                     self.templates = decoded
-                    // Only load default templates if they don't exist
-                    if !self.templates.contains(where: { $0.name == "Day 1: Push" }) {
-                        self.loadDefaultTemplates()
-                    }
+                    // Ensure default templates are always present
+                    self.ensureDefaultTemplatesExist()
                     self.loadCalisthenicsTemplates()
                 }
             } catch {
@@ -81,7 +79,8 @@ class TemplatesViewModel: ObservableObject {
                 TemplateExercise(name: "Triceps Extension (Dumbbell)", sets: 3, reps: "12-15"),
                 TemplateExercise(name: "Triceps Rope Pushdown", sets: 3, reps: "12-15")
             ],
-            estimatedDuration: 60
+            estimatedDuration: 60,
+            isDefault: true
         )
         
         // Day 2: Pull - All exercises verified in database
@@ -94,7 +93,8 @@ class TemplatesViewModel: ObservableObject {
                 TemplateExercise(name: "Hammer Curl (Dumbbell)", sets: 3, reps: "12-15"),
                 TemplateExercise(name: "Face Pull", sets: 3, reps: "15-25")
             ],
-            estimatedDuration: 60
+            estimatedDuration: 60,
+            isDefault: true
         )
         
         // Day 3: Legs - All exercises verified in database
@@ -107,7 +107,8 @@ class TemplatesViewModel: ObservableObject {
                 TemplateExercise(name: "Lying Leg Curl (Machine)", sets: 3, reps: "12-15"),
                 TemplateExercise(name: "Standing Calf Raise (Smith)", sets: 3, reps: "8-12")
             ],
-            estimatedDuration: 60
+            estimatedDuration: 60,
+            isDefault: true
         )
         
         // Verify all exercises exist in database before adding templates
@@ -171,6 +172,7 @@ class TemplatesViewModel: ObservableObject {
             guard let self = self else { return }
             
             // Filter out calisthenics progression templates before saving (they're dynamic)
+            // But always include default templates
             let templatesToSave = self.templates.filter { !$0.name.contains("Progression") }
             
             do {
@@ -180,6 +182,17 @@ class TemplatesViewModel: ObservableObject {
                 // Log error but don't crash - template saving is not critical
                 Logger.error("Failed to save templates", error: error, category: .persistence)
             }
+        }
+    }
+    
+    /// Ensure default templates are always present
+    func ensureDefaultTemplatesExist() {
+        let defaultTemplateNames = ["Day 1: Push", "Day 2: Pull", "Day 3: Legs"]
+        let existingDefaultNames = Set(templates.filter { $0.isDefault }.map { $0.name })
+        
+        // If any default templates are missing, reload them
+        if !defaultTemplateNames.allSatisfy({ existingDefaultNames.contains($0) }) {
+            loadDefaultTemplates()
         }
     }
     
@@ -217,6 +230,11 @@ class TemplatesViewModel: ObservableObject {
     }
     
     func deleteTemplate(_ template: WorkoutTemplate) {
+        // Don't allow deletion of default templates
+        guard !template.isDefault else {
+            Logger.info("Cannot delete default template: \(template.name)", category: Logger.Category.validation)
+            return
+        }
         templates.removeAll { $0.id == template.id }
     }
     

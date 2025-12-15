@@ -24,13 +24,26 @@ struct ProgressView: View {
                 )
                 
                 VStack(spacing: 20) {
-                    // Workout Streak Card
-                    WorkoutStreakCard(
-                        currentStreak: viewModel.currentStreak,
-                        longestStreak: viewModel.longestStreak
-                    )
+                    // Stat Cards Row
+                    HStack(spacing: 12) {
+                        StreakStatCard(
+                            currentStreak: viewModel.currentStreak,
+                            longestStreak: viewModel.longestStreak
+                        )
+                        
+                        WorkoutCountStatCard(viewModel: viewModel)
+                    }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                    
+                    // Charts Header
+                    HStack {
+                        Text("Charts")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppColors.foreground)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
                     
                     // Trend Graphs (Horizontal Scrolling)
                     TrendGraphsView(viewModel: viewModel)
@@ -40,7 +53,7 @@ struct ProgressView: View {
                     // Exercise PR Tracker
                     ExercisePRTrackerView(viewModel: viewModel)
                         .padding(.horizontal, 20)
-                    
+                        .padding(.bottom, 100)
                    
                 }
             }
@@ -59,8 +72,10 @@ struct ProgressHeader: View {
     var body: some View {
         HStack {
             Text("Progress")
-                .font(.system(size: 24, weight: .bold))
+                .font(AppTypography.largeTitleBold)
                 .foregroundStyle(LinearGradient.primaryGradient)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             
             Spacer()
             
@@ -75,7 +90,7 @@ struct ProgressHeader: View {
                         .font(.system(size: 18))
                         .foregroundColor(AppColors.textPrimary)
                         .frame(width: 40, height: 40)
-                        .background(AppColors.secondary)
+                        .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .accessibilityLabel("Settings")
@@ -123,13 +138,6 @@ struct ProgressHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(AppColors.card)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border.opacity(0.3)),
-            alignment: .bottom
-        )
     }
 }
 
@@ -202,8 +210,17 @@ struct WorkoutStreakCard: View {
         .padding(24)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColors.border, lineWidth: 1)
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(AppColors.border)
+                .offset(x: 4, y: 4)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
 
@@ -229,124 +246,51 @@ struct ExercisePRTrackerView: View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
             HStack(spacing: 12) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.accent)
+                ZStack {
+                    Circle()
+                        .fill(AppColors.armsGradientEnd.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(LinearGradient.armsGradient)
+                }
                 
                 Text("PR Tracker")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppTypography.heading3)
                     .foregroundColor(AppColors.foreground)
                 
                 Spacer()
             }
             
-            // Search Bar
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(AppColors.mutedForeground)
-                
-                TextField("Search exercises...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .foregroundColor(AppColors.foreground)
-                    .onChange(of: searchText) { _, newValue in
-                        // Cancel previous debounce task
-                        debounceTask?.cancel()
+            // Exercise Picker Button - Most Prominent
+            Button(action: {
+                showExercisePicker = true
+            }) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Exercise")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppColors.accentForeground.opacity(0.8))
                         
-                        // Debounce the search
-                        debounceTask = Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                            if !Task.isCancelled {
-                                debouncedSearchText = newValue
-                            }
-                        }
-                    }
-                
-                if !searchText.isEmpty {
-                    Button(action: {
-                        searchText = ""
-                        debouncedSearchText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(AppColors.mutedForeground)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(AppColors.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-            
-            // Body Part Filter
-            if !availableBodyParts.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        // "All" option
-                        Button(action: {
-                            selectedBodyPart = nil
-                        }) {
-                            Text("All")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(selectedBodyPart == nil ? AppColors.alabasterGrey : AppColors.foreground)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(selectedBodyPart == nil ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
-                                .clipShape(Capsule())
-                        }
-                        
-                        ForEach(availableBodyParts, id: \.self) { bodyPart in
-                            Button(action: {
-                                selectedBodyPart = bodyPart
-                            }) {
-                                Text(bodyPart)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(selectedBodyPart == bodyPart ? AppColors.alabasterGrey : AppColors.foreground)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(selectedBodyPart == bodyPart ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                }
-            }
-            
-            // Exercise Dropdown
-            if !filteredExercises.isEmpty {
-                Menu {
-                    ForEach(filteredExercises, id: \.self) { exercise in
-                        Button(action: {
-                            viewModel.selectedExercise = exercise
-                        }) {
-                            HStack {
-                                Text(exercise)
-                                    .foregroundColor(AppColors.textPrimary)
-                                if viewModel.selectedExercise == exercise {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(AppColors.primary)
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
                         Text(viewModel.selectedExercise.isEmpty ? "Select Exercise" : viewModel.selectedExercise)
-                            .font(AppTypography.bodyMedium)
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(AppColors.accentForeground)
-                        
-                        Image(systemName: "chevron.down")
-                            .font(AppTypography.captionMedium)
-                            .foregroundColor(AppColors.accentForeground)
+                            .lineLimit(1)
                     }
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .background(LinearGradient.primaryGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.accentForeground)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(LinearGradient.primaryGradient)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: AppColors.primary.opacity(0.3), radius: 10, x: 0, y: 4)
             }
             
             if viewModel.selectedExercise.isEmpty || filteredExercises.isEmpty {
@@ -400,8 +344,25 @@ struct ExercisePRTrackerView: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+        .sheet(isPresented: $showExercisePicker) {
+            ExercisePickerSheet(
+                viewModel: viewModel,
+                searchText: $searchText,
+                debouncedSearchText: $debouncedSearchText,
+                selectedBodyPart: $selectedBodyPart,
+                filteredExercises: filteredExercises,
+                availableBodyParts: availableBodyParts,
+                onSelect: { exercise in
+                    viewModel.selectedExercise = exercise
+                    showExercisePicker = false
+                    searchText = ""
+                    debouncedSearchText = ""
+                    selectedBodyPart = nil
+                }
+            )
+        }
     }
 }
 
@@ -417,47 +378,47 @@ struct CurrentPRCard: View {
         return formatter.string(from: pr.date)
     }
     
+    private var gradient: LinearGradient {
+        AppColors.categoryGradient(for: pr.exercise)
+    }
+    
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Current PR")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(AppColors.mutedForeground)
-            
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("\(Int(pr.weight))")
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                
-                Text("lbs")
-                    .font(.system(size: 20, weight: .semibold))
+        GradientBorderedCard(gradient: gradient) {
+            VStack(spacing: 16) {
+                Text("Current PR")
+                    .font(AppTypography.bodyMedium)
                     .foregroundColor(AppColors.mutedForeground)
                 
-                Text("×")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(AppColors.mutedForeground)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(Int(pr.weight))")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundStyle(gradient)
+                    
+                    Text("lbs")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Text("×")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Text("\(pr.reps)")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundStyle(gradient)
+                    
+                    Text("reps")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
                 
-                Text("\(pr.reps)")
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundStyle(LinearGradient.accentGradient)
-                
-                Text("reps")
-                    .font(.system(size: 20, weight: .semibold))
+                Text(dateString)
+                    .font(AppTypography.body)
                     .foregroundColor(AppColors.mutedForeground)
             }
-            
-            Text(dateString)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(AppColors.mutedForeground)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .padding(.horizontal, 20)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 20)
-        .background(LinearGradient.cardGradient)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(LinearGradient.primaryGradient, lineWidth: 2)
-        )
     }
 }
 
@@ -557,8 +518,8 @@ struct PRListView: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
 
@@ -613,8 +574,258 @@ struct StatCard: View {
         .padding(24)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+    }
+}
+
+// MARK: - Modern Stat Cards
+
+struct StreakStatCard: View {
+    let currentStreak: Int
+    let longestStreak: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.armsGradientEnd.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(LinearGradient.armsGradient)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(currentStreak)")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(LinearGradient.armsGradient)
+                
+                Text("Day Streak")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                if longestStreak > 0 {
+                    Text("Best: \(longestStreak)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground.opacity(0.7))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .frame(height: 160)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(AppColors.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(LinearGradient.armsGradient.opacity(0.2), lineWidth: 1.5)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+    }
+}
+
+struct WorkoutCountStatCard: View {
+    @ObservedObject var viewModel: ProgressViewModel
+    
+    private var weeklyWorkouts: Int {
+        let calendar = Calendar.current
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return viewModel.workoutDates.filter { $0 >= weekAgo }.count
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.backGradientEnd.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(LinearGradient.backGradient)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(weeklyWorkouts)")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(LinearGradient.backGradient)
+                
+                Text("This Week")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+                
+                Text("Total: \(viewModel.workoutCount)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground.opacity(0.7))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .frame(height: 160)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(AppColors.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(LinearGradient.backGradient.opacity(0.2), lineWidth: 1.5)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+    }
+}
+
+// MARK: - Exercise Picker Sheet
+struct ExercisePickerSheet: View {
+    @ObservedObject var viewModel: ProgressViewModel
+    @Binding var searchText: String
+    @Binding var debouncedSearchText: String
+    @Binding var selectedBodyPart: String?
+    @State private var debounceTask: Task<Void, Never>?
+    let filteredExercises: [String]
+    let availableBodyParts: [String]
+    let onSelect: (String) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    TextField("Search exercises...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(AppColors.foreground)
+                        .onChange(of: searchText) { _, newValue in
+                            debounceTask?.cancel()
+                            debounceTask = Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 300_000_000)
+                                if !Task.isCancelled {
+                                    debouncedSearchText = newValue
+                                }
+                            }
+                        }
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                            debouncedSearchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(AppColors.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.border, lineWidth: 1))
+                .padding(16)
+                
+                // Body Part Filter
+                if !availableBodyParts.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                selectedBodyPart = nil
+                            }) {
+                                Text("All")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(selectedBodyPart == nil ? AppColors.alabasterGrey : AppColors.foreground)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(selectedBodyPart == nil ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                                    .clipShape(Capsule())
+                            }
+                            
+                            ForEach(availableBodyParts, id: \.self) { bodyPart in
+                                Button(action: {
+                                    selectedBodyPart = bodyPart
+                                }) {
+                                    Text(bodyPart)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(selectedBodyPart == bodyPart ? AppColors.alabasterGrey : AppColors.foreground)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(selectedBodyPart == bodyPart ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.bottom, 12)
+                }
+                
+                Divider()
+                
+                // Exercise List
+                if filteredExercises.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.mutedForeground)
+                        Text("No exercises found")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        Text("Try adjusting your search or filter")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredExercises, id: \.self) { exercise in
+                                Button(action: {
+                                    onSelect(exercise)
+                                }) {
+                                    HStack {
+                                        Text(exercise)
+                                            .font(.system(size: 16))
+                                            .foregroundColor(AppColors.foreground)
+                                        
+                                        Spacer()
+                                        
+                                        if viewModel.selectedExercise == exercise {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(AppColors.primary)
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 16)
+                                    .background(AppColors.background)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                if exercise != filteredExercises.last {
+                                    Divider()
+                                        .padding(.leading, 20)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .background(AppColors.background)
+            .navigationTitle("Select Exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.primary)
+                }
+            }
+        }
     }
 }
 

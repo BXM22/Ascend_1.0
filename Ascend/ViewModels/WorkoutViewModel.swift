@@ -108,7 +108,9 @@ class WorkoutViewModel: ObservableObject {
     var currentExerciseVolume: Int {
         guard let exercise = currentExercise else { return 0 }
         return exercise.sets.reduce(0) { total, set in
-            return total + Int(set.weight * Double(set.reps))
+            let volume = set.weight * Double(set.reps)
+            guard volume.isFinite else { return total }
+            return total + Int(volume)
         }
     }
     
@@ -117,7 +119,9 @@ class WorkoutViewModel: ObservableObject {
         guard let workout = currentWorkout else { return 0 }
         return workout.exercises.reduce(0) { exerciseTotal, exercise in
             let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
-                return setTotal + Int(set.weight * Double(set.reps))
+                let volume = set.weight * Double(set.reps)
+                guard volume.isFinite else { return setTotal }
+                return setTotal + Int(volume)
             }
             return exerciseTotal + exerciseVolume
         }
@@ -437,11 +441,11 @@ class WorkoutViewModel: ObservableObject {
         // Only reset timer state if starting a new workout (start time is nil)
         // If restoring, preserve the restored state
         if workoutStartTime == nil {
-            workoutStartTime = Date()
-            pausedTimeAccumulator = 0
-            isTimerPaused = false
-            pauseStartTime = nil
-            elapsedTime = 0
+        workoutStartTime = Date()
+        pausedTimeAccumulator = 0
+        isTimerPaused = false
+        pauseStartTime = nil
+        elapsedTime = 0
         }
         
         // Invalidate any existing timer first
@@ -512,7 +516,9 @@ class WorkoutViewModel: ObservableObject {
         let totalSets = workout.exercises.reduce(0) { $0 + $1.sets.count }
         let totalVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
             let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
-                return setTotal + Int(set.weight * Double(set.reps))
+                let volume = set.weight * Double(set.reps)
+                guard volume.isFinite else { return setTotal }
+                return setTotal + Int(volume)
             }
             return exerciseTotal + exerciseVolume
         }
@@ -540,6 +546,7 @@ class WorkoutViewModel: ObservableObject {
         
         // Add workout date to progress tracking and calculate streak IMMEDIATELY
         if let progressVM = progressViewModel {
+            Logger.info("📊 Updating progress stats after workout completion", category: .general)
             progressVM.addWorkoutDate()
             // Force immediate streak calculation (addWorkoutDate already calls calculateStreaks, but ensure it's synchronous)
             progressVM.calculateStreaks()
@@ -547,6 +554,9 @@ class WorkoutViewModel: ObservableObject {
             progressVM.invalidateVolumeCache()
             // Force immediate volume and count update
             progressVM.updateVolumeAndCount()
+            Logger.info("✅ Progress stats updated - PRs: \(progressVM.prs.count), Workout dates: \(progressVM.workoutDates.count)", category: .general)
+        } else {
+            Logger.error("❌ ProgressViewModel is nil - stats not updated!", category: .general)
         }
         
         // Advance program day if workout was from a program
@@ -559,15 +569,15 @@ class WorkoutViewModel: ObservableObject {
         
         // Only show completion modal if workout came from template
         if isFromTemplate {
-            // Store stats and show modal BEFORE clearing workout state
-            // This ensures modal appears with accurate data and view is still visible
-            completionStats = stats
-            showCompletionModal = true
-            
-            Logger.debug("Showing completion modal - stats: \(stats.exerciseCount) exercises, \(stats.totalSets) sets, \(stats.totalVolume) lbs", category: .general)
-            
-            // Celebration haptic feedback
-            HapticManager.success()
+        // Store stats and show modal BEFORE clearing workout state
+        // This ensures modal appears with accurate data and view is still visible
+        completionStats = stats
+        showCompletionModal = true
+        
+        Logger.debug("Showing completion modal - stats: \(stats.exerciseCount) exercises, \(stats.totalSets) sets, \(stats.totalVolume) lbs", category: .general)
+        
+        // Celebration haptic feedback
+        HapticManager.success()
         } else {
             // For manually created workouts, just clear state without showing modal
             currentWorkout = nil
@@ -585,7 +595,7 @@ class WorkoutViewModel: ObservableObject {
         // This ensures the modal overlay remains visible
     }
     
-    func completeSet(weight: Double, reps: Int) {
+    func completeSet(weight: Double, reps: Int, isWarmup: Bool = false) {
         // Validate input
         switch validateSetCompletion(weight: weight, reps: reps) {
         case .failure(let error):
@@ -618,7 +628,7 @@ class WorkoutViewModel: ObservableObject {
             weight: weight,
             reps: reps,
             isDropset: false,
-            isWarmup: false
+            isWarmup: isWarmup
         )
         
         exercise.sets.append(mainSet)
@@ -670,36 +680,25 @@ class WorkoutViewModel: ObservableObject {
         var isNewPR = false
         if let progressVM = progressViewModel {
             let isFirstTime = !progressVM.availableExercises.contains(exercise.name)
-            Logger.debug("Exercise '\(exercise.name)' - First time: \(isFirstTime), availableExercises count: \(progressVM.availableExercises.count)", category: .general)
             
             if isFirstTime {
                 // First time this exercise is being tracked - don't show PR badge
                 progressVM.addInitialExerciseEntry(exercise: exercise.name, weight: weight, reps: reps)
-                Logger.debug("First time exercise - no PR badge", category: .general)
             } else {
                 // Check for PR
-                Logger.debug("Checking for PR: \(exercise.name) - \(Int(weight)) lbs × \(reps) reps", category: .general)
-                Logger.debug("BEFORE checkForPR - prMessage: '\(prMessage)'", category: .general)
                 isNewPR = checkForPR(exercise: exercise.name, weight: weight, reps: reps)
-                Logger.debug("AFTER checkForPR - isNewPR: \(isNewPR), prMessage: '\(prMessage)'", category: .general)
                 
                 if isNewPR {
                     // Set PR message immediately - badge will show when rest timer appears
                     prMessage = "New PR: \(Int(weight)) lbs × \(reps) reps"
-                    Logger.info("✅ PR MESSAGE SET: '\(prMessage)'", category: .general)
-                    Logger.info("✅ prMessage is now: '\(prMessage)'", category: .general)
-                    Logger.info("✅ About to start rest timer - prMessage will be: '\(prMessage)'", category: .general)
+                    Logger.info("New PR achieved: \(exercise.name) - \(Int(weight)) lbs × \(reps) reps", category: .general)
                 } else {
-                    Logger.debug("❌ Not a PR for \(exercise.name): \(Int(weight)) lbs × \(reps) reps", category: .general)
                     // Make sure message is cleared if not a PR
                     if !prMessage.isEmpty {
-                        Logger.debug("Clearing old PR message", category: .general)
                         prMessage = ""
                     }
                 }
             }
-        } else {
-            Logger.debug("❌ No progressViewModel - cannot check for PR", category: .general)
         }
         
         // Store undo state (use isNewPR which was just calculated)
@@ -975,7 +974,7 @@ class WorkoutViewModel: ObservableObject {
             advanceToNextExercise()
         } else {
             // Start rest timer (will show PR badge if there's a PR message)
-            startRestTimer()
+        startRestTimer()
         }
     }
     
@@ -1161,7 +1160,7 @@ class WorkoutViewModel: ObservableObject {
         // Don't reset start time - keep the original start time for accurate restoration
         // Only set it if it's nil (shouldn't happen, but safety check)
         if restTimerStartTime == nil {
-            restTimerStartTime = Date()
+        restTimerStartTime = Date()
         }
         startRestTimerTick()
     }
@@ -1711,7 +1710,6 @@ class WorkoutViewModel: ObservableObject {
         if existingPRs.isEmpty {
             // First PR for this exercise
             isNewPR = true
-            Logger.debug("checkForPR: \(exercise) - First PR for this exercise", category: .general)
         } else {
             // Find the best existing PR
             if let best = existingPRs.max(by: { pr1, pr2 in
@@ -1720,17 +1718,8 @@ class WorkoutViewModel: ObservableObject {
                 }
                 return pr1.reps < pr2.reps
             }) {
-                Logger.debug("checkForPR: \(exercise) - Best existing PR: \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
-                Logger.debug("checkForPR: \(exercise) - New attempt: \(Int(weight)) lbs × \(reps) reps", category: .general)
-                
                 // New PR if weight is higher, or same weight with more reps
                 isNewPR = weight > best.weight || (weight == best.weight && reps > best.reps)
-                
-                if isNewPR {
-                    Logger.info("✅ NEW PR DETECTED: \(Int(weight)) lbs × \(reps) reps beats \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
-                } else {
-                    Logger.debug("❌ Not a new PR: \(Int(weight)) lbs × \(reps) reps does not beat \(Int(best.weight)) lbs × \(best.reps) reps", category: .general)
-                }
             }
         }
         

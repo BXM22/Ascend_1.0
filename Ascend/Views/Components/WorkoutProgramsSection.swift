@@ -115,7 +115,11 @@ struct SimpleWorkoutProgramCard: View {
             .frame(width: 280)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+            .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
     }

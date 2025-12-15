@@ -4,7 +4,9 @@ struct CalisthenicsSkillView: View {
     let skill: CalisthenicsSkill
     @State private var selectedLevel: Int = 1
     @ObservedObject var workoutViewModel: WorkoutViewModel
+    @ObservedObject var templatesViewModel: TemplatesViewModel
     @Environment(\.dismiss) var dismiss
+    @State private var showTemplateSelector = false
     
     var currentLevel: SkillProgressionLevel {
         skill.progressionLevels.first { $0.level == selectedLevel } ?? skill.progressionLevels[0]
@@ -35,37 +37,91 @@ struct CalisthenicsSkillView: View {
                 CurrentLevelCard(level: currentLevel)
                     .padding(.horizontal, AppSpacing.lg)
                 
-                // Start Workout Button
-                Button(action: {
-                    startSkillWorkout()
-                }) {
-                    HStack {
-                        Image(systemName: "play.fill")
-                            .font(AppTypography.bodyBold)
-                        Text("Start \(skill.name) Training")
-                            .font(AppTypography.bodyBold)
+                // Action Buttons
+                VStack(spacing: 12) {
+                    // Start Workout Button
+                    Button(action: {
+                        startSkillWorkout()
+                    }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                                .font(AppTypography.bodyBold)
+                            Text("Start \(skill.name) Training")
+                                .font(AppTypography.bodyBold)
+                        }
+                        .foregroundColor(AppColors.accentForeground)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.lg)
+                        .background(LinearGradient.primaryGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .foregroundColor(AppColors.accentForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.lg)
-                    .background(AppColors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .buttonStyle(ScaleButtonStyle())
+                    
+                    // Add to Template Button
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        showTemplateSelector = true
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .font(AppTypography.bodyBold)
+                            Text("Add to Template")
+                                .font(AppTypography.bodyBold)
+                        }
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(AppColors.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
                 }
-                .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, 100)
             }
         }
         .background(AppColors.background)
+        .sheet(isPresented: $showTemplateSelector) {
+            TemplateSelectionSheet(
+                templates: templatesViewModel.templates.filter { !$0.name.contains("Progression") },
+                skillName: skill.name,
+                onSelect: { template in
+                    addSkillToTemplate(template)
+                }
+            )
+        }
+    }
+    
+    private func addSkillToTemplate(_ template: WorkoutTemplate) {
+        let level = currentLevel
+        let exerciseName = "\(skill.name) - \(level.name)"
+        let exerciseType: ExerciseType = level.targetHoldDuration != nil ? .hold : .weightReps
+        
+        // Create new template exercise
+        let newExercise = TemplateExercise(
+            name: exerciseName,
+            sets: 3,
+            reps: level.targetReps?.description ?? "5-8",
+            dropsets: false,
+            exerciseType: exerciseType,
+            targetHoldDuration: level.targetHoldDuration
+        )
+        
+        // Add to template
+        var updatedTemplate = template
+        updatedTemplate.exercises.append(newExercise)
+        templatesViewModel.saveTemplate(updatedTemplate)
+        
+        HapticManager.success()
     }
     
     private func startSkillWorkout() {
         let level = currentLevel
         let exerciseName = "\(skill.name) - \(level.name)"
-        
-        // Determine exercise type based on level
-        // If it has targetHoldDuration, it's a hold exercise (duration + additional weight)
-        // Otherwise, it's a rep-based exercise (reps + additional weight)
         let exerciseType: ExerciseType = level.targetHoldDuration != nil ? .hold : .weightReps
         let holdDuration = level.targetHoldDuration
         
@@ -117,7 +173,7 @@ struct SkillHeader: View {
         .padding(AppSpacing.md)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.3), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -154,7 +210,7 @@ struct ProgressionLevelsView: View {
         .padding(AppSpacing.md)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.3), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -272,7 +328,8 @@ struct CurrentLevelCard: View {
 #Preview {
     CalisthenicsSkillView(
         skill: CalisthenicsSkillManager.shared.skills[0],
-        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager())
+        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
+        templatesViewModel: TemplatesViewModel()
     )
 }
 

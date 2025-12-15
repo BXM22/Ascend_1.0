@@ -140,7 +140,6 @@ private func calculateButtonFrame(element: TutorialElement, size: CGSize) -> CGR
         let horizontalPadding: CGFloat = 24 // AppSpacing.lg
         let verticalPadding: CGFloat = 16 // AppSpacing.md
         let themeButtonWidth: CGFloat = 44
-        let safeAreaBottom: CGFloat = 0 // Will be handled by GeometryReader's safe area
         
         // Calculate available width for navigation buttons
         let totalAvailableWidth = size.width - (2 * horizontalPadding)
@@ -351,7 +350,7 @@ struct InteractiveCalloutCard: View {
                 .padding(28)
                 .background(AppColors.card)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.4), radius: 30, x: 0, y: 15)
+                .shadow(color: AppColors.foreground.opacity(0.4), radius: 30, x: 0, y: 15)
                 .frame(width: calloutWidth)
                 .position(x: geometry.size.width / 2, y: calloutY)
             }
@@ -484,7 +483,7 @@ struct TutorialNavigationButtons: View {
                         .padding(.vertical, 16)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
+                        .shadow(color: AppColors.foreground.opacity(0.2), radius: 10, x: 0, y: 4)
                 }
             }
             

@@ -135,7 +135,7 @@ struct TutorialView: View {
                 }
                 .background(AppColors.card)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                .shadow(color: AppColors.foreground.opacity(0.3), radius: 20, x: 0, y: 10)
                 .padding(.horizontal, 24)
                 
                 Spacer()

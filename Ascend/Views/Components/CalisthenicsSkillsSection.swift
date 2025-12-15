@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CalisthenicsSkillsSection: View {
     @ObservedObject var workoutViewModel: WorkoutViewModel
+    @ObservedObject var templatesViewModel: TemplatesViewModel
+    @ObservedObject var skillManager: CalisthenicsSkillManager = CalisthenicsSkillManager.shared
     let onStart: () -> Void
     @State private var selectedSkill: CalisthenicsSkill?
     @State private var showSkillDetail = false
@@ -28,9 +30,10 @@ struct CalisthenicsSkillsSection: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppSpacing.md) {
-                    ForEach(CalisthenicsSkillManager.shared.skills) { skill in
+                    ForEach(skillManager.skills) { skill in
                         CalisthenicsSkillCard(
                             skill: skill,
+                            skillManager: skillManager,
                             onTap: {
                                 selectedSkill = skill
                                 showSkillDetail = true
@@ -46,7 +49,8 @@ struct CalisthenicsSkillsSection: View {
                 if let skill = selectedSkill {
                     CalisthenicsSkillView(
                         skill: skill,
-                        workoutViewModel: workoutViewModel
+                        workoutViewModel: workoutViewModel,
+                        templatesViewModel: templatesViewModel
                     )
                     .navigationTitle(skill.name)
                     .navigationBarTitleDisplayMode(.inline)
@@ -73,54 +77,80 @@ struct CalisthenicsSkillsSection: View {
 
 struct CalisthenicsSkillCard: View {
     let skill: CalisthenicsSkill
+    @ObservedObject var skillManager: CalisthenicsSkillManager
     let onTap: () -> Void
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                HStack {
-                    Spacer()
+            GradientBorderedCard(gradient: AppColors.categoryGradient(for: skill.name)) {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    HStack {
+                        // Custom indicator badge
+                        if skill.isCustom {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.primary)
+                        }
+                        
+                        Spacer()
+                        
+                        Text(skill.category.rawValue)
+                            .font(AppTypography.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppSpacing.xs)
+                            .background(AppColors.secondary)
+                            .clipShape(Capsule())
+                    }
                     
-                    Text(skill.category.rawValue)
-                        .font(AppTypography.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                        .padding(.horizontal, AppSpacing.sm)
-                        .padding(.vertical, AppSpacing.xs)
-                        .background(AppColors.secondary)
-                        .clipShape(Capsule())
-                }
-                
-                Text(skill.name)
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.leading)
-                
-                Text("\(skill.progressionLevels.count) levels")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
-                
-                // Progress indicator
-                HStack(spacing: AppSpacing.xs) {
-                    ForEach(0..<5) { index in
-                        Circle()
-                            .fill(index < min(3, skill.progressionLevels.count) ? AppColors.primary : AppColors.secondary)
-                            .frame(width: 6, height: 6)
+                    Text(skill.name)
+                        .font(AppTypography.heading3)
+                        .foregroundColor(AppColors.foreground)
+                        .lineLimit(2)
+                    
+                    Text("\(skill.progressionLevels.count) levels")
+                        .font(AppTypography.captionMedium)
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    // Progress indicator
+                    HStack(spacing: AppSpacing.xs) {
+                        ForEach(0..<5) { index in
+                            Circle()
+                                .fill(index < min(3, skill.progressionLevels.count) ? AppColors.primary : AppColors.secondary)
+                                .frame(width: 6, height: 6)
+                        }
                     }
                 }
+                .padding(AppSpacing.md)
             }
-            .padding(AppSpacing.md)
-            .frame(width: 200)
-            .background(AppColors.card)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+            .frame(width: 170, height: 170)
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            if skill.isCustom {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Delete Skill", systemImage: "trash")
+                }
+            }
+        }
+        .alert("Delete Custom Skill?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                skillManager.deleteCustomSkill(skill)
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(skill.name)\"? This action cannot be undone.")
+        }
     }
 }
 
 #Preview {
     CalisthenicsSkillsSection(
         workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
+        templatesViewModel: TemplatesViewModel(),
         onStart: {}
     )
     .padding()

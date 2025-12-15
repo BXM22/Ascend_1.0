@@ -15,6 +15,7 @@ struct RestTimerView: View {
     @State private var progressValue: Double = 0
     @State private var scale: CGFloat = 0.9
     @State private var opacity: Double = 0
+    @State private var breathingScale: CGFloat = 1.0
     
     private var minutes: Int {
         max(0, timeRemaining) / 60
@@ -45,60 +46,96 @@ struct RestTimerView: View {
     var body: some View {
         VStack(spacing: 24) {
             Text("Rest Timer")
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppTypography.heading3)
                 .foregroundColor(AppColors.foreground)
             
-            // Circular Timer
+            // Enhanced Circular Timer with Breathing Animation
             ZStack {
-                // Background circle
+                // Breathing circle background (pulsing)
                 Circle()
-                    .stroke(AppColors.secondary, lineWidth: 8)
-                    .frame(width: 120, height: 120)
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                timerColor.opacity(0.15),
+                                timerColor.opacity(0.05),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 40,
+                            endRadius: 100
+                        )
+                    )
+                    .frame(width: 180, height: 180)
+                    .scaleEffect(breathingScale)
+                    .blur(radius: 8)
                 
-                // Progress circle
+                // Background ring
+                Circle()
+                    .stroke(AppColors.secondary.opacity(0.3), lineWidth: 12)
+                    .frame(width: 140, height: 140)
+                
+                // Progress ring
                 Circle()
                     .trim(from: 0, to: progressValue)
                     .stroke(
-                        LinearGradient(
+                        AngularGradient(
                             colors: [
                                 timerColor,
-                                timerColor.opacity(0.7)
+                                timerColor.opacity(0.8),
+                                timerColor
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            center: .center
                         ),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: 140, height: 140)
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: timerColor.opacity(0.5), radius: 8)
+                    .shadow(color: timerColor.opacity(0.6), radius: 12, x: 0, y: 0)
                     .animation(AppAnimations.smooth, value: progressValue)
                     .animation(AppAnimations.smooth, value: timerColor)
                 
+                // Inner breathing guidance circle
+                Circle()
+                    .fill(timerColor.opacity(0.2))
+                    .frame(width: 90, height: 90)
+                    .scaleEffect(breathingScale)
+                    .blur(radius: 2)
+                
                 // Time text
-                Text(String(format: "%02d:%02d", minutes, seconds))
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(AppColors.foreground)
-                    .contentTransition(.numericText())
+                VStack(spacing: 4) {
+                    Text(String(format: "%02d:%02d", minutes, seconds))
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(AppColors.foreground)
+                        .contentTransition(.numericText())
+                    
+                    Text("remaining")
+                        .font(AppTypography.caption)
+                        .foregroundColor(AppColors.mutedForeground)
+                }
             }
+            .frame(height: 200)
             
-            // Action buttons
+            // Enhanced Action buttons
             HStack(spacing: 12) {
                 Button(action: {
                     HapticManager.impact(style: .light)
                     onSkip()
                 }) {
-                    Text("Skip")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppColors.foreground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(AppColors.secondary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    HStack(spacing: 8) {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 14))
+                        Text("Skip")
+                            .font(AppTypography.bodyMedium)
+                    }
+                    .foregroundColor(AppColors.foreground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(AppColors.secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppCornerRadius.medium)
+                            .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+                    )
                 }
                 .buttonStyle(ScaleButtonStyle())
                 
@@ -106,28 +143,27 @@ struct RestTimerView: View {
                     HapticManager.impact(style: .medium)
                     onComplete()
                 }) {
-                    Text("Complete Rest")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppColors.foreground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(AppColors.secondary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                        Text("Done")
+                            .font(AppTypography.bodyBold)
+                    }
+                    .foregroundColor(AppColors.alabasterGrey)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(LinearGradient.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
+                    .applyElevation(.medium)
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
         }
-        .padding(24)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .padding(AppSpacing.lg)
+        .glassmorphic()
         .scaleEffect(scale)
         .opacity(opacity)
+        .applyElevation(.floating)
         .onAppear {
             // Entrance animation
             withAnimation(AppAnimations.smooth) {
@@ -137,6 +173,10 @@ struct RestTimerView: View {
             // Animate progress
             withAnimation(AppAnimations.smooth) {
                 progressValue = progress
+            }
+            // Start breathing animation (4-second cycle: 2s in, 2s out)
+            withAnimation(Animation.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                breathingScale = 1.2
             }
         }
         .onChange(of: timeRemaining) { oldValue, newValue in
@@ -148,6 +188,8 @@ struct RestTimerView: View {
             // Warning haptic when time is running out
             if newValue == 10 {
                 HapticManager.warning()
+            } else if newValue == 5 {
+                HapticManager.impact(style: .light)
             } else if newValue == 0 {
                 HapticManager.success()
             }

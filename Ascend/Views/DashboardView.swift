@@ -7,668 +7,481 @@ struct DashboardView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
+    @State private var showGenerateTypeDialog = false
+    @State private var showWorkoutHistory = false
+    
+    private enum GeneratedDayType {
+        case custom, push, pull, legs, fullBody
+    }
+    
+    private func generateAndStartWorkout(for type: GeneratedDayType) {
+        let template: WorkoutTemplate
+        switch type {
+        case .custom:
+            template = templatesViewModel.generateWorkout()
+        case .push:
+            template = templatesViewModel.generatePushWorkout()
+        case .pull:
+            template = templatesViewModel.generatePullWorkout()
+        case .legs:
+            template = templatesViewModel.generateLegWorkout()
+        case .fullBody:
+            template = templatesViewModel.generateFullBodyWorkout()
+        }
+        
+        workoutViewModel.startWorkoutFromTemplate(template)
+        onStartWorkout()
+    }
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                // Header - extends to top of screen
-                DashboardHeader(onSettings: onSettings)
-                    .ignoresSafeArea(edges: .top)
-                
-                VStack(spacing: AppSpacing.lg) {
-                    // Program Day Tracker
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Hero Section with Greeting and Quick Stats
+                    HeroSection(
+                        progressViewModel: progressViewModel,
+                        onGenerateWorkout: {
+                            showGenerateTypeDialog = true
+                        }
+                    )
+                    .padding(.top, 60) // Add top padding to account for buttons
+                    
+                    // Header with Title
+                    YourActivityHeader()
+                    
+                    VStack(spacing: 20) {
+                    // Weekly Calendar (with program indicator if active)
+                    WeeklyCalendarWidget(
+                        progressViewModel: progressViewModel,
+                        programViewModel: programViewModel
+                    )
+                    
+                    // Next Workout Day Card (only shows when program is active)
                     if programViewModel.activeProgram != nil {
-                        ProgramDayTracker(
+                        NextWorkoutDayCard(
                             programViewModel: programViewModel,
                             templatesViewModel: templatesViewModel,
                             workoutViewModel: workoutViewModel,
                             onStartWorkout: onStartWorkout
                         )
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, AppSpacing.lg)
-                        
-                        // Workout Calendar
-                        WorkoutCalendarView(programViewModel: programViewModel)
-                            .padding(.horizontal, AppSpacing.lg)
                     }
                     
-                    // Quick Start Templates
-                    QuickStartTemplatesSection(
-                        templatesViewModel: templatesViewModel,
-                        workoutViewModel: workoutViewModel,
-                        onStartWorkout: onStartWorkout
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, programViewModel.activeProgram != nil ? 0 : AppSpacing.lg)
+                    // Suggested Workout Card (only show if no active program)
+                    if programViewModel.activeProgram == nil {
+                        SuggestedWorkoutCard(
+                            workoutViewModel: workoutViewModel,
+                            templatesViewModel: templatesViewModel,
+                            programViewModel: programViewModel,
+                            onStartWorkout: onStartWorkout
+                        )
+                    }
                     
-                    // Quick Stats Grid
-                    QuickStatsGrid(
-                        currentStreak: progressViewModel.currentStreak,
-                        totalVolume: progressViewModel.totalVolume,
-                        workoutCount: progressViewModel.workoutCount
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
+                    // Stat Cards (Recent PRs + Top Exercise)
+                    HStack(alignment: .top, spacing: 12) {
+                        RecentPRsStatCard(progressViewModel: progressViewModel)
+                        TopExerciseStatCard(progressViewModel: progressViewModel)
+                    }
                     
                     // Rest Day Button
                     RestDayButton(progressViewModel: progressViewModel)
-                        .padding(.horizontal, AppSpacing.lg)
                     
-                    // Workout Streak Card
-                    WorkoutStreakCard(
-                        currentStreak: progressViewModel.currentStreak,
-                        longestStreak: progressViewModel.longestStreak
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    .animateOnAppear(delay: 0.2, animation: AppAnimations.smooth)
-                    
-                    // Recent Activity
-                    RecentActivityCard(progressViewModel: progressViewModel)
-                        .padding(.horizontal, AppSpacing.lg)
-                        .animateOnAppear(delay: 0.25)
-                    
-                    // Top Exercises
-                    TopExercisesCard(progressViewModel: progressViewModel)
-                        .padding(.horizontal, AppSpacing.lg)
+                    // Muscle Group Chart
+                    MuscleGroupChart(progressViewModel: progressViewModel)
                         .padding(.bottom, 100)
-                        .animateOnAppear(delay: 0.3)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
             }
-        }
-        .background(AppColors.background)
-        .id(AppColors.themeID)
-    }
-}
-
-struct DashboardHeader: View {
-    let onSettings: () -> Void
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("Dashboard")
-                    .font(AppTypography.heading1)
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                
-                Text("Your fitness overview")
-                    .font(AppTypography.body)
-                    .foregroundColor(AppColors.textSecondary)
-            }
             
-            Spacer()
-            
+            // Top Right Buttons (Info, History, Settings)
             HStack(spacing: 12) {
                 HelpButton(pageType: .dashboard)
                 
+                // Workout History Button
                 Button(action: {
                     HapticManager.impact(style: .light)
-                    onSettings()
+                    showWorkoutHistory = true
                 }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppColors.card)
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppColors.foreground)
+                    }
                 }
                 .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Settings")
+                .accessibilityLabel("Workout History")
+                
+                SettingsButton(onSettings: onSettings)
             }
+            .padding(.top, 8)
+            .padding(.trailing, AppSpacing.lg)
+        }
+        .background(AppColors.background)
+        .id(AppColors.themeID)
+        .confirmationDialog("Generate workout", isPresented: $showGenerateTypeDialog, titleVisibility: .visible) {
+            Button("Custom") { generateAndStartWorkout(for: .custom) }
+            Button("Push") { generateAndStartWorkout(for: .push) }
+            Button("Pull") { generateAndStartWorkout(for: .pull) }
+            Button("Legs") { generateAndStartWorkout(for: .legs) }
+            Button("Full Body") { generateAndStartWorkout(for: .fullBody) }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Select the day type to auto-generate and start your workout.")
+        }
+        .sheet(isPresented: $showWorkoutHistory) {
+            WorkoutHistoryView()
+        }
+    }
+}
+
+// MARK: - Header
+
+struct YourActivityHeader: View {
+    var body: some View {
+        HStack {
+            Text("Your Activity")
+                .font(AppTypography.largeTitleBold)
+                .foregroundStyle(LinearGradient.primaryGradient)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            
+            Spacer()
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
-        .background(AppColors.card)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border.opacity(0.3)),
-            alignment: .bottom
-        )
     }
 }
 
-struct QuickStatsGrid: View {
-    let currentStreak: Int
-    let totalVolume: Int
-    let workoutCount: Int
+// MARK: - Settings Button
+
+struct SettingsButton: View {
+    let onSettings: () -> Void
     
     var body: some View {
-        VStack(spacing: AppSpacing.md) {
-            HStack(spacing: AppSpacing.md) {
-                IconStatCard(
-                    icon: "flame.fill",
-                    value: "\(currentStreak)",
-                    label: "Day Streak",
-                    color: AppColors.primary
-                )
-                .animateOnAppear(delay: 0.0)
+        Button(action: {
+            HapticManager.impact(style: .light)
+            onSettings()
+        }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(AppColors.card)
+                    .frame(width: 44, height: 44)
                 
-                IconStatCard(
-                    icon: "chart.bar.fill",
-                    value: formatVolume(totalVolume),
-                    label: "Total Volume",
-                    color: AppColors.accent
-                )
-                .animateOnAppear(delay: 0.05)
-            }
-            
-            HStack(spacing: AppSpacing.md) {
-                IconStatCard(
-                    icon: "dumbbell.fill",
-                    value: "\(workoutCount)",
-                    label: "Workouts",
-                    color: AppColors.primary
-                )
-                .animateOnAppear(delay: 0.1)
-            }
-        }
-    }
-    
-    private func formatVolume(_ volume: Int) -> String {
-        if volume >= 1000 {
-            return String(format: "%.1fk", Double(volume) / 1000.0)
-        }
-        return "\(volume)"
-    }
-}
-
-struct IconStatCard: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-    @State private var animatedValue: String = "0"
-    @State private var scale: CGFloat = 1.0
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            HStack {
-                Image(systemName: icon)
+                Image(systemName: "gearshape.fill")
                     .font(.system(size: 20))
-                    .foregroundColor(color)
-                    .scaleEffect(scale)
-                    .animation(AppAnimations.quick, value: scale)
-                
-                Spacer()
+                    .foregroundColor(AppColors.foreground)
             }
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel("Settings")
+    }
+}
+
+// MARK: - Stat Cards
+
+struct RecentPRsStatCard: View {
+    @ObservedObject var progressViewModel: ProgressViewModel
+    
+    private var recentPRsCount: Int {
+        let calendar = Calendar.current
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return progressViewModel.prs.filter { $0.date >= weekAgo }.count
+    }
+    
+    private var trendData: (change: Int, percentage: Double, isNew: Bool) {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Current period: Last 7 days
+        let currentPeriodStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let currentCount = progressViewModel.prs.filter { $0.date >= currentPeriodStart }.count
+        
+        // Previous period: 7 days before that (days 8-14 ago)
+        let previousPeriodStart = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let previousPeriodEnd = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let previousCount = progressViewModel.prs.filter { 
+            $0.date >= previousPeriodStart && $0.date < previousPeriodEnd 
+        }.count
+        
+        let change = currentCount - previousCount
+        let percentage: Double
+        let isNew: Bool
+        
+        if previousCount == 0 {
+            percentage = currentCount > 0 ? 100.0 : 0.0
+            isNew = true
+        } else {
+            percentage = (Double(change) / Double(previousCount)) * 100.0
+            isNew = false
+        }
+        
+        return (change: change, percentage: percentage, isNew: isNew)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Icon with sparkle effect
+            ZStack {
+                Circle()
+                    .fill(LinearGradient.chestGradient.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                    .shadow(color: AppColors.chestGradientEnd.opacity(0.3), radius: 8, x: 0, y: 4)
+                
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(LinearGradient.chestGradient)
+                
+                if recentPRsCount > 0 {
+                    SparkleEffect(count: 4, iconSize: 60)
+                }
+            }
+            .frame(height: 60)
             
-            Text(animatedValue)
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.textPrimary)
-                .contentTransition(.numericText())
-                .animation(AppAnimations.smooth, value: animatedValue)
+            Spacer(minLength: 0)
             
-            Text(label)
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
+            // Number with pulse animation
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(recentPRsCount)")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(LinearGradient.chestGradient)
+                    .contentTransition(.numericText())
+                    .pulseEffect(scale: 1.02, duration: 2.0)
+                    .frame(height: 52)
+                
+                Text("PRs This Week")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
+                    .frame(height: 18)
+                
+                // Trend indicator
+                if recentPRsCount > 0 {
+                    TrendIndicator(
+                        change: trendData.change,
+                        percentage: trendData.percentage,
+                        isNew: trendData.isNew
+                    )
+                    .frame(height: 24)
+                } else {
+                    Spacer()
+                        .frame(height: 24)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppSpacing.md)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-        .onAppear {
-            // Animate number counting
-            animateValue(from: "0", to: value)
-            // Pulse icon
-            withAnimation(
-                Animation.easeInOut(duration: 0.3)
-                    .repeatCount(1, autoreverses: true)
-            ) {
-                scale = 1.1
+        .padding(24)
+        .frame(height: 220)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(AppColors.card)
+                
+                // Gradient overlay
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient.chestGradient.opacity(0.12))
             }
-        }
-        .onChange(of: value) { oldValue, newValue in
-            animateValue(from: animatedValue, to: newValue)
-        }
-    }
-    
-    private func animateValue(from: String, to: String) {
-        // Simple animation - just update with smooth transition
-        withAnimation(AppAnimations.smooth) {
-            animatedValue = to
-        }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(LinearGradient.chestGradient.opacity(0.3), lineWidth: 2)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
     }
 }
 
-
-struct RecentActivityCard: View {
+struct TopExerciseStatCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     
-    var recentPRs: [PersonalRecord] {
-        // Sort PRs by date (newest first)
-        let sortedPRs = progressViewModel.prs.sorted { $0.date > $1.date }
-        
-        // Filter out duplicates by exercise name only - keep only one PR per exercise (the most recent)
-        var seenExercises: Set<String> = []
-        var uniquePRs: [PersonalRecord] = []
-        
-        for pr in sortedPRs {
-            // Only add if we haven't seen this exercise before
-            if !seenExercises.contains(pr.exercise) {
-                seenExercises.insert(pr.exercise)
-                uniquePRs.append(pr)
-                
-                // Stop once we have 3 unique exercises
-                if uniquePRs.count >= 3 {
-                    break
-                }
-            }
-        }
-        
-        return uniquePRs
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.accent)
-                Text("Recent PRs")
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            if recentPRs.isEmpty {
-                VStack(spacing: AppSpacing.sm) {
-                    Text("No PRs yet")
-                        .font(AppTypography.body)
-                        .foregroundColor(AppColors.textSecondary)
-                    
-                    Text("Complete workouts to earn PRs!")
-                        .font(AppTypography.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.xl)
-            } else {
-                VStack(spacing: AppSpacing.sm) {
-                    ForEach(Array(recentPRs.enumerated()), id: \.element.id) { index, pr in
-                        PRRow(pr: pr)
-                            .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
-                    }
-                }
-            }
-        }
-        .padding(AppSpacing.md)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-}
-
-struct PRRow: View {
-    let pr: PersonalRecord
-    
-    private var dateString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: pr.date, relativeTo: Date())
-    }
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(pr.exercise)
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textPrimary)
-                
-                Text("\(Int(pr.weight)) lbs × \(pr.reps) reps")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            
-            Spacer()
-            
-            Text(dateString)
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .padding(AppSpacing.sm)
-        .background(AppColors.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-struct TopExercisesCard: View {
-    @ObservedObject var progressViewModel: ProgressViewModel
-    
-    var topExercises: [(String, Int)] {
+    private var topExercise: (name: String, count: Int)? {
         let exerciseCounts = Dictionary(grouping: progressViewModel.prs, by: { $0.exercise })
             .mapValues { $0.count }
             .sorted { $0.value > $1.value }
         
-        return Array(exerciseCounts.prefix(3).map { ($0.key, $0.value) })
+        return exerciseCounts.first.map { ($0.key, $0.value) }
     }
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.primary)
-                Text("Top Exercises")
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            if topExercises.isEmpty {
-                VStack(spacing: AppSpacing.sm) {
-                    Text("No exercises yet")
-                        .font(AppTypography.body)
-                        .foregroundColor(AppColors.textSecondary)
-                    
-                    Text("Start tracking workouts!")
-                        .font(AppTypography.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.xl)
-            } else {
-                VStack(spacing: AppSpacing.sm) {
-                    ForEach(Array(topExercises.enumerated()), id: \.element.0) { index, exercise in
-                        ExerciseRow(
-                            rank: index + 1,
-                            name: exercise.0,
-                            count: exercise.1
-                        )
-                        .animateOnAppear(delay: Double(index) * 0.1, animation: AppAnimations.listItem)
-                    }
-                }
-            }
+    private var trendData: (change: Int, percentage: Double, isNew: Bool) {
+        guard let exercise = topExercise else {
+            return (change: 0, percentage: 0, isNew: false)
         }
-        .padding(AppSpacing.md)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-}
-
-struct ExerciseRow: View {
-    let rank: Int
-    let name: String
-    let count: Int
-    
-    var body: some View {
-        HStack {
-            Text("\(rank)")
-                .font(AppTypography.bodyBold)
-                .foregroundColor(AppColors.primary)
-                .frame(width: 32, height: 32)
-                .background(AppColors.primary.opacity(0.2))
-                .clipShape(Circle())
-            
-            Text(name)
-                .font(AppTypography.bodyMedium)
-                .foregroundColor(AppColors.textPrimary)
-            
-            Spacer()
-            
-            Text("\(count) PRs")
-                .font(AppTypography.captionMedium)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .padding(AppSpacing.sm)
-        .background(AppColors.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-struct WeeklySummaryCard: View {
-    @ObservedObject var progressViewModel: ProgressViewModel
-    @ObservedObject private var workoutHistoryManager = WorkoutHistoryManager.shared
-    
-    private var weeklyWorkouts: Int {
-        let calendar = Calendar.current
-        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        return progressViewModel.workoutDates.filter { $0 >= weekAgo }.count
-    }
-    
-    private var weeklyVolume: Int {
-        // Calculate actual weekly volume from WorkoutHistoryManager
-        // Calculate directly from workouts to avoid cache issues
+        
         let calendar = Calendar.current
         let today = Date()
-        let weekAgo = calendar.date(byAdding: .day, value: -7, to: today) ?? today
         
-        // Filter workouts directly using startOfDay for accurate date comparison
-        // This ensures we include all workouts from the last 7 days including today
-        let workouts = workoutHistoryManager.completedWorkouts.filter { workout in
-            let workoutDate = calendar.startOfDay(for: workout.startDate)
-            let rangeStart = calendar.startOfDay(for: weekAgo)
-            let rangeEnd = calendar.startOfDay(for: today)
-            return workoutDate >= rangeStart && workoutDate <= rangeEnd
+        // Current period: Last 7 days
+        let currentPeriodStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let currentCount = progressViewModel.prs.filter { 
+            $0.exercise == exercise.name && $0.date >= currentPeriodStart 
+        }.count
+        
+        // Previous period: 7 days before that (days 8-14 ago)
+        let previousPeriodStart = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let previousPeriodEnd = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let previousCount = progressViewModel.prs.filter { 
+            $0.exercise == exercise.name && 
+            $0.date >= previousPeriodStart && $0.date < previousPeriodEnd 
+        }.count
+        
+        let change = currentCount - previousCount
+        let percentage: Double
+        let isNew: Bool
+        
+        if previousCount == 0 {
+            percentage = currentCount > 0 ? 100.0 : 0.0
+            isNew = true
+        } else {
+            percentage = (Double(change) / Double(previousCount)) * 100.0
+            isNew = false
         }
         
-        return workouts.reduce(0) { total, workout in
-            let workoutVolume = workout.exercises.reduce(0) { exerciseTotal, exercise in
-                let exerciseVolume = exercise.sets.reduce(0) { setTotal, set in
-                    return setTotal + Int(set.weight * Double(set.reps))
-                }
-                return exerciseTotal + exerciseVolume
-            }
-            return total + workoutVolume
-        }
-    }
-    
-    // Force view update when workouts change
-    private var workoutCount: Int {
-        workoutHistoryManager.completedWorkouts.count
+        return (change: change, percentage: percentage, isNew: isNew)
     }
     
     var body: some View {
-        let volume = weeklyVolume // Calculate once per render
-        let workouts = weeklyWorkouts
-        
-        return VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.accent)
-                Text("This Week")
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            HStack(spacing: AppSpacing.lg) {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("\(workouts)")
-                        .font(AppTypography.heading2)
-                        .foregroundStyle(LinearGradient.primaryGradient)
-                    
-                    Text("Workouts")
-                        .font(AppTypography.captionMedium)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 16) {
+            // Icon with glow
+            ZStack {
+                Circle()
+                    .fill(LinearGradient.backGradient.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                    .shadow(color: AppColors.backGradientEnd.opacity(0.3), radius: 8, x: 0, y: 4)
                 
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text(formatVolume(volume))
-                        .font(AppTypography.heading2)
-                        .foregroundStyle(LinearGradient.accentGradient)
-                    
-                    Text("Volume")
-                        .font(AppTypography.captionMedium)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(LinearGradient.backGradient)
             }
-            .padding(AppSpacing.md)
-            .background(LinearGradient.cardGradient)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
+            .frame(height: 60)
+            
+            Spacer(minLength: 0)
+            
+            if let exercise = topExercise {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(exercise.name)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(LinearGradient.backGradient)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .frame(height: 44, alignment: .top)
+                    
+                    Text("\(exercise.count) PRs")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 18)
+                    
+                    // Trend indicator
+                    if exercise.count > 0 {
+                        TrendIndicator(
+                            change: trendData.change,
+                            percentage: trendData.percentage,
+                            isNew: trendData.isNew
+                        )
+                        .frame(height: 24)
+                    } else {
+                        Spacer()
+                            .frame(height: 24)
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("No Data")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 44, alignment: .top)
+                    
+                    Text("Start tracking")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                        .frame(height: 18)
+                    
+                    Spacer()
+                        .frame(height: 24)
+                }
+            }
         }
-        .padding(AppSpacing.md)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-        .id("weekly-card-\(workoutCount)") // Force view update when workouts change
-    }
-    
-    private func formatVolume(_ volume: Int) -> String {
-        if volume >= 1000 {
-            return String(format: "%.1fk", Double(volume) / 1000.0)
-        }
-        return "\(volume)"
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .frame(height: 220)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(AppColors.card)
+                
+                // Gradient overlay
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient.backGradient.opacity(0.12))
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(LinearGradient.backGradient.opacity(0.3), lineWidth: 2)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
     }
 }
 
-struct QuickStartTemplatesSection: View {
-    @ObservedObject var templatesViewModel: TemplatesViewModel
-    @ObservedObject var workoutViewModel: WorkoutViewModel
-    let onStartWorkout: () -> Void
+// MARK: - Trend Indicator
+
+struct TrendIndicator: View {
+    let change: Int
+    let percentage: Double
+    let isNew: Bool
     
-    // Get featured templates (first 4 templates + first workout program)
-    var featuredTemplates: [QuickStartItem] {
-        var items: [QuickStartItem] = []
-        
-        // Add regular templates (limit to 3)
-        let regularTemplates = templatesViewModel.templates
-            .filter { !$0.name.contains("Progression") }
-            .prefix(3)
-        
-        for template in regularTemplates {
-            items.append(.template(template))
-        }
-        
-        // Add first workout program if available
-        if let program = WorkoutProgramManager.shared.programs.first {
-            items.append(.program(program))
-        }
-        
-        return items
-    }
-    
-    enum QuickStartItem {
-        case template(WorkoutTemplate)
-        case program(WorkoutProgram)
-        
-        var name: String {
-            switch self {
-            case .template(let template):
-                return template.name
-            case .program(let program):
-                return program.name
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .template:
-                return "dumbbell.fill"
-            case .program:
-                return "calendar"
-            }
+    private var trendColor: Color {
+        if isNew {
+            return AppColors.success
+        } else if change > 0 {
+            return AppColors.success
+        } else if change < 0 {
+            return AppColors.mutedForeground
+        } else {
+            return AppColors.mutedForeground
         }
     }
     
-    @State private var selectedItem: QuickStartItem?
+    private var trendIcon: String {
+        if isNew {
+            return "sparkles"
+        } else if change > 0 {
+            return "arrow.up"
+        } else if change < 0 {
+            return "arrow.down"
+        } else {
+            return "minus"
+        }
+    }
+    
+    private var trendText: String {
+        if isNew {
+            return "New"
+        } else if change == 0 {
+            return "0%"
+        } else {
+            let sign = change > 0 ? "+" : ""
+            return "\(sign)\(Int(abs(percentage)))%"
+        }
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(AppColors.primary)
-                Text("Quick Start")
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
+        HStack(spacing: 4) {
+            Image(systemName: trendIcon)
+                .font(.system(size: 10, weight: .semibold))
             
-            if featuredTemplates.isEmpty {
-                Text("No templates available")
-                    .font(AppTypography.body)
-                    .foregroundColor(AppColors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, AppSpacing.md)
-            } else {
-                Menu {
-                    ForEach(Array(featuredTemplates.enumerated()), id: \.offset) { index, item in
-                        Button(action: {
-                            HapticManager.selection()
-                            startWorkout(for: item)
-                        }) {
-                            HStack {
-                                Image(systemName: item.icon)
-                                    .font(.system(size: 16))
-                                Text(item.name)
-                                    .font(AppTypography.bodyMedium)
-                            }
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: selectedItem?.icon ?? "dumbbell.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(AppColors.accentForeground)
-                        
-                        Text(selectedItem?.name ?? "Select a workout...")
-                            .font(AppTypography.bodyMedium)
-                            .foregroundColor(selectedItem == nil ? AppColors.textSecondary : AppColors.textPrimary)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(LinearGradient.primaryGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
+            Text(trendText)
+                .font(.system(size: 12, weight: .semibold))
         }
-        .padding(AppSpacing.md)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-    
-    private func startWorkout(for item: QuickStartItem) {
-        switch item {
-        case .template(let template):
-            templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-            onStartWorkout()
-            
-        case .program(let program):
-            // Start with Day 1 of the program
-            if let day1 = program.days.first {
-                startProgramDay(day1, programName: program.name)
-                onStartWorkout()
-            }
-        }
-    }
-    
-    private func startProgramDay(_ day: WorkoutDay, programName: String) {
-        let exercises = day.exercises.map { programExercise in
-            let alternatives = ExerciseDataManager.shared.getAlternatives(for: programExercise.name)
-            let videoURL = ExerciseDataManager.shared.getVideoURL(for: programExercise.name)
-            
-            return Exercise(
-                name: programExercise.name,
-                targetSets: programExercise.sets,
-                exerciseType: programExercise.exerciseType,
-                holdDuration: programExercise.targetHoldDuration,
-                alternatives: alternatives,
-                videoURL: videoURL
-            )
-        }
-        
-        workoutViewModel.currentWorkout = Workout(name: "\(programName) - \(day.name)", exercises: exercises)
-        workoutViewModel.currentExerciseIndex = 0
-        workoutViewModel.startTimer()
+        .foregroundColor(trendColor)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(trendColor.opacity(0.15))
+        .clipShape(Capsule())
     }
 }
+
+// MARK: - Rest Day Button
 
 struct RestDayButton: View {
     @ObservedObject var progressViewModel: ProgressViewModel
@@ -698,11 +511,8 @@ struct RestDayButton: View {
             }
             .padding(16)
             .background(AppColors.card)
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UI.smallCornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.UI.smallCornerRadius)
-                    .stroke(AppColors.border, lineWidth: AppConstants.UI.borderWidth)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
         }
         .buttonStyle(ScaleButtonStyle())
         .alert("Mark Rest Day", isPresented: $showConfirmation) {
@@ -717,48 +527,30 @@ struct RestDayButton: View {
     }
 }
 
-struct QuickStartButton: View {
-    let item: QuickStartTemplatesSection.QuickStartItem
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: AppSpacing.sm) {
-                Image(systemName: item.icon)
-                    .font(.system(size: 24))
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                    .frame(width: 50, height: 50)
-                    .background(AppColors.primary.opacity(0.2))
-                    .clipShape(Circle())
-                
-                Text(item.name)
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(width: 100)
-            }
-            .padding(AppSpacing.md)
-            .frame(width: 120, height: 140)
-            .background(AppColors.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
+// MARK: - Preview
+
+struct DashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        let progressVM = ProgressViewModel()
+        let settingsMgr = SettingsManager()
+        let templatesVM = TemplatesViewModel()
+        let programVM = WorkoutProgramViewModel()
+        let themeMgr = ThemeManager()
+        let workoutVM = WorkoutViewModel(
+            settingsManager: settingsMgr,
+            progressViewModel: progressVM,
+            programViewModel: programVM,
+            templatesViewModel: templatesVM,
+            themeManager: themeMgr
+        )
+        
+        return DashboardView(
+            progressViewModel: progressVM,
+            workoutViewModel: workoutVM,
+            templatesViewModel: templatesVM,
+            programViewModel: programVM,
+            onStartWorkout: {},
+            onSettings: {}
+        )
     }
 }
-
-#Preview {
-    DashboardView(
-        progressViewModel: ProgressViewModel(),
-        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
-        templatesViewModel: TemplatesViewModel(),
-        programViewModel: WorkoutProgramViewModel(),
-        onStartWorkout: {},
-        onSettings: {}
-    )
-}
-

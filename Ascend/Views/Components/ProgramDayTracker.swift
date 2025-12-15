@@ -153,7 +153,7 @@ struct ProgramDayTracker: View {
             .padding(AppSpacing.md)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+            .shadow(color: AppColors.foreground.opacity(0.3), radius: 8, x: 0, y: 4)
         }
     }
     

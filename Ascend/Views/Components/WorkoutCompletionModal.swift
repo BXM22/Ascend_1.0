@@ -196,7 +196,7 @@ struct WorkoutCompletionModal: View {
             .frame(maxWidth: 340)
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: AppConstants.UI.cardCornerRadius))
-            .shadow(color: .black.opacity(0.2), radius: 30, x: 0, y: 10)
+            .shadow(color: AppColors.foreground.opacity(0.2), radius: 30, x: 0, y: 10)
             .scaleEffect(scale)
             .opacity(opacity)
         }
