@@ -6,7 +6,6 @@ struct TrendGraphsView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            VolumeTrendCard(data: viewModel.weeklyVolumeData)
             FrequencyTrendCard(data: viewModel.weeklyWorkoutFrequency)
         }
         .padding(.horizontal, 20)
@@ -183,5 +182,7 @@ private struct EmptyTrendPlaceholder: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+
 
 

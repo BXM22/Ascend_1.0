@@ -1,4 +1,2 @@
-{"hypothesisId":"perf","data":{"durationMs":6,"totalSets":3},"timestamp":1765940721072.2861,"sessionId":"debug-session","runId":"perf-tuning","location":"MuscleGroupChart.swift","message":"refreshData"}
-lete"}
-"}
-}
+{"hypothesisId":"perf","sessionId":"debug-session","location":"MuscleGroupChart.swift","data":{"totalSets":3,"durationMs":8},"runId":"perf-tuning","timestamp":1765950892542.3721,"message":"refreshData"}
+alSets":3}}

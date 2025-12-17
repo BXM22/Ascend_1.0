@@ -89,12 +89,14 @@ struct WorkoutView: View {
         
         Group {
             if sectionType == .stretch {
-                // Stretch-specific card: track by sets only (no weight/reps inputs)
+                // Stretch-specific card: time + set based (no weight inputs)
                 StretchExerciseCard(
                     exercise: exercise,
+                    holdDuration: $holdDuration,
                     onCompleteSet: {
                         if isCurrent {
-                            viewModel.completeStretchSet()
+                            let duration = Int(holdDuration) ?? 0
+                            viewModel.completeStretchSet(duration: duration > 0 ? duration : nil)
                         }
                     }
                 )
@@ -120,8 +122,8 @@ struct WorkoutView: View {
                 .onAppear {
                     if isCurrent {
                         calisthenicsWeight = "0"
-                        if exercise.targetHoldDuration != nil {
-                            holdDuration = String(exercise.targetHoldDuration ?? 300)
+                        if let target = exercise.targetHoldDuration {
+                            holdDuration = String(target)
                         } else {
                             holdDuration = "300"
                         }
@@ -470,7 +472,10 @@ struct WorkoutView: View {
                     time: viewModel.formatTime(viewModel.elapsedTime),
                     isPaused: viewModel.isTimerPausedDuringRest,
                     onAbort: {
-                        viewModel.resetTimer()
+                        // Only allow resetting the workout timer when a workout is active.
+                        if viewModel.currentWorkout != nil {
+                            viewModel.resetTimer()
+                        }
                     }
                 )
                 
@@ -601,7 +606,10 @@ struct WorkoutView: View {
         .sheet(isPresented: $viewModel.showAddExerciseSheet) {
             AddExerciseView(
                 onAdd: { name, sets, type, holdDuration in
-                    viewModel.addExercise(name: name, targetSets: sets, type: type, holdDuration: holdDuration)
+                    // For time-based (cardio/stretch) exercises, we pass hold duration.
+                    // For weight/reps and calisthenics, hold duration is ignored.
+                    let duration: Int? = (type == .hold) ? holdDuration : nil
+                    viewModel.addExercise(name: name, targetSets: sets, type: type, holdDuration: duration)
                     viewModel.showAddExerciseSheet = false
                 },
                 onCancel: {
@@ -922,18 +930,21 @@ struct ExerciseCard: View {
     }
     
     var body: some View {
-        CategoryBorderedCard(muscleGroup: exercise.name, borderWidth: 3) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Removed top gradient bar in favor of gradient border
-                
-                if isCollapsed {
-                    collapsedView
-                } else {
-                    expandedView
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            if isCollapsed {
+                collapsedView
+            } else {
+                expandedView
             }
-            .padding(20)
         }
+        .padding(20)
+        .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 20)
         .padding(.top, 20)
     }
@@ -1518,8 +1529,7 @@ struct CardioExerciseCard: View {
     let onCompleteSet: () -> Void
     
     var body: some View {
-        CategoryBorderedCard(muscleGroup: exercise.name) {
-            VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 20) {
                 // Header
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "figure.run")
@@ -1621,19 +1631,25 @@ struct CardioExerciseCard: View {
                 .buttonStyle(ScaleButtonStyle())
             }
             .padding(20)
-        }
+            .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 20)
         .padding(.top, 20)
     }
 }
-// MARK: - Stretch Exercise Card (Sets Only)
+// MARK: - Stretch Exercise Card (Time + Sets)
 struct StretchExerciseCard: View {
     let exercise: Exercise
+    @Binding var holdDuration: String
     let onCompleteSet: () -> Void
     
     var body: some View {
-        CategoryBorderedCard(muscleGroup: exercise.name) {
-            VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 20) {
                 // Header
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "figure.cooldown")
@@ -1655,6 +1671,48 @@ struct StretchExerciseCard: View {
                     Spacer()
                 }
                 
+                // Hold duration input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Hold Duration (seconds)")
+                        .font(AppTypography.subheadlineMedium)
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    HStack(spacing: 12) {
+                        TextField("0", text: $holdDuration)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .inputFieldStyle()
+                        
+                        Text("sec")
+                            .font(AppTypography.bodyMedium)
+                            .foregroundColor(AppColors.mutedForeground)
+                            .frame(width: 40, alignment: .leading)
+                    }
+                }
+                
+                // Quick duration presets
+                HStack(spacing: 8) {
+                    ForEach([15, 30, 45, 60], id: \.self) { preset in
+                        Button(action: {
+                            holdDuration = String(preset)
+                            HapticManager.impact(style: .light)
+                        }) {
+                            Text("\(preset)s")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(holdDuration == String(preset) ? AppColors.alabasterGrey : AppColors.foreground)
+                                .frame(minWidth: 44, minHeight: 32)
+                                .background(holdDuration == String(preset) ? AppColors.accent : AppColors.secondary)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                
                 // Set progress dots (no weight/reps)
                 HStack(spacing: 8) {
                     ForEach(1...exercise.targetSets, id: \.self) { setNumber in
@@ -1665,7 +1723,7 @@ struct StretchExerciseCard: View {
                 }
                 
                 // Guidance text
-                Text("Focus on slow, controlled breathing and a gentle stretch. Move through each set at your own pace.")
+                Text("Focus on slow, controlled breathing and a gentle stretch. Hold for the selected duration, then complete the set.")
                     .font(AppTypography.body)
                     .foregroundColor(AppColors.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1691,7 +1749,13 @@ struct StretchExerciseCard: View {
                 .buttonStyle(ScaleButtonStyle())
             }
             .padding(20)
-        }
+            .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 20)
         .padding(.top, 20)
     }

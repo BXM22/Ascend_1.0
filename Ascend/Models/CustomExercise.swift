@@ -89,6 +89,7 @@ enum ExerciseCategory: String, CaseIterable, Identifiable {
     case fullBody = "Full Body"
     case cardio = "Cardio"
     case calisthenics = "Calisthenics"
+    case stretching = "Stretching"
     case other = "Other"
     
     var id: String { rawValue }

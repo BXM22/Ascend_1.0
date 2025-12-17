@@ -25,6 +25,10 @@ struct ExerciseHistoryView: View {
         cachedChartData
     }
     
+    // Collapsible chart sections
+    @State private var showPRChart: Bool = true
+    @State private var showWeightChart: Bool = true
+    
     private func loadExerciseHistory() {
         // Get all workouts containing this exercise
         let workouts = workoutHistoryManager.completedWorkouts
@@ -47,13 +51,20 @@ struct ExerciseHistoryView: View {
             }
         }
         
-        // Sort by date (newest first)
+        // Sort history for table / weight progression (newest first)
         cachedExerciseHistory = sets.sorted { $0.date > $1.date }
         
-        // Update PRs
-        cachedPRs = progressViewModel?.prs.filter { $0.exercise == exerciseName } ?? []
+        // Prefer explicitly tracked PRs when available
+        let explicitPRs = progressViewModel?.prs.filter { $0.exercise == exerciseName } ?? []
+        if !explicitPRs.isEmpty {
+            cachedPRs = explicitPRs
+        } else {
+            // Derive PR milestones from historical sets so charts work with legacy data
+            let ascendingHistory = sets.sorted { $0.date < $1.date }
+            cachedPRs = derivePRsFromHistory(ascendingHistory)
+        }
         
-        // Update chart data
+        // Update chart data from full history
         cachedChartData = cachedExerciseHistory.map { set in
             ChartDataPoint(
                 date: set.date,
@@ -62,6 +73,50 @@ struct ExerciseHistoryView: View {
                 volume: set.weight * Double(set.reps)
             )
         }
+    }
+    
+    /// Derive a sequence of PR milestones from raw set history.
+    /// This allows PR charts to render even for workouts logged before explicit PR tracking existed.
+    private func derivePRsFromHistory(_ history: [ExerciseSetData]) -> [PersonalRecord] {
+        var derived: [PersonalRecord] = []
+        var bestWeight: Double = 0
+        var bestReps: Int = 0
+        
+        for set in history {
+            let weight = set.weight
+            let reps = set.reps
+            
+            // Skip empty / placeholder sets
+            if weight <= 0 || reps <= 0 {
+                continue
+            }
+            
+            let isBetter: Bool
+            if derived.isEmpty {
+                isBetter = true
+            } else if weight > bestWeight {
+                isBetter = true
+            } else if weight == bestWeight && reps > bestReps {
+                isBetter = true
+            } else {
+                isBetter = false
+            }
+            
+            if isBetter {
+                bestWeight = weight
+                bestReps = reps
+                derived.append(
+                    PersonalRecord(
+                        exercise: exerciseName,
+                        weight: weight,
+                        reps: reps,
+                        date: set.date
+                    )
+                )
+            }
+        }
+        
+        return derived
     }
     
     var body: some View {
@@ -107,60 +162,79 @@ struct ExerciseHistoryView: View {
                         .padding(.vertical, 60)
                     }
                     
-                    // PR Trend Chart
-                    if prs.count >= 2 {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("PR Progression")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppColors.foreground)
-                                .padding(.horizontal, 20)
-                            
-                            Chart {
-                                ForEach(prs.sorted { $0.date < $1.date }, id: \.id) { pr in
-                                    LineMark(
-                                        x: .value("Date", pr.date, unit: .day),
-                                        y: .value("Weight", pr.weight)
-                                    )
-                                    .foregroundStyle(LinearGradient.primaryGradient)
-                                    .interpolationMethod(.catmullRom)
-                                    .lineStyle(StrokeStyle(lineWidth: 3))
-                                    
-                                    PointMark(
-                                        x: .value("Date", pr.date, unit: .day),
-                                        y: .value("Weight", pr.weight)
-                                    )
-                                    .foregroundStyle(AppColors.accent)
-                                    .symbolSize(100)
-                                    .symbol {
-                                        Image(systemName: "trophy.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(AppColors.accent)
-                                    }
+                    // PR Trend Chart (collapsible)
+                    // Show as soon as at least one PR exists for this exercise
+                    if !prs.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showPRChart.toggle()
                                 }
+                            }) {
+                                HStack {
+                                    Text("PR Progression")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(AppColors.foreground)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: showPRChart ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
+                                .padding(.horizontal, 20)
                             }
-                            .chartYAxis {
-                                AxisMarks(position: .leading) { value in
-                                    AxisGridLine()
-                                    AxisValueLabel {
-                                        if let weight = value.as(Double.self) {
-                                            Text("\(Int(weight)) lbs")
-                                                .font(.system(size: 11))
-                                                .foregroundColor(AppColors.mutedForeground)
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if showPRChart {
+                                Chart {
+                                    ForEach(prs.sorted { $0.date < $1.date }, id: \.id) { pr in
+                                        LineMark(
+                                            x: .value("Date", pr.date, unit: .day),
+                                            y: .value("Weight", pr.weight)
+                                        )
+                                        .foregroundStyle(LinearGradient.primaryGradient)
+                                        .interpolationMethod(.catmullRom)
+                                        .lineStyle(StrokeStyle(lineWidth: 3))
+                                        
+                                        PointMark(
+                                            x: .value("Date", pr.date, unit: .day),
+                                            y: .value("Weight", pr.weight)
+                                        )
+                                        .foregroundStyle(AppColors.accent)
+                                        .symbolSize(100)
+                                        .symbol {
+                                            Image(systemName: "trophy.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(AppColors.accent)
                                         }
                                     }
                                 }
-                            }
-                            .chartXAxis {
-                                AxisMarks(values: .stride(by: .day, count: max(1, prs.count / 5))) { value in
-                                    AxisGridLine()
-                                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                                .chartYAxis {
+                                    AxisMarks(position: .leading) { value in
+                                        AxisGridLine()
+                                        AxisValueLabel {
+                                            if let weight = value.as(Double.self) {
+                                                Text("\(Int(weight)) lbs")
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(AppColors.mutedForeground)
+                                            }
+                                        }
+                                    }
                                 }
+                                .chartXAxis {
+                                    AxisMarks(values: .stride(by: .day, count: max(1, prs.count / 5))) { value in
+                                        AxisGridLine()
+                                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                                    }
+                                }
+                                .frame(height: 220)
+                                .padding()
+                                .background(AppColors.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal, 20)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                             }
-                            .frame(height: 220)
-                            .padding()
-                            .background(AppColors.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .padding(.horizontal, 20)
                         }
                     }
                     
@@ -198,36 +272,54 @@ struct ExerciseHistoryView: View {
                         }
                     }
                     
-                    // Weight Progression Chart
+                    // Weight Progression Chart (collapsible)
                     if !chartData.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Weight Progression")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(AppColors.foreground)
-                                .padding(.horizontal, 20)
-                            
-                            Chart {
-                                ForEach(chartData, id: \.date) { point in
-                                    LineMark(
-                                        x: .value("Date", point.date, unit: .day),
-                                        y: .value("Weight", point.weight)
-                                    )
-                                    .foregroundStyle(AppColors.accent)
-                                    .interpolationMethod(.catmullRom)
-                                    
-                                    PointMark(
-                                        x: .value("Date", point.date, unit: .day),
-                                        y: .value("Weight", point.weight)
-                                    )
-                                    .foregroundStyle(AppColors.accent)
-                                    .symbolSize(50)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showWeightChart.toggle()
                                 }
+                            }) {
+                                HStack {
+                                    Text("Weight Progression")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(AppColors.foreground)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: showWeightChart ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
+                                .padding(.horizontal, 20)
                             }
-                            .frame(height: 200)
-                            .padding()
-                            .background(AppColors.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .padding(.horizontal, 20)
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if showWeightChart {
+                                Chart {
+                                    ForEach(chartData, id: \.date) { point in
+                                        LineMark(
+                                            x: .value("Date", point.date, unit: .day),
+                                            y: .value("Weight", point.weight)
+                                        )
+                                        .foregroundStyle(AppColors.accent)
+                                        .interpolationMethod(.catmullRom)
+                                        
+                                        PointMark(
+                                            x: .value("Date", point.date, unit: .day),
+                                            y: .value("Weight", point.weight)
+                                        )
+                                        .foregroundStyle(AppColors.accent)
+                                        .symbolSize(50)
+                                    }
+                                }
+                                .frame(height: 200)
+                                .padding()
+                                .background(AppColors.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal, 20)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                     }
                     

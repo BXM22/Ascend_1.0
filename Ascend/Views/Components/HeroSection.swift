@@ -78,9 +78,8 @@ struct HeroSection: View {
                 )
             }
             
-            // Action Buttons
+            // Primary action button
             VStack(spacing: 12) {
-                // Generate Workout Button
                 Button(action: {
                     HapticManager.impact(style: .medium)
                     onGenerateWorkout()
@@ -118,47 +117,6 @@ struct HeroSection: View {
                     )
                 }
                 .buttonStyle(HeroButtonStyle())
-                
-                // Sports Timer Button
-                if let onOpenSportsTimer = onOpenSportsTimer {
-                    Button(action: {
-                        HapticManager.impact(style: .medium)
-                        onOpenSportsTimer()
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "timer")
-                                .font(.system(size: 20, weight: .semibold))
-                            
-                            Text("Sports Timer")
-                                .font(AppTypography.heading4)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 18)
-                        .background(
-                            LinearGradient.primaryGradient
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .shadow(
-                            color: AppColors.primary.opacity(0.4),
-                            radius: 20,
-                            x: 0,
-                            y: 8
-                        )
-                        .shadow(
-                            color: AppColors.primary.opacity(0.2),
-                            radius: 8,
-                            x: 0,
-                            y: 4
-                        )
-                    }
-                    .buttonStyle(HeroButtonStyle())
-                }
             }
         }
         .padding(.horizontal, AppSpacing.lg)

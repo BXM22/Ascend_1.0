@@ -63,9 +63,6 @@ struct DashboardView: View {
                         progressViewModel: progressViewModel,
                         onGenerateWorkout: {
                             showGenerateTypeDialog = true
-                        },
-                        onOpenSportsTimer: {
-                            showSportsTimer = true
                         }
                     )
                     .padding(.top, 60) // Add top padding to account for buttons

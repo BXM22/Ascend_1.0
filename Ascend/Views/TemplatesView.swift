@@ -594,7 +594,13 @@ struct CalisthenicProgressionSheet: View {
 struct AddExerciseView: View {
     @State private var exerciseName: String = ""
     @State private var targetSets: Int = 4
-    @State private var exerciseType: ExerciseType = .weightReps
+    // Local mode used to drive the UI. This maps down to ExerciseType for the model layer.
+    private enum ExerciseMode {
+        case weights      // Barbell/dumbbell style weight + reps
+        case calisthenics // Bodyweight calisthenics: reps + optional additional weight
+        case timeBased    // Time-based (cardio / stretching)
+    }
+    @State private var mode: ExerciseMode = .weights
     @State private var holdDuration: Int = 30
     @State private var showAddCustomExercise = false
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
@@ -638,35 +644,51 @@ struct AddExerciseView: View {
                         .foregroundColor(AppColors.mutedForeground)
                     
                     HStack(spacing: 12) {
-                        Button(action: { exerciseType = .weightReps }) {
+                        // Weights
+                        Button(action: { mode = .weights }) {
                             HStack {
                                 Image(systemName: "dumbbell.fill")
-                                Text("Weight/Reps")
+                                Text("Weights")
                             }
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(exerciseType == .weightReps ? AppColors.alabasterGrey : AppColors.foreground)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .weights ? AppColors.alabasterGrey : AppColors.foreground)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(exerciseType == .weightReps ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .padding(.vertical, 12)
+                            .background(mode == .weights ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         
-                        Button(action: { exerciseType = .hold }) {
+                        // Calisthenics (reps + additional weight)
+                        Button(action: { mode = .calisthenics }) {
+                            HStack {
+                                Image(systemName: "figure.strengthtraining.traditional")
+                                Text("Calisthenics")
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .calisthenics ? AppColors.alabasterGrey : AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(mode == .calisthenics ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        
+                        // Time-based (cardio / stretch)
+                        Button(action: { mode = .timeBased }) {
                             HStack {
                                 Image(systemName: "timer")
-                                Text("Hold")
+                                Text("Time")
                             }
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(exerciseType == .hold ? AppColors.alabasterGrey : AppColors.foreground)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .timeBased ? AppColors.alabasterGrey : AppColors.foreground)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(exerciseType == .hold ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .padding(.vertical, 12)
+                            .background(mode == .timeBased ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
                 }
                 
-                if exerciseType == .hold {
+                if mode == .timeBased {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Target Hold Duration (seconds)")
                             .font(.system(size: 14, weight: .medium))
@@ -727,7 +749,8 @@ struct AddExerciseView: View {
                     
                     Button(action: {
                         if !exerciseName.isEmpty {
-                            onAdd(exerciseName, targetSets, exerciseType, holdDuration)
+                            let type: ExerciseType = (mode == .timeBased) ? .hold : .weightReps
+                            onAdd(exerciseName, targetSets, type, holdDuration)
                         }
                     }) {
                         Text("Add Exercise")

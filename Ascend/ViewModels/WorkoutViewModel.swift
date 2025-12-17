@@ -78,12 +78,14 @@ class WorkoutViewModel: ObservableObject {
         guard let workout = currentWorkout else { return [] }
         
         return workout.exercises.sorted { ex1, ex2 in
-            // Get category from ExRxExercise data if available
+            // Get category from ExRxExercise or custom exercise data if available
             let exRx1 = ExRxDirectoryManager.shared.findExercise(name: ex1.name)
             let exRx2 = ExRxDirectoryManager.shared.findExercise(name: ex2.name)
+            let custom1 = ExerciseDataManager.shared.getCustomExercise(name: ex1.name)
+            let custom2 = ExerciseDataManager.shared.getCustomExercise(name: ex2.name)
             
-            let priority1 = ex1.name.getExerciseTypePriority(category: exRx1?.category)
-            let priority2 = ex2.name.getExerciseTypePriority(category: exRx2?.category)
+            let priority1 = ex1.name.getExerciseTypePriority(category: exRx1?.category ?? custom1?.category)
+            let priority2 = ex2.name.getExerciseTypePriority(category: exRx2?.category ?? custom2?.category)
             
             // First sort by type priority
             if priority1 != priority2 {
@@ -131,8 +133,21 @@ class WorkoutViewModel: ObservableObject {
                 // Fall back to name-based detection below
                 resolvedType = fallbackSectionType(for: exercise)
             }
+        } else if let custom = ExerciseDataManager.shared.getCustomExercise(name: exercise.name) {
+            // Next check category from CustomExercise data
+            let category = custom.category.lowercased()
+            if category == "warmup" || exercise.name.isWarmupExercise(category: custom.category) {
+                resolvedType = .warmup
+            } else if category == "stretching" || exercise.name.isStretchExercise(category: custom.category) {
+                resolvedType = .stretch
+            } else if category == "cardio" || exercise.name.isCardioExercise(category: custom.category) {
+                resolvedType = .cardio
+            } else {
+                // Fall back to name-based detection below
+                resolvedType = fallbackSectionType(for: exercise)
+            }
         } else {
-            // Fallback to name-based detection when ExRx data is unavailable
+            // Fallback to name-based detection when ExRx or custom data is unavailable
             resolvedType = fallbackSectionType(for: exercise)
         }
         
@@ -203,7 +218,7 @@ class WorkoutViewModel: ObservableObject {
     
     /// Check if an exercise is a calisthenics exercise
     func isCalisthenicsExercise(_ exercise: Exercise) -> Bool {
-        // Check if exercise name contains any calisthenics skill name
+        // Check if exercise matches any calisthenics skill progression
         let calisthenicsSkillNames = CalisthenicsSkillManager.shared.skills.map { $0.name }
         for skillName in calisthenicsSkillNames {
             if exercise.name.contains(skillName) {
@@ -219,16 +234,30 @@ class WorkoutViewModel: ObservableObject {
             }
         }
         
-        // If exercise type is hold, it's likely calisthenics
-        if exercise.exerciseType == .hold {
+        // Check ExRx or custom exercise category
+        if let exRxExercise = ExRxDirectoryManager.shared.findExercise(name: exercise.name),
+           exRxExercise.category.lowercased() == "calisthenics" {
             return true
         }
         
+        if let customExercise = ExerciseDataManager.shared.getCustomExercise(name: exercise.name),
+           customExercise.category.lowercased() == "calisthenics" {
+            return true
+        }
+        
+        // If exercise type is hold and we got here via a calisthenics skill or keyword above,
+        // it's already been classified. Otherwise, don't treat generic holds as calisthenics.
         return false
     }
     
     /// Check if an exercise is a rep-based calisthenics exercise (not hold-based)
     func isRepBasedCalisthenics(_ exerciseName: String) -> Bool {
+        // Custom exercises explicitly tagged as calisthenics should be rep-based by default.
+        if let customExercise = ExerciseDataManager.shared.getCustomExercise(name: exerciseName),
+           customExercise.category.lowercased() == "calisthenics" {
+            return true
+        }
+        
         // Rep-based calisthenics exercises (these should NOT have hold duration)
         let repBasedKeywords = ["Push-up", "Pull-up", "Chin-up", "Dip", "Muscle Up"]
         for keyword in repBasedKeywords {
@@ -281,9 +310,9 @@ class WorkoutViewModel: ObservableObject {
         return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
     }
     
-    /// Complete a stretch set (tracked by sets only, no weight/reps inputs).
+    /// Complete a stretch set (tracked by sets and optional hold duration, no weight inputs).
     /// Uses lightweight sets under the hood but skips PR/history for stretches.
-    func completeStretchSet() {
+    func completeStretchSet(duration: Int? = nil) {
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
@@ -299,7 +328,7 @@ class WorkoutViewModel: ObservableObject {
             setNumber: setNumber,
             weight: 0,
             reps: 1,
-            holdDuration: nil,
+            holdDuration: duration,
             isDropset: false,
             dropsetNumber: nil,
             isWarmup: false
@@ -581,6 +610,13 @@ class WorkoutViewModel: ObservableObject {
             if isRepBasedCalisthenics(templateExercise.name) {
                 exerciseType = .weightReps
                 holdDuration = nil // Rep-based calisthenics don't have hold duration
+            } else if templateExercise.name.isStretchExercise() || templateExercise.name.isCardioExercise() {
+                // Cardio and stretching should be time + set based
+                exerciseType = .hold
+                if holdDuration == nil {
+                    // Provide a sensible default duration when one isn't specified
+                    holdDuration = AppConstants.Validation.minHoldDuration
+                }
             }
             
             return Exercise(
