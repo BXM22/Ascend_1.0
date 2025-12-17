@@ -1,116 +1,107 @@
 import SwiftUI
+import Charts
 
-/// Displays weekly training trends (volume and workout frequency) using simple bar charts.
+/// Displays PR trend charts for the currently selected exercise on the Progress screen.
 struct TrendGraphsView: View {
     @ObservedObject var viewModel: ProgressViewModel
     
+    private var selectedExerciseName: String {
+        viewModel.selectedExercise
+    }
+    
+    private var selectedExercisePRs: [PersonalRecord] {
+        viewModel.selectedExercisePRs.sorted { $0.date < $1.date }
+    }
+    
     var body: some View {
         VStack(spacing: 16) {
-            FrequencyTrendCard(data: viewModel.weeklyWorkoutFrequency)
+            PRTrendCard(
+                exerciseName: selectedExerciseName,
+                prs: selectedExercisePRs
+            )
         }
         .padding(.horizontal, 20)
     }
 }
 
-// MARK: - Volume Trend
+// MARK: - PR Trend Card
 
-private struct VolumeTrendCard: View {
-    let data: [VolumeDataPoint]
+private struct PRTrendCard: View {
+    let exerciseName: String
+    let prs: [PersonalRecord]
     
-    private var maxVolume: Double {
-        let maxValue = data.map { $0.volume }.max() ?? 0
-        return max(1, Double(maxValue))
+    private var hasEnoughData: Bool {
+        prs.count >= 2
     }
     
-    var body: some View {
-        TrendCardContainer(
-            title: "Weekly Volume",
-            subtitle: "Last \(AppConstants.Progress.weeksToDisplay) weeks",
-            systemImage: "chart.bar.fill",
-            gradient: LinearGradient.primaryGradient
-        ) { width, height in
-            if data.isEmpty {
-                EmptyTrendPlaceholder(message: "No volume data yet")
-                    .frame(width: width, height: height, alignment: .center)
-            } else {
-                let barAreaHeight = height - 24 // leave room for labels
-                let barCount = max(data.count, 1)
-                let barWidth = max(6, (width / CGFloat(barCount)) * 0.5)
-                
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(Array(data.enumerated()), id: \.offset) { _, point in
-                        VStack(spacing: 4) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(LinearGradient.primaryGradient)
-                                .frame(
-                                    width: barWidth,
-                                    height: max(
-                                        4,
-                                        CGFloat(point.volume) / CGFloat(maxVolume) * barAreaHeight
-                                    )
-                                )
-                            
-                            Text(point.weekLabel)
-                                .font(.system(size: 9))
-                                .foregroundColor(AppColors.mutedForeground)
-                                .lineLimit(1)
-                                .frame(maxWidth: barWidth * 2)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            }
+    private var title: String {
+        exerciseName.isEmpty ? "PR Trend" : "\(exerciseName) PR Trend"
+    }
+    
+    private var subtitle: String {
+        if prs.isEmpty {
+            return "Select an exercise with PRs to see your progress"
+        } else if let first = prs.first, let last = prs.last {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return "\(formatter.string(from: first.date)) – \(formatter.string(from: last.date))"
+        } else {
+            return "Personal record progression over time"
         }
     }
-}
-
-// MARK: - Frequency Trend
-
-private struct FrequencyTrendCard: View {
-    let data: [FrequencyDataPoint]
-    
-    private var maxCount: Double {
-        let maxValue = data.map { $0.count }.max() ?? 0
-        return max(1, Double(maxValue))
-    }
     
     var body: some View {
         TrendCardContainer(
-            title: "Workout Frequency",
-            subtitle: "Sessions per week",
-            systemImage: "calendar",
-            gradient: LinearGradient.backGradient
+            title: title,
+            subtitle: subtitle,
+            systemImage: "chart.line.uptrend.xyaxis",
+            gradient: LinearGradient.primaryGradient
         ) { width, height in
-            if data.isEmpty {
-                EmptyTrendPlaceholder(message: "No workouts logged yet")
-                    .frame(width: width, height: height, alignment: .center)
+            if !hasEnoughData {
+                EmptyTrendPlaceholder(
+                    message: prs.isEmpty
+                        ? "Hit a few PRs to unlock your trend chart"
+                        : "Keep training to build a clearer PR trend"
+                )
+                .frame(width: width, height: height, alignment: .center)
             } else {
-                let barAreaHeight = height - 24
-                let barCount = max(data.count, 1)
-                let barWidth = max(6, (width / CGFloat(barCount)) * 0.5)
-                
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(Array(data.enumerated()), id: \.offset) { _, point in
-                        VStack(spacing: 4) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(LinearGradient.backGradient)
-                                .frame(
-                                    width: barWidth,
-                                    height: max(
-                                        4,
-                                        CGFloat(point.count) / CGFloat(maxCount) * barAreaHeight
-                                    )
-                                )
-                            
-                            Text(point.weekLabel)
-                                .font(.system(size: 9))
-                                .foregroundColor(AppColors.mutedForeground)
-                                .lineLimit(1)
-                                .frame(maxWidth: barWidth * 2)
+                Chart {
+                    ForEach(prs, id: \.id) { pr in
+                        LineMark(
+                            x: .value("Date", pr.date, unit: .day),
+                            y: .value("Weight", pr.weight)
+                        )
+                        .foregroundStyle(LinearGradient.primaryGradient)
+                        .interpolationMethod(.catmullRom)
+                        .lineStyle(StrokeStyle(lineWidth: 3))
+                        
+                        PointMark(
+                            x: .value("Date", pr.date, unit: .day),
+                            y: .value("Weight", pr.weight)
+                        )
+                        .foregroundStyle(AppColors.accent)
+                        .symbolSize(60)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let weight = value.as(Double.self) {
+                                Text("\(Int(weight)) lbs")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(AppColors.mutedForeground)
+                            }
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                        AxisGridLine()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
+                }
+                .frame(width: width, height: height)
             }
         }
     }
@@ -182,7 +173,5 @@ private struct EmptyTrendPlaceholder: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
-
 
 
