@@ -37,6 +37,10 @@ struct WorkoutGenerationSettings: Codable {
     var includeCalisthenics: Bool
     var includeWarmup: Bool
     var includeStretch: Bool
+    /// Maximum number of warmup/stretch exercises to include per workout (0 = none)
+    var maxWarmupStretchExercises: Int
+    /// Maximum number of cardio exercises to include per workout (0 = none)
+    var maxCardioExercises: Int
     var preferredEquipment: [String] // e.g., ["Bodyweight", "Dumbbells", "Barbell"]
     var minExercises: Int
     var maxExercises: Int
@@ -75,6 +79,8 @@ struct WorkoutGenerationSettings: Codable {
         self.includeCalisthenics = false
         self.includeWarmup = true
         self.includeStretch = true
+        self.maxWarmupStretchExercises = 2
+        self.maxCardioExercises = 1
         self.preferredEquipment = ["Bodyweight", "Dumbbells", "Barbell"]
         self.minExercises = 4
         self.maxExercises = 8

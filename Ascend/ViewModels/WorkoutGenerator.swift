@@ -277,7 +277,8 @@ class WorkoutGenerator {
         
         for exerciseName in selectedExercises {
             let exercise = exerciseLookup[exerciseName]
-            if exerciseName.isWarmupExercise(category: exercise?.category) {
+            if exerciseName.isWarmupExercise(category: exercise?.category) ||
+                exerciseName.isStretchExercise(category: exercise?.category) {
                 warmupExercises.append(exerciseName)
             } else if exerciseName.isCardioExercise(category: exercise?.category) {
                 cardioExercises.append(exerciseName)
@@ -313,7 +314,24 @@ class WorkoutGenerator {
             workingSetExercises = Array(workingSetExercises.shuffled().prefix(settings.maxExercises))
         }
         
-        // Recombine: working sets + warmup + cardio
+        // Clamp warmup/stretch and cardio counts according to settings
+        if settings.includeWarmup || settings.includeStretch {
+            if settings.maxWarmupStretchExercises >= 0 {
+                warmupExercises = Array(warmupExercises.prefix(settings.maxWarmupStretchExercises))
+            }
+        } else {
+            warmupExercises.removeAll()
+        }
+        
+        if settings.includeCardio {
+            if settings.maxCardioExercises >= 0 {
+                cardioExercises = Array(cardioExercises.prefix(settings.maxCardioExercises))
+            }
+        } else {
+            cardioExercises.removeAll()
+        }
+        
+        // Recombine: working sets + warmup/stretch + cardio
         selectedExercises = workingSetExercises + warmupExercises + cardioExercises
         
         // Convert to TemplateExercise format

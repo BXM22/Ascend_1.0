@@ -161,6 +161,68 @@ struct WorkoutGenerationSettingsView: View {
                             .padding(.vertical, AppSpacing.sm)
                             .background(AppColors.secondary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            
+                            // Warmup/Stretch count
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Warmup & Stretch Exercises")
+                                        .font(AppTypography.bodyMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("Max number per workout (0–5)")
+                                        .font(AppTypography.caption)
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                                Spacer()
+                                Stepper(
+                                    value: Binding(
+                                        get: { settings.maxWarmupStretchExercises },
+                                        set: {
+                                            HapticManager.selection()
+                                            settings.maxWarmupStretchExercises = max(0, min(5, $0))
+                                        }
+                                    ),
+                                    in: 0...5
+                                ) {
+                                    Text("\(settings.maxWarmupStretchExercises)")
+                                        .font(AppTypography.bodyMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(AppColors.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            
+                            // Cardio count
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Cardio Exercises")
+                                        .font(AppTypography.bodyMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("Max number per workout (0–3)")
+                                        .font(AppTypography.caption)
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                                Spacer()
+                                Stepper(
+                                    value: Binding(
+                                        get: { settings.maxCardioExercises },
+                                        set: {
+                                            HapticManager.selection()
+                                            settings.maxCardioExercises = max(0, min(3, $0))
+                                        }
+                                    ),
+                                    in: 0...3
+                                ) {
+                                    Text("\(settings.maxCardioExercises)")
+                                        .font(AppTypography.bodyMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(AppColors.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
                     .padding(AppSpacing.md)
