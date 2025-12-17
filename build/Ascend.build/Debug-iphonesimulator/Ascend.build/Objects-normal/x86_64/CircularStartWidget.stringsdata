@@ -1,0 +1,16 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CircularStartWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Last 35 Days",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 131
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -240,7 +240,9 @@ class TemplatesViewModel: ObservableObject {
     
     // Generate workout using WorkoutGenerator
     func generateWorkout(name: String? = nil) -> WorkoutTemplate {
-        return WorkoutGenerator.shared.generateWorkout(settings: generationSettings, name: name)
+        // Extract day type from name if provided
+        let dayType = name.flatMap { WorkoutDayTypeExtractor.extract(from: $0) }
+        return WorkoutGenerator.shared.generateWorkout(settings: generationSettings, name: name, workoutDayType: dayType)
     }
     
     // Generate specific workout types
@@ -258,6 +260,14 @@ class TemplatesViewModel: ObservableObject {
     
     func generateFullBodyWorkout() -> WorkoutTemplate {
         return WorkoutGenerator.shared.generateFullBodyWorkout(settings: generationSettings)
+    }
+    
+    func generateUpperWorkout() -> WorkoutTemplate {
+        return WorkoutGenerator.shared.generateUpperWorkout(settings: generationSettings)
+    }
+    
+    func generateLowerWorkout() -> WorkoutTemplate {
+        return WorkoutGenerator.shared.generateLowerWorkout(settings: generationSettings)
     }
     
     // Generate multiple variations

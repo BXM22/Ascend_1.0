@@ -1,0 +1,152 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/AddCustomExerciseView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Edit Custom Exercise",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 293
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Custom Exercise",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 293
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercise Name *",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., Custom Exercise",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 54
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "Primary Muscle Groups *",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "Secondary Muscle Groups",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Equipment",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., Barbell, Dumbbells, Bodyweight",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 180
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alternative Exercises",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add alternative",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "Video URL (Optional)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 254
+        }
+      },
+      {
+        "comment": "",
+        "key": "https://...",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Exercise",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 297
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 304
+        }
+      }
+    ]
+  },
+  "version": 1
+}

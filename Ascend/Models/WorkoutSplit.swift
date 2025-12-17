@@ -6,6 +6,8 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
     case chestBackLegsShouldersArms = "Chest & Back/Legs/Shoulders & Arms"
     case backBicepsChestTricepsLegsShoulders = "Back & Biceps/Chest & Triceps/Legs/Shoulders"
     case chestBackLegsShouldersArms4Day = "Chest/Back/Legs/Shoulders & Arms"
+    case upperLower = "Upper/Lower"
+    case fullBody = "Full Body"
     case custom = "Custom"
     
     var dayNames: [String] {
@@ -18,6 +20,10 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return ["Back & Biceps", "Chest & Triceps", "Legs", "Shoulders", "Rest", "Rest", "Rest"]
         case .chestBackLegsShouldersArms4Day:
             return ["Chest", "Back", "Legs", "Shoulders & Arms", "Rest", "Rest", "Rest"]
+        case .upperLower:
+            return ["Upper", "Lower", "Upper", "Lower", "Rest", "Rest", "Rest"]
+        case .fullBody:
+            return ["Full Body A", "Rest", "Full Body B", "Rest", "Full Body A", "Rest", "Rest"]
         case .custom:
             return [] // Custom splits define their own days
         }
@@ -33,6 +39,10 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return 4
         case .chestBackLegsShouldersArms4Day:
             return 4
+        case .upperLower:
+            return 4
+        case .fullBody:
+            return 3 // 3-4 per week, configurable
         case .custom:
             return 0 // Custom splits define their own count
         }
@@ -48,6 +58,10 @@ enum WorkoutSplitType: String, CaseIterable, Codable {
             return "4-day split: Back & Biceps, Chest & Triceps, Legs, Shoulders"
         case .chestBackLegsShouldersArms4Day:
             return "4-day split: Chest, Back, Legs, Shoulders & Arms"
+        case .upperLower:
+            return "4-day split: Upper, Lower, Upper, Lower, Rest, Rest, Rest"
+        case .fullBody:
+            return "3-4× per week: Full Body workouts hitting every major muscle each session"
         case .custom:
             return "Custom split with your own day structure"
         }

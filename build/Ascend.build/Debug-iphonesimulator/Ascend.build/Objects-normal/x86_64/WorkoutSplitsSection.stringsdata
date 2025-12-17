@@ -1,0 +1,168 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutSplitsSection.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Workout Programs",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 15
+        }
+      },
+      {
+        "comment": "",
+        "key": "No workout programs yet",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Your First Program",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set Active",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Active",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rest Day",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Template",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Auto Generate",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 321
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select Template",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 391
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld exercises%@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 376
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 395
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Program",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 568
+        }
+      },
+      {
+        "comment": "",
+        "key": "Program Name",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 423
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., My PPL Program",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 427
+        }
+      },
+      {
+        "comment": "",
+        "key": "Split Type",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 442
+        }
+      },
+      {
+        "comment": "",
+        "key": "Custom Days",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 480
+        }
+      },
+      {
+        "comment": "",
+        "key": "Day name",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 486
+        }
+      },
+      {
+        "comment": "",
+        "key": "New day name",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 507
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Program",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 553
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 572
+        }
+      }
+    ]
+  },
+  "version": 1
+}

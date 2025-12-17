@@ -1,0 +1,30 @@
+{
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/DashboardView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/DashboardView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/DashboardView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/DashboardView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/DashboardView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/DashboardView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/PRHistoryView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/PRHistoryView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/PRHistoryView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/PRHistoryView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/PRHistoryView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/PRHistoryView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ProgressView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/ProgressView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/ProgressView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/ProgressView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/ProgressView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/ProgressView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/TemplatesView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/TemplatesView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/TemplatesView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/TemplatesView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/TemplatesView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/TemplatesView.swiftdeps"
+  }
+}

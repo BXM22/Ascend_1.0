@@ -1,0 +1,65 @@
+{
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/SkillProgression.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/SkillProgression.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/SkillProgression.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/SkillProgression.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/SkillProgression.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/SkillProgression.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/TrainingPhase.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/TrainingPhase.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/TrainingPhase.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/TrainingPhase.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/TrainingPhase.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/TrainingPhase.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutGenerationSettings.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutGenerationSettings.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutGenerationSettings.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutGenerationSettings.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutGenerationSettings.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutGenerationSettings.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutProgram.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutProgram.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutProgram.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutProgram.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutProgram.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutProgram.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutSplit.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutSplit.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutSplit.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutSplit.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutSplit.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/WorkoutSplit.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Animations.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Animations.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Animations.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Animations.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Animations.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Animations.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/AppColors.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppColors.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppColors.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppColors.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppColors.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppColors.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Haptics.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Haptics.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Haptics.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Haptics.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Haptics.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Haptics.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Spacing.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Spacing.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Spacing.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Spacing.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Spacing.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Spacing.swiftdeps"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutPatternInsightCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Workout Pattern",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 48
+        }
+      }
+    ]
+  },
+  "version": 1
+}

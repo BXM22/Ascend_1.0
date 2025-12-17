@@ -1,0 +1,184 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/DashboardView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Generate workout",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Workout History",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "Custom",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 186
+        }
+      },
+      {
+        "comment": "",
+        "key": "Push",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 187
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pull",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 188
+        }
+      },
+      {
+        "comment": "",
+        "key": "Legs",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Full Body",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 190
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 191
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select the day type to auto-generate and start your workout.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your Activity",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 243
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 312
+        }
+      },
+      {
+        "comment": "",
+        "key": "PRs This Week",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 319
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld PRs",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 438
+        }
+      },
+      {
+        "comment": "",
+        "key": "No Data",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 458
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start tracking",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 463
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Rest Day",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 592
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rest Day",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 575
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark today as rest day",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 579
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 593
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Rest Day",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 594
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will mark today as a rest day and increment your streak. You can still work out later today if needed.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 599
+        }
+      }
+    ]
+  },
+  "version": 1
+}

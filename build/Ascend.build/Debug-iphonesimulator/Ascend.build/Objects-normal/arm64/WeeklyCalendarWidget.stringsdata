@@ -1,0 +1,80 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WeeklyCalendarWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Today",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Today: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next: %@ - %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next: %@ - %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 320
+        }
+      },
+      {
+        "comment": "",
+        "key": "Workout Details",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 367
+        }
+      },
+      {
+        "comment": "",
+        "key": "No Workout Scheduled",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 347
+        }
+      },
+      {
+        "comment": "",
+        "key": "This day doesn't have a scheduled workout in your active program.",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 352
+        }
+      },
+      {
+        "comment": "",
+        "key": "No active workout program. Start a program to see scheduled workouts.",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 358
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 371
+        }
+      }
+    ]
+  },
+  "version": 1
+}

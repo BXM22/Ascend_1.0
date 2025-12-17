@@ -1,0 +1,65 @@
+{
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Typography.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Typography.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Typography.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Typography.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Typography.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/Typography.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Utilities/DesignSystem.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/DesignSystem.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/DesignSystem.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/DesignSystem.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/DesignSystem.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/DesignSystem.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/AppConstants.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppConstants.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppConstants.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppConstants.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppConstants.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/AppConstants.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/CSVExerciseImporter.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CSVExerciseImporter.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CSVExerciseImporter.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CSVExerciseImporter.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CSVExerciseImporter.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CSVExerciseImporter.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/CloudKitSyncManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CloudKitSyncManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CloudKitSyncManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CloudKitSyncManager.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CloudKitSyncManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/CloudKitSyncManager.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ExRxDirectoryManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExRxDirectoryManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExRxDirectoryManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExRxDirectoryManager.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExRxDirectoryManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExRxDirectoryManager.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ExerciseDataManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExerciseDataManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExerciseDataManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExerciseDataManager.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExerciseDataManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/ExerciseDataManager.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/HealthKitManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/HealthKitManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/HealthKitManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/HealthKitManager.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/HealthKitManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/HealthKitManager.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/NotificationManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/NotificationManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/NotificationManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/NotificationManager.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/NotificationManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/x86_64/NotificationManager.swiftdeps"
+  }
+}

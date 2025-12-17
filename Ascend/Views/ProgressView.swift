@@ -11,6 +11,7 @@ struct ProgressView: View {
     @ObservedObject var viewModel: ProgressViewModel
     let onSettings: () -> Void
     @Environment(\.colorScheme) var colorScheme
+    @State private var showPRHistory = false
     
     var body: some View {
         ScrollView {
@@ -53,13 +54,55 @@ struct ProgressView: View {
                     // Exercise PR Tracker
                     ExercisePRTrackerView(viewModel: viewModel)
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 100)
+                    
+                    // View All PRs Button
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        showPRHistory = true
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "list.bullet.rectangle")
+                                .font(.system(size: 18, weight: .semibold))
+                            
+                            Text("View All PRs")
+                                .font(.system(size: 16, weight: .semibold))
+                            
+                            Spacer()
+                            
+                            Text("\(viewModel.prs.count)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(AppColors.secondary)
+                                .clipShape(Capsule())
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
+                        .foregroundColor(AppColors.foreground)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(AppColors.border.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 100)
                    
                 }
             }
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
+        .sheet(isPresented: $showPRHistory) {
+            PRHistoryView(progressViewModel: viewModel)
+        }
     }
 }
 
@@ -229,6 +272,7 @@ struct ExercisePRTrackerView: View {
     @ObservedObject var viewModel: ProgressViewModel
     @Environment(\.colorScheme) var colorScheme
     @State private var showExercisePicker = false
+    @State private var showExerciseHistory = false
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
     @State private var selectedBodyPart: String? = nil
@@ -321,7 +365,7 @@ struct ExercisePRTrackerView: View {
             } else {
                 // Current PR Display
                 if let currentPR = viewModel.currentPR {
-                    CurrentPRCard(pr: currentPR)
+                    CurrentPRCard(pr: currentPR, viewModel: viewModel, showExerciseHistory: $showExerciseHistory)
                 }
                 
                 // PR History
@@ -334,7 +378,7 @@ struct ExercisePRTrackerView: View {
                         
                         ForEach(Array(viewModel.selectedExercisePRs.enumerated()), id: \.element.id) { index, pr in
                             if index > 0 { // Skip first one (current PR)
-                                PRHistoryItemView(pr: pr, previousPR: index > 1 ? viewModel.selectedExercisePRs[index - 1] : nil)
+                                PRHistoryItemView(pr: pr, previousPR: index > 1 ? viewModel.selectedExercisePRs[index - 1] : nil, viewModel: viewModel)
                             }
                         }
                     }
@@ -363,13 +407,26 @@ struct ExercisePRTrackerView: View {
                 }
             )
         }
+        .sheet(isPresented: $showExerciseHistory) {
+            if !viewModel.selectedExercise.isEmpty {
+                ExerciseHistoryView(
+                    exerciseName: viewModel.selectedExercise,
+                    progressViewModel: viewModel
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 }
 
 // MARK: - Current PR Card
 struct CurrentPRCard: View {
     let pr: PersonalRecord
+    @ObservedObject var viewModel: ProgressViewModel
     @Environment(\.colorScheme) var colorScheme
+    @State private var showDeleteConfirmation = false
+    @Binding var showExerciseHistory: Bool
     
     private var dateString: String {
         let formatter = DateFormatter()
@@ -385,9 +442,26 @@ struct CurrentPRCard: View {
     var body: some View {
         GradientBorderedCard(gradient: gradient) {
             VStack(spacing: 16) {
-                Text("Current PR")
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.mutedForeground)
+                HStack {
+                    Text("Current PR")
+                        .font(AppTypography.bodyMedium)
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        showDeleteConfirmation = true
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .frame(width: 32, height: 32)
+                            .background(AppColors.secondary.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
                 
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(Int(pr.weight))")
@@ -419,6 +493,20 @@ struct CurrentPRCard: View {
             .padding(.vertical, 24)
             .padding(.horizontal, 20)
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            HapticManager.impact(style: .light)
+            showExerciseHistory = true
+        }
+        .alert("Delete Personal Record", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                viewModel.deletePR(pr)
+                HapticManager.success()
+            }
+        } message: {
+            Text("Are you sure you want to delete this personal record? This action cannot be undone.")
+        }
     }
 }
 
@@ -426,7 +514,9 @@ struct CurrentPRCard: View {
 struct PRHistoryItemView: View {
     let pr: PersonalRecord
     let previousPR: PersonalRecord?
+    @ObservedObject var viewModel: ProgressViewModel
     @Environment(\.colorScheme) var colorScheme
+    @State private var showDeleteConfirmation = false
     
     private var dateString: String {
         let formatter = DateFormatter()
@@ -471,6 +561,19 @@ struct PRHistoryItemView: View {
             }
             
             Spacer()
+            
+            Button(action: {
+                HapticManager.impact(style: .light)
+                showDeleteConfirmation = true
+            }) {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.mutedForeground)
+                    .frame(width: 32, height: 32)
+                    .background(AppColors.secondary.opacity(0.5))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(ScaleButtonStyle())
         }
         .padding(16)
         .background(LinearGradient.cardGradient)
@@ -479,6 +582,15 @@ struct PRHistoryItemView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(AppColors.border, lineWidth: 1)
         )
+        .alert("Delete Personal Record", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                viewModel.deletePR(pr)
+                HapticManager.success()
+            }
+        } message: {
+            Text("Are you sure you want to delete this personal record? This action cannot be undone.")
+        }
     }
 }
 

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/ExerciseAutocompleteField.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld×",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 264
+        }
+      }
+    ]
+  },
+  "version": 1
+}

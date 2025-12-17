@@ -7,6 +7,10 @@ struct SuggestedWorkoutCard: View {
     let onStartWorkout: () -> Void
     
     @ObservedObject private var workoutHistoryManager = WorkoutHistoryManager.shared
+    @ObservedObject private var personalizationManager = PersonalizationManager.shared
+    
+    @State private var showGeneratedAlert = false
+    @State private var generatedWorkoutInfo: (name: String, intensity: WorkoutIntensity)?
     
     // Check if there's an active program
     private var activeProgramDay: (name: String, day: WorkoutDay, programName: String)? {
@@ -21,24 +25,48 @@ struct SuggestedWorkoutCard: View {
     }
     
     // Get suggested template from available templates
-    private var suggestedTemplate: (name: String, template: WorkoutTemplate, icon: String, gradient: LinearGradient)? {
+    private var suggestedTemplate: (name: String, template: WorkoutTemplate, icon: String, gradient: LinearGradient, reasoning: String?)? {
         // Filter out progression templates
         let availableTemplates = templatesViewModel.templates.filter { !$0.name.contains("Progression") }
         
         guard !availableTemplates.isEmpty else { return nil }
+        
+        // Try to get personalized recommendation
+        let personalizedRec = personalizationManager.getPersonalizedRecommendations()
         
         // Get recently used template names
         let recentTemplateNames = Set(workoutHistoryManager.completedWorkouts
             .prefix(5)
             .map { $0.name })
         
+        // If we have a personalized recommendation, try to match it
+        if let rec = personalizedRec {
+            let recommendedType = rec.workoutType.lowercased()
+            if let matchingTemplate = availableTemplates.first(where: { template in
+                let templateName = template.name.lowercased()
+                return (recommendedType == "push" && (templateName.contains("push") || templateName.contains("chest"))) ||
+                       (recommendedType == "pull" && (templateName.contains("pull") || templateName.contains("back"))) ||
+                       (recommendedType == "legs" && templateName.contains("leg")) ||
+                       (recommendedType == "full body" && templateName.contains("full"))
+            }) {
+                let info = templateInfo(for: matchingTemplate)
+                return (info.name, info.template, info.icon, info.gradient, rec.reasoning)
+            }
+        }
+        
         // Find first template not recently used
         if let template = availableTemplates.first(where: { !recentTemplateNames.contains($0.name) }) {
-            return templateInfo(for: template)
+            let info = templateInfo(for: template)
+            return (info.name, info.template, info.icon, info.gradient, nil)
         }
         
         // Otherwise return first available template
-        return templateInfo(for: availableTemplates[0])
+        let info = templateInfo(for: availableTemplates[0])
+        return (info.name, info.template, info.icon, info.gradient, nil)
+    }
+    
+    private var personalizedReasoning: String? {
+        suggestedTemplate?.reasoning
     }
     
     private func templateInfo(for template: WorkoutTemplate) -> (name: String, template: WorkoutTemplate, icon: String, gradient: LinearGradient) {
@@ -67,14 +95,40 @@ struct SuggestedWorkoutCard: View {
     private func startSuggestedWorkout() {
         // If there's an active program, start that day
         if let programDay = activeProgramDay {
-            startProgramDay(programDay.day, programName: programDay.programName)
+            // Check if day has template or exercises
+            if let templateId = programDay.day.templateId,
+               let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+                templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                onStartWorkout()
+            } else if !programDay.day.exercises.isEmpty {
+                startProgramDay(programDay.day, programName: programDay.programName)
+                onStartWorkout()
+            } else {
+                // Generate workout for this day
+                if let active = programViewModel.activeProgram,
+                   let program = programViewModel.programs.first(where: { $0.id == active.programId }) {
+                    let dayIndex = active.getCurrentDayIndex(totalDays: program.days.count)
+                    if let result = programViewModel.ensureTemplateForDay(
+                        dayIndex: dayIndex,
+                        inProgram: program.id,
+                        settings: templatesViewModel.generationSettings,
+                        templatesViewModel: templatesViewModel
+                    ) {
+                        if result.wasGenerated {
+                            generatedWorkoutInfo = (name: result.template.name, intensity: result.intensity)
+                            showGeneratedAlert = true
+                        }
+                        templatesViewModel.startTemplate(result.template, workoutViewModel: workoutViewModel)
+                        onStartWorkout()
+                    }
+                }
+            }
         }
         // Otherwise start suggested template
         else if let suggestion = suggestedTemplate {
             templatesViewModel.startTemplate(suggestion.template, workoutViewModel: workoutViewModel)
+            onStartWorkout()
         }
-        
-        onStartWorkout()
     }
     
     private func startProgramDay(_ day: WorkoutDay, programName: String) {
@@ -137,6 +191,14 @@ struct SuggestedWorkoutCard: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
                     
+                    if let reasoning = personalizedReasoning {
+                        Text(reasoning)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .lineLimit(2)
+                            .padding(.top, 4)
+                    }
+                    
                     HStack(spacing: 8) {
                         Text("Start Session")
                             .font(.system(size: 15, weight: .semibold))
@@ -177,6 +239,11 @@ struct SuggestedWorkoutCard: View {
         }
         .buttonStyle(ScaleButtonStyle())
         .disabled(suggestedTemplate == nil && activeProgramDay == nil)
+        .alert("Workout Generated", isPresented: $showGeneratedAlert, presenting: generatedWorkoutInfo) { info in
+            Button("Got it", role: .cancel) { }
+        } message: { info in
+            Text("A \(info.intensity.rawValue) intensity workout has been generated for \(info.name).")
+        }
     }
 }
 

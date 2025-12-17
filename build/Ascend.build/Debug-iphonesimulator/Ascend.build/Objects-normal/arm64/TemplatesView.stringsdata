@@ -1,0 +1,480 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/TemplatesView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Search templates...",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "Workout Templates",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 97
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Template",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Calisthenic Skill",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Templates",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 206
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 229
+        }
+      },
+      {
+        "comment": "",
+        "key": "Generation Settings",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 240
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Template?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 358
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld exercises",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 295
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 333
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 359
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 360
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete \"%@\"? This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 364
+        }
+      },
+      {
+        "comment": "",
+        "key": "Skill Progressions",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 421
+        }
+      },
+      {
+        "comment": "",
+        "key": "Goal: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 378
+        }
+      },
+      {
+        "comment": "",
+        "key": "Levels: %lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 383
+        }
+      },
+      {
+        "comment": "",
+        "key": "Level %lld: %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 390
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target: %lld sec hold",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 399
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target: reps or hold time",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 407
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target: %lld reps",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 403
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Exercise",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 583
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercise Name",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 444
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Custom",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 456
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercise Type",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 470
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight/Reps",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 478
+        }
+      },
+      {
+        "comment": "",
+        "key": "Hold",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 491
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Hold Duration (seconds)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 505
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld seconds",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 510
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Sets",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 526
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld sets",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 531
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 549
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Exercise",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 567
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Template",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 864
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Template",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 864
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear All Exercises?",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 878
+        }
+      },
+      {
+        "comment": "",
+        "key": "Template Name",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 640
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., Push Day",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 644
+        }
+      },
+      {
+        "comment": "",
+        "key": "Intensity (Optional)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "Intensity",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 663
+        }
+      },
+      {
+        "comment": "",
+        "key": "None",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 664
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercises",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 679
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear All",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 693
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Exercise",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 728
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Custom",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 740
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sets",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 756
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 760
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reps",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 768
+        }
+      },
+      {
+        "comment": "",
+        "key": "8-10",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 771
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dropsets",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 782
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 785
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Exercise",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 810
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Template",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 832
+        }
+      },
+      {
+        "comment": "",
+        "key": "This is a default template and cannot be deleted",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 851
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 879
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 880
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will remove all exercises from the template. This action cannot be undone.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 884
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 888
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 893
+        }
+      }
+    ]
+  },
+  "version": 1
+}

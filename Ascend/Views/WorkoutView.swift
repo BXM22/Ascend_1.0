@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct WorkoutView: View {
     @ObservedObject var viewModel: WorkoutViewModel
@@ -20,18 +21,253 @@ struct WorkoutView: View {
     @State private var exerciseToDelete: Int?
     @State private var currentSetIsWarmup = false
     
+    // Helper to render exercise card based on type
+    @ViewBuilder
+    private func exerciseCardView(for exercise: Exercise, isCurrent: Bool) -> some View {
+        let sectionType = viewModel.getSectionType(for: exercise)
+        
+        Group {
+            if sectionType == .stretch {
+                // Stretch-specific card: track by sets only (no weight/reps inputs)
+                StretchExerciseCard(
+                    exercise: exercise,
+                    onCompleteSet: {
+                        if isCurrent {
+                            viewModel.completeStretchSet()
+                        }
+                    }
+                )
+                .id("exercise-\(exercise.id)-stretch-\(exercise.sets.count)")
+            } else if viewModel.isCardioExercise(exercise) {
+                // Cardio: time and set based only (no weight)
+                CardioExerciseCard(
+                    exercise: exercise,
+                    holdDuration: $holdDuration,
+                    showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                    prMessage: isCurrent ? viewModel.prMessage : "",
+                    onCompleteSet: {
+                        if isCurrent, let duration = Int(holdDuration) {
+                            viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
+                        }
+                    }
+                )
+                .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                )
+                .onAppear {
+                    if isCurrent {
+                        calisthenicsWeight = "0"
+                        if exercise.targetHoldDuration != nil {
+                            holdDuration = String(exercise.targetHoldDuration ?? 300)
+                        } else {
+                            holdDuration = "300"
+                        }
+                    }
+                }
+            } else if viewModel.isCalisthenicsExercise(exercise) {
+                if exercise.targetHoldDuration != nil {
+                    // Hold-based calisthenics
+                    CalisthenicsHoldExerciseCard(
+                        exercise: exercise,
+                        holdDuration: $holdDuration,
+                        additionalWeight: $calisthenicsWeight,
+                        showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                        prMessage: isCurrent ? viewModel.prMessage : "",
+                        onCompleteSet: {
+                            if isCurrent, let duration = Int(holdDuration),
+                               let weightValue = Double(calisthenicsWeight) {
+                                viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
+                            }
+                        }
+                    )
+                    .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                    )
+                    .onAppear {
+                        if isCurrent {
+                            if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                calisthenicsWeight = String(format: "%.0f", lastWeight)
+                            } else {
+                                calisthenicsWeight = "0"
+                            }
+                            if exercise.targetHoldDuration != nil {
+                                holdDuration = String(exercise.targetHoldDuration ?? 30)
+                            }
+                        }
+                    }
+                } else {
+                    // Rep-based calisthenics
+                    CalisthenicsExerciseCard(
+                        exercise: exercise,
+                        reps: $calisthenicsReps,
+                        additionalWeight: $calisthenicsWeight,
+                        showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                        prMessage: isCurrent ? viewModel.prMessage : "",
+                        onCompleteSet: {
+                            if isCurrent, let repsValue = Int(calisthenicsReps),
+                               let weightValue = Double(calisthenicsWeight) {
+                                viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
+                            }
+                        }
+                    )
+                    .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                    )
+                    .onAppear {
+                        if isCurrent {
+                            if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                                calisthenicsWeight = String(format: "%.0f", lastWeight)
+                            } else {
+                                calisthenicsWeight = "0"
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Regular exercise card
+                let isCompleted = viewModel.isExerciseCompleted(exercise)
+                // Collapse all inactive exercises. Keep ONLY the active one open while doing the set.
+                // During rest, even the active exercise collapses.
+                let isDoingSet = isCurrent && !viewModel.restTimerActive
+                let shouldCollapse = !isDoingSet || isCompleted
+                
+                ExerciseCard(
+                    exercise: exercise,
+                    weight: $weight,
+                    reps: $reps,
+                    showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                    prMessage: isCurrent ? viewModel.prMessage : "",
+                    dropsetsEnabled: $viewModel.dropsetsEnabled,
+                    numberOfDropsets: $viewModel.numberOfDropsets,
+                    weightReductionPerDropset: $viewModel.weightReductionPerDropset,
+                    currentSetIsWarmup: $currentSetIsWarmup,
+                    isCollapsed: shouldCollapse,
+                    showUndoButton: isCurrent ? viewModel.showUndoButton : false,
+                    barWeight: viewModel.settingsManager.barWeight,
+                    currentExerciseVolume: isCurrent ? viewModel.currentExerciseVolume : 0,
+                    viewModel: viewModel,
+                    onCompleteSet: {
+                        if isCurrent {
+                            viewModel.updateCurrentExerciseDropsetConfiguration()
+                            if let weightValue = Double(weight),
+                               let repsValue = Int(reps) {
+                                viewModel.completeSet(weight: weightValue, reps: repsValue, isWarmup: currentSetIsWarmup)
+                                currentSetIsWarmup = false
+                            }
+                        }
+                    },
+                    onUndoSet: {
+                        if isCurrent {
+                            viewModel.undoLastSet()
+                        }
+                    },
+                    onSelectAlternative: { alternativeName in
+                        if isCurrent {
+                            viewModel.switchToAlternative(alternativeName: alternativeName)
+                        }
+                    },
+                    onExerciseNameTapped: {
+                        if isCurrent {
+                            selectedExerciseForHistory = exercise.name
+                            viewModel.showExerciseHistory = true
+                        }
+                    }
+                )
+                .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                )
+                .onAppear {
+                    if isCurrent {
+                        viewModel.syncDropsetStateFromCurrentExercise()
+                        if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
+                            weight = String(format: "%.0f", lastWeight)
+                        }
+                    }
+                }
+            }
+        }
+        // Context menu on every card for quick delete (follows HIG: destructive action via contextual affordance)
+        .contextMenu {
+            if let workout = viewModel.currentWorkout,
+               let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                Button(role: .destructive) {
+                    if !exercise.sets.isEmpty {
+                        // Confirm before deleting if there are completed sets
+                        showDeleteExerciseConfirmation = true
+                        exerciseToDelete = index
+                    } else {
+                        viewModel.removeExercise(at: index)
+                    }
+                } label: {
+                    Label("Delete Exercise", systemImage: "trash")
+                }
+            }
+        }
+        .padding(.horizontal, 0)
+        .padding(.vertical, isCurrent ? 8 : 4)
+    }
+    
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
                 // Header
                 WorkoutHeader(
                     title: viewModel.currentWorkout?.name ?? "Workout",
                     totalVolume: viewModel.totalWorkoutVolume,
+                    elapsedTime: viewModel.formatTime(viewModel.elapsedTime),
+                    autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
                     onPause: { viewModel.pauseWorkout() },
                     onFinish: { showFinishConfirmation = true },
-                    onSettings: { viewModel.showSettingsSheet = true }
+                    onSettings: { viewModel.showSettingsSheet = true },
+                    onToggleAutoAdvance: { viewModel.toggleAutoAdvance() }
                 )
-                .id("header-\(viewModel.totalWorkoutVolume)")
+                .id("header-\(viewModel.totalWorkoutVolume)-\(viewModel.elapsedTime)")
+                
+                // Sticky Rest Timer (always visible)
+                VStack(spacing: 0) {
+                    if viewModel.restTimerActive {
+                        RestTimerView(
+                            timeRemaining: max(0, viewModel.restTimeRemaining),
+                            totalDuration: max(1, viewModel.restTimerTotalDuration),
+                            onSkip: { viewModel.quickSkipRest() },
+                            onComplete: { viewModel.completeRest() },
+                            onAddTime: { viewModel.addTimeToRest(30) },
+                            onSubtractTime: { viewModel.subtractTimeFromRest(30) }
+                        )
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
+                    } else {
+                        // Collapsed/minimal timer view when not active
+                        HStack {
+                            Image(systemName: "timer")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.textSecondary)
+                            Text("Rest Timer")
+                                .font(AppTypography.bodyMedium)
+                                .foregroundColor(AppColors.textSecondary)
+                            Spacer()
+                            Text("Ready")
+                                .font(AppTypography.bodyMedium)
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(AppColors.secondary.opacity(0.3))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.xs)
+                    }
+                }
+                .background(AppColors.card)
                 
                 // Workout Timer
                 WorkoutTimerBar(
@@ -42,33 +278,104 @@ struct WorkoutView: View {
                     }
                 )
                 
-                // Exercise Navigation
-                if let workout = viewModel.currentWorkout, workout.exercises.count > 1 {
-                    ExerciseNavigationView(
-                        exercises: workout.exercises,
-                        currentIndex: viewModel.currentExerciseIndex,
-                        onSelect: { index in
-                            viewModel.currentExerciseIndex = index
-                            viewModel.syncDropsetStateFromCurrentExercise()
-                        },
-                        onDelete: { index in
-                            let exercise = workout.exercises[index]
-                            if !exercise.sets.isEmpty {
-                                showDeleteExerciseConfirmation = true
-                                exerciseToDelete = index
-                            } else {
-                                viewModel.removeExercise(at: index)
+                // Collapsible Exercise Sections
+                if let workout = viewModel.currentWorkout {
+                    let exercisesBySection = viewModel.exercisesBySection
+                    let sectionOrder: [ExerciseSectionType] = [.warmup, .stretch, .workingSets, .cardio]
+                    let currentExerciseId = viewModel.currentExercise?.id
+                    
+                    ForEach(sectionOrder, id: \.self) { sectionType in
+                        if let exercises = exercisesBySection[sectionType], !exercises.isEmpty {
+                            CollapsibleSectionView(
+                                sectionType: sectionType,
+                                exercises: exercises,
+                                isExpanded: viewModel.expandedSections.contains(sectionType),
+                                currentExerciseId: currentExerciseId,
+                                onToggle: {
+                                    withAnimation(AppAnimations.smooth) {
+                                        viewModel.toggleSection(sectionType)
+                                    }
+                                },
+                                onExerciseSelect: { exercise in
+                                    // Find and set the exercise index
+                                    if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                        viewModel.currentExerciseIndex = index
+                                        viewModel.ensureSectionExpanded(for: exercise)
+                                        viewModel.syncDropsetStateFromCurrentExercise()
+                                        
+                                        // Scroll directly to the tapped exercise card
+                                        let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
+                                        withAnimation(AppAnimations.smooth) {
+                                            proxy.scrollTo(exerciseId, anchor: .top)
+                                        }
+                                    }
+                                }
+                            ) {
+                                // Exercise cards content
+                                ForEach(exercises) { exercise in
+                                    exerciseCardView(
+                                        for: exercise,
+                                        isCurrent: exercise.id == currentExerciseId
+                                    )
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        // Allow user to select any exercise card as active
+                                        if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                            HapticManager.impact(style: .light)
+                                            viewModel.currentExerciseIndex = index
+                                            viewModel.ensureSectionExpanded(for: exercise)
+                                            viewModel.syncDropsetStateFromCurrentExercise()
+                                            
+                                            // Scroll to the selected exercise card
+                                            let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
+                                            withAnimation(AppAnimations.smooth) {
+                                                proxy.scrollTo(exerciseId, anchor: .top)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                    )
-                    .padding(EdgeInsets(top: 16, leading: 20, bottom: 0, trailing: 20))
-                    .id("exercise-nav-\(workout.exercises.map { "\($0.id)-\($0.sets.count)" }.joined(separator: "-"))")
+                    }
                 }
                 
-                // Exercise Card
-                if let exercise = viewModel.currentExercise {
-                    // Check if it's a calisthenics exercise
-                    if viewModel.isCalisthenicsExercise(exercise) {
+                // Legacy single exercise card (hidden, kept for reference)
+                if false, let exercise = viewModel.currentExercise {
+                    // Check if it's a cardio exercise (time-based, not calisthenics)
+                    if viewModel.isCardioExercise(exercise) {
+                        // Cardio exercises use hold card for time input
+                        CalisthenicsHoldExerciseCard(
+                            exercise: exercise,
+                            holdDuration: $holdDuration,
+                            additionalWeight: $calisthenicsWeight,
+                            showPRBadge: viewModel.showPRBadge,
+                            prMessage: viewModel.prMessage,
+                            onCompleteSet: {
+                                if let duration = Int(holdDuration) {
+                                    // Cardio exercises don't use additional weight
+                                    viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
+                                }
+                            }
+                        )
+                        .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
+                        .onAppear {
+                            calisthenicsWeight = "0" // Cardio doesn't use weight
+                            if exercise.targetHoldDuration != nil {
+                                holdDuration = String(exercise.targetHoldDuration ?? 300)
+                            } else {
+                                holdDuration = "300" // Default 5 minutes
+                            }
+                        }
+                        .onChange(of: viewModel.currentExerciseIndex) {
+                            calisthenicsWeight = "0" // Cardio doesn't use weight
+                            if exercise.targetHoldDuration != nil {
+                                holdDuration = String(exercise.targetHoldDuration ?? 300)
+                            } else {
+                                holdDuration = "300" // Default 5 minutes
+                            }
+                        }
+                    } else if viewModel.isCalisthenicsExercise(exercise) {
                         // If it's a hold-based calisthenics exercise (has targetHoldDuration), use hold card
                         if exercise.targetHoldDuration != nil {
                             CalisthenicsHoldExerciseCard(
@@ -84,6 +391,7 @@ struct WorkoutView: View {
                                     }
                                 }
                             )
+                            .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                             .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
                             .onAppear {
                                 // Load last additional weight for hold-based calisthenics
@@ -122,6 +430,7 @@ struct WorkoutView: View {
                                     }
                                 }
                             )
+                            .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                             .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
                             .onAppear {
                                 // Load last additional weight for rep-based calisthenics
@@ -231,43 +540,51 @@ struct WorkoutView: View {
                     }
                 }
                 
-                // Rest Timer (appears above alternative exercises)
-                if viewModel.restTimerActive {
+                // PR Badge (shown when PR is achieved, appears below sticky timer)
+                if viewModel.showPRBadge && !viewModel.restTimerActive {
                     VStack(spacing: 16) {
-                        RestTimerView(
-                            timeRemaining: max(0, viewModel.restTimeRemaining),
-                            totalDuration: max(1, viewModel.restTimerTotalDuration), // Ensure at least 1 to prevent division by zero
-                            onSkip: { viewModel.skipRest() },
-                            onComplete: { viewModel.completeRest() }
-                        )
-                        
-                        // PR Badge (shown beneath rest timer when PR is achieved)
-                        if viewModel.showPRBadge {
-                            if !viewModel.prMessage.isEmpty {
-                                PRBadge(message: viewModel.prMessage)
-                                    .transition(.scale.combined(with: .opacity))
-                                    .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
-                                    .zIndex(10)
-                                    .id("pr-badge-\(viewModel.prMessage)")
-                                    .onAppear {
-                                        Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
-                                    }
-                            } else {
-                                // Debug: Badge flag is true but message is empty
-                                Text("PR Badge Debug: showPRBadge=true but prMessage is empty")
-                                    .foregroundColor(.red)
-                                    .font(.caption)
-                            }
+                        if !viewModel.prMessage.isEmpty {
+                            PRBadge(message: viewModel.prMessage)
+                                .transition(.scale.combined(with: .opacity))
+                                .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
+                                .zIndex(10)
+                                .id("pr-badge-\(viewModel.prMessage)")
+                                .onAppear {
+                                    Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
+                                }
+                        } else {
+                            // Debug: Badge flag is true but message is empty
+                            Text("PR Badge Debug: showPRBadge=true but prMessage is empty")
+                                .foregroundColor(.red)
+                                .font(.caption)
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
+                    .padding(.top, 10)
                     .onChange(of: viewModel.showPRBadge) { oldValue, newValue in
                         Logger.debug("PR Badge state changed: \(oldValue) -> \(newValue), message: '\(viewModel.prMessage)'", category: .general)
                     }
                     .onChange(of: viewModel.prMessage) { oldValue, newValue in
                         Logger.debug("PR Message changed: '\(oldValue)' -> '\(newValue)', showPRBadge: \(viewModel.showPRBadge)", category: .general)
                     }
+                }
+                
+                // PR Badge (shown beneath rest timer when active)
+                if viewModel.showPRBadge && viewModel.restTimerActive {
+                    VStack(spacing: 16) {
+                        if !viewModel.prMessage.isEmpty {
+                            PRBadge(message: viewModel.prMessage)
+                                .transition(.scale.combined(with: .opacity))
+                                .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
+                                .zIndex(10)
+                                .id("pr-badge-\(viewModel.prMessage)")
+                                .onAppear {
+                                    Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
                 }
                 
                 // Alternative Exercises Section (appears after rest timer)
@@ -307,33 +624,27 @@ struct WorkoutView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                
-                // Complete Workout Button (always available to end workout early)
-                if let workout = viewModel.currentWorkout, !workout.exercises.isEmpty {
-                    Button(action: {
-                        showFinishConfirmation = true
-                    }) {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20, weight: .bold))
-                            Text("Complete Workout")
-                                .font(.system(size: 17, weight: .bold))
-                        }
-                        .foregroundColor(AppColors.alabasterGrey)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(LinearGradient.primaryGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
-                        .shadow(color: AppColors.primary.opacity(0.2), radius: 4, x: 0, y: 2)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                }
-                
+                                
                 Spacer()
                     .frame(height: 100)
+                }
+            }
+            .onChange(of: viewModel.readyForNextSet) { _, _ in
+                // Automatically scroll to exercise card when ready for next set
+                if let exercise = viewModel.currentExercise {
+                    // Ensure section is expanded
+                    viewModel.ensureSectionExpanded(for: exercise)
+                    let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
+                    withAnimation(AppAnimations.smooth) {
+                        proxy.scrollTo(exerciseId, anchor: .top)
+                    }
+                }
+            }
+            .onAppear {
+                // Ensure current exercise's section is expanded on view appear
+                if let exercise = viewModel.currentExercise {
+                    viewModel.ensureSectionExpanded(for: exercise)
+                }
             }
         }
         .background(AppColors.background)
@@ -408,9 +719,12 @@ struct WorkoutView: View {
 struct WorkoutHeader: View {
     let title: String
     let totalVolume: Int
+    let elapsedTime: String
+    let autoAdvanceEnabled: Bool
     let onPause: () -> Void
     let onFinish: () -> Void
     let onSettings: () -> Void
+    let onToggleAutoAdvance: () -> Void
     
     private func formatVolume(_ volume: Int) -> String {
         let formatter = NumberFormatter()
@@ -420,35 +734,91 @@ struct WorkoutHeader: View {
     }
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(AppTypography.largeTitleBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 
-                if totalVolume > 0 {
+                HStack(spacing: 8) {
+                    if totalVolume > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 12))
+                            Text("\(formatVolume(totalVolume)) lbs")
+                                .contentTransition(.numericText())
+                        }
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppColors.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AppColors.accent.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                    
                     HStack(spacing: 6) {
-                        Image(systemName: "arrow.up.circle.fill")
+                        Image(systemName: "clock")
                             .font(.system(size: 12))
-                            .foregroundColor(AppColors.accent)
-                        
-                        Text("\(formatVolume(totalVolume)) lbs")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.accent)
+                        Text(elapsedTime)
                             .contentTransition(.numericText())
                     }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(AppColors.accent.opacity(0.15))
+                    .background(AppColors.secondary.opacity(0.6))
                     .clipShape(Capsule())
+                    
+                    // If we want exercise count in the future, we can add it back here as a lightweight label
                 }
             }
             
             Spacer()
             
             HStack(spacing: 10) {
+                // Auto-Advance Toggle
+                if autoAdvanceEnabled {
+                    Button(action: {
+                        onToggleAutoAdvance()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 14))
+                            Text("Auto")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(AppColors.primary)
+                        .frame(width: 60, height: 44)
+                        .background(AppColors.primary.opacity(0.15))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Auto-advance enabled")
+                } else {
+                    Button(action: {
+                        onToggleAutoAdvance()
+                    }) {
+                        Image(systemName: "bolt.slash.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.textSecondary)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Auto-advance disabled")
+                }
+                
                 HelpButton(pageType: .workout)
                 
                 Button(action: {
@@ -505,7 +875,6 @@ struct WorkoutHeader: View {
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
-        .background(.ultraThinMaterial)
         .overlay(
             Rectangle()
                 .frame(height: 1)
@@ -715,14 +1084,7 @@ struct ExerciseCard: View {
                             .zIndex(10)
                     }
                     
-                    // Smart Weight Suggestions
-                    SmartWeightSuggestion(
-                        exerciseName: exercise.name,
-                        weight: $weight,
-                        reps: $reps
-                    )
-                    
-                    // Weight Input with Stepper
+                    // Core Inputs - Weight
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Weight")
                             .font(AppTypography.subheadlineMedium)
@@ -775,12 +1137,7 @@ struct ExerciseCard: View {
                         }
                     }
                     
-                    // Plate Calculator
-                    if let weightValue = Double(weight), weightValue > 0 {
-                        PlateCalculator(weight: weightValue, barWeight: barWeight)
-                    }
-                    
-                    // Reps Input with Stepper
+                    // Core Inputs - Reps
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Reps")
                             .font(AppTypography.subheadlineMedium)
@@ -851,46 +1208,76 @@ struct ExerciseCard: View {
                         }
                     }
                     
-                    // Warm-up Toggle
+                    // Advanced helpers: suggestions & plates (styled card)
+                    DisclosureGroup {
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Smart Weight Suggestions
+                            SmartWeightSuggestion(
+                                exerciseName: exercise.name,
+                                weight: $weight,
+                                reps: $reps
+                            )
+                            
+                            // Plate Calculator
+                            if let weightValue = Double(weight), weightValue > 0 {
+                                PlateCalculator(weight: weightValue, barWeight: barWeight)
+                            }
+                        }
+                        .padding(.top, 8)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Suggestions & plates")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(AppColors.textPrimary)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .background(AppColors.secondary.opacity(0.9))
+                    .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppCornerRadius.medium)
+                            .stroke(AppColors.border.opacity(0.25), lineWidth: 1)
+                    )
+                    
+                    // Warm-up Toggle (compact pill)
                     Button(action: {
                         currentSetIsWarmup.toggle()
                         HapticManager.impact(style: .light)
                     }) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: currentSetIsWarmup ? "flame.fill" : "flame")
-                                .font(.system(size: 14))
-                            Text("Warm-up Set")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 13))
+                            Text("Warm-up")
+                                .font(.system(size: 13, weight: .medium))
                         }
                         .foregroundColor(currentSetIsWarmup ? .orange : AppColors.mutedForeground)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(currentSetIsWarmup ? Color.orange.opacity(0.15) : AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(currentSetIsWarmup ? Color.orange.opacity(0.3) : AppColors.border.opacity(0.3), lineWidth: 1)
-                        )
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(currentSetIsWarmup ? Color.orange.opacity(0.15) : AppColors.secondary.opacity(0.8))
+                        .clipShape(Capsule())
                     }
                     .buttonStyle(PlainButtonStyle())
                     
-                    // Dropset Configuration
-                VStack(alignment: .leading, spacing: 12) {
-                    Toggle(isOn: $dropsetsEnabled) {
-                        HStack {
-                            Image(systemName: "arrow.down.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(dropsetsEnabled ? AppColors.accent : AppColors.mutedForeground)
-                            Text("Dropsets")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(AppColors.foreground)
-                        }
-                    }
-                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent))
-                    
-                    if dropsetsEnabled {
+                    // Dropset Configuration (progressive disclosure, styled)
+                    DisclosureGroup {
                         VStack(alignment: .leading, spacing: 16) {
+                            Toggle(isOn: $dropsetsEnabled) {
+                                HStack {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(dropsetsEnabled ? AppColors.accent : AppColors.mutedForeground)
+                                    Text("Enable dropsets")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(AppColors.foreground)
+                                }
+                            }
+                            .toggleStyle(SwitchToggleStyle(tint: AppColors.accent))
+                            
+                            if dropsetsEnabled {
+                                VStack(alignment: .leading, spacing: 16) {
                             // Number of dropsets stepper
                             HStack {
                                 Text("Number of dropsets")
@@ -990,15 +1377,28 @@ struct ExerciseCard: View {
                                     .foregroundColor(AppColors.mutedForeground)
                                     .padding(.top, 4)
                             }
+                                }
+                                .padding(.top, 8)
+                            }
                         }
-                        .padding(.top, 8)
-                        .padding(.leading, 8)
+                        .padding(.top, 4)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.down.circle")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Dropsets")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(AppColors.textPrimary)
                     }
-                }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
-                .background(AppColors.secondary.opacity(0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .background(AppColors.secondary.opacity(0.9))
+                    .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppCornerRadius.medium)
+                            .stroke(AppColors.border.opacity(0.25), lineWidth: 1)
+                    )
                 
                 // Video Tutorial Button
                 if videoURL != nil {
@@ -1182,6 +1582,194 @@ struct CalisthenicsExerciseCard: View {
                 additionalWeight = "0"
             }
         }
+    }
+}
+
+// MARK: - Cardio Exercise Card (Time + Sets)
+struct CardioExerciseCard: View {
+    let exercise: Exercise
+    @Binding var holdDuration: String
+    let showPRBadge: Bool
+    let prMessage: String
+    let onCompleteSet: () -> Void
+    
+    var body: some View {
+        CategoryBorderedCard(muscleGroup: exercise.name) {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.accent)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(exercise.name)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                        
+                        Text("Cardio • Set \(exercise.currentSet) of \(exercise.targetSets)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // PR Badge
+                if showPRBadge {
+                    PRBadge(message: prMessage)
+                        .transition(.scaleWithFade)
+                        .zIndex(10)
+                }
+                
+                // Time input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Duration (seconds)")
+                        .font(AppTypography.subheadlineMedium)
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    HStack(spacing: 12) {
+                        TextField("0", text: $holdDuration)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 20)
+                            .inputFieldStyle()
+                        
+                        Text("sec")
+                            .font(AppTypography.bodyMedium)
+                            .foregroundColor(AppColors.mutedForeground)
+                            .frame(width: 40, alignment: .leading)
+                    }
+                }
+                
+                // Quick duration presets
+                HStack(spacing: 8) {
+                    ForEach([60, 120, 180, 300], id: \.self) { preset in
+                        Button(action: {
+                            holdDuration = String(preset)
+                            HapticManager.impact(style: .light)
+                        }) {
+                            Text("\(preset / 60)m")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(holdDuration == String(preset) ? AppColors.alabasterGrey : AppColors.foreground)
+                                .frame(minWidth: 44, minHeight: 32)
+                                .background(holdDuration == String(preset) ? AppColors.accent : AppColors.secondary)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                
+                // Set progress dots
+                HStack(spacing: 8) {
+                    ForEach(1...exercise.targetSets, id: \.self) { setNumber in
+                        Circle()
+                            .fill(setNumber <= exercise.sets.count ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .frame(width: setNumber <= exercise.sets.count ? 10 : 8, height: setNumber <= exercise.sets.count ? 10 : 8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                
+                // Complete set
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onCompleteSet()
+                }) {
+                    HStack {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 18, weight: .bold))
+                        Text("Complete Cardio Set")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    .foregroundColor(AppColors.accentForeground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(LinearGradient.accentGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            .padding(20)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+    }
+}
+// MARK: - Stretch Exercise Card (Sets Only)
+struct StretchExerciseCard: View {
+    let exercise: Exercise
+    let onCompleteSet: () -> Void
+    
+    var body: some View {
+        CategoryBorderedCard(muscleGroup: exercise.name) {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: "figure.cooldown")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.accent)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(exercise.name)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                        
+                        Text("Stretch • Set \(exercise.currentSet) of \(exercise.targetSets)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Set progress dots (no weight/reps)
+                HStack(spacing: 8) {
+                    ForEach(1...exercise.targetSets, id: \.self) { setNumber in
+                        Circle()
+                            .fill(setNumber <= exercise.sets.count ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .frame(width: setNumber <= exercise.sets.count ? 10 : 8, height: setNumber <= exercise.sets.count ? 10 : 8)
+                    }
+                }
+                
+                // Guidance text
+                Text("Focus on slow, controlled breathing and a gentle stretch. Move through each set at your own pace.")
+                    .font(AppTypography.body)
+                    .foregroundColor(AppColors.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                // Complete Set button
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onCompleteSet()
+                }) {
+                    HStack {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 18, weight: .bold))
+                        Text("Complete Stretch Set")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    .foregroundColor(AppColors.accentForeground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(LinearGradient.accentGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            .padding(20)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
     }
 }
 
@@ -2053,6 +2641,8 @@ struct ExerciseNavigationView: View {
     let currentIndex: Int
     let onSelect: (Int) -> Void
     let onDelete: ((Int) -> Void)?
+    let onMoveUp: ((Int) -> Void)?
+    let onMoveDown: ((Int) -> Void)?
     
     // Count only working sets (exclude warm-up sets)
     private func workingSetsCount(for exercise: Exercise) -> Int {
@@ -2136,6 +2726,22 @@ struct ExerciseNavigationView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .contextMenu {
+                        if let onMoveUp = onMoveUp, index > 0 {
+                            Button {
+                                onMoveUp(index)
+                            } label: {
+                                Label("Move Earlier", systemImage: "arrow.left")
+                            }
+                        }
+                        
+                        if let onMoveDown = onMoveDown, index < exercises.count - 1 {
+                            Button {
+                                onMoveDown(index)
+                            } label: {
+                                Label("Move Later", systemImage: "arrow.right")
+                            }
+                        }
+                        
                         if let onDelete = onDelete {
                             Button(role: .destructive, action: {
                                 onDelete(index)
@@ -2164,6 +2770,10 @@ struct SettingsView: View {
     @State private var showResetWarning = false
     @State private var showAddCustomExercise = false
     @State private var showCustomExercisesList = false
+    @State private var showMasterExerciseList = false
+    @State private var showCSVImportAlert = false
+    @State private var csvImportMessage = ""
+    @State private var csvImportSuccess = false
     
     private let restTimerOptions: [Int] = AppConstants.restTimerOptions
     
@@ -2272,6 +2882,9 @@ struct SettingsView: View {
                     .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
                     .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                     
+                    // Apple Health Section
+                    AppleHealthSettingsSection()
+                    
                     // Reset Data Section
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Data Management")
@@ -2296,6 +2909,45 @@ struct SettingsView: View {
                             .padding(.vertical, 16)
                             .background(Color.red)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+                    
+                    // Exercise Database Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Exercise Database")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppColors.foreground)
+                        
+                        Text("Manage all exercises in the database")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                HapticManager.impact(style: .light)
+                                showMasterExerciseList = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "list.bullet.rectangle")
+                                        .font(.system(size: 20))
+                                    Text("View All Exercises (\(ExRxDirectoryManager.shared.getAllExercises().count))")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(AppColors.foreground)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(AppColors.secondary)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(AppColors.border, lineWidth: 2)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
                         }
                     }
                     .padding(20)
@@ -2421,6 +3073,9 @@ struct SettingsView: View {
             .sheet(isPresented: $showCustomExercisesList) {
                 CustomExercisesListView()
             }
+            .sheet(isPresented: $showMasterExerciseList) {
+                MasterExerciseListView()
+            }
             .alert("Reset All Data", isPresented: $showResetWarning) {
                 Button("Cancel", role: .cancel) { }
                 Button("Reset", role: .destructive) {
@@ -2434,7 +3089,108 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all your workout data, templates, programs, progress, and settings. This action cannot be undone. Are you sure you want to continue?")
             }
+            .alert(csvImportSuccess ? "Import Successful" : "Import Error", isPresented: $showCSVImportAlert) {
+                Button("OK") {
+                    showCSVImportAlert = false
+                    csvImportMessage = ""
+                }
+            } message: {
+                Text(csvImportMessage)
+            }
         }
+    }
+    
+    private func importCSVExercises() {
+        // Try to find CSV file in app bundle
+        var csvPath: String?
+        
+        let possibleNames = [
+            "exercises",  // Primary name - matches the file in the project
+            "Gym Exercise Dataset export 2025-12-16 07-12-04",
+            "gym-exercises",
+            "exercise-dataset"
+        ]
+        
+        // First, try Bundle.main.path(forResource:ofType:) - works for files at bundle root
+        for name in possibleNames {
+            if let bundlePath = Bundle.main.path(forResource: name, ofType: "csv") {
+                csvPath = bundlePath
+                Logger.info("📚 Found CSV in app bundle: \(name).csv", category: .general)
+                break
+            }
+        }
+        
+        // If not found, try searching in bundle directory structure
+        if csvPath == nil {
+            if let bundleURL = Bundle.main.resourceURL {
+                let possiblePaths = [
+                    bundleURL.appendingPathComponent("exercises.csv"),
+                    bundleURL.appendingPathComponent("Ascend/exercises.csv"),
+                    bundleURL.appendingPathComponent("Gym Exercise Dataset export 2025-12-16 07-12-04.csv")
+                ]
+                
+                for url in possiblePaths {
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        csvPath = url.path
+                        Logger.info("📚 Found CSV in bundle directory: \(url.lastPathComponent)", category: .general)
+                        break
+                    }
+                }
+            }
+        }
+        
+        // Fallback to Downloads folder (for development only)
+        if csvPath == nil {
+            let downloadsPath = "/Users/brennenmeregillano/Downloads/Gym Exercise Dataset export 2025-12-16 07-12-04.csv"
+            if FileManager.default.fileExists(atPath: downloadsPath) {
+                csvPath = downloadsPath
+                Logger.info("📚 Found CSV in Downloads folder (development)", category: .general)
+            }
+        }
+        
+        guard let path = csvPath, FileManager.default.fileExists(atPath: path) else {
+            // Provide more detailed error message with debugging info
+            var errorDetails = "CSV file not found.\n\nSearched locations:\n"
+            errorDetails += "• exercises.csv in bundle\n"
+            if let bundleURL = Bundle.main.resourceURL {
+                errorDetails += "• Bundle resource path: \(bundleURL.path)\n"
+                // List files in bundle for debugging
+                if let files = try? FileManager.default.contentsOfDirectory(atPath: bundleURL.path) {
+                    let csvFiles = files.filter { $0.hasSuffix(".csv") }
+                    if !csvFiles.isEmpty {
+                        errorDetails += "\nFound CSV files in bundle:\n"
+                        csvFiles.forEach { errorDetails += "• \($0)\n" }
+                    } else {
+                        errorDetails += "\nNo CSV files found in bundle directory.\n"
+                    }
+                }
+            }
+            csvImportMessage = errorDetails
+            csvImportSuccess = false
+            showCSVImportAlert = true
+            Logger.error("❌ CSV file not found in bundle. Bundle path: \(Bundle.main.resourceURL?.path ?? "unknown")", category: .general)
+            return
+        }
+        
+        // Clear existing imported exercises if re-importing
+        let existingCount = ExRxDirectoryManager.shared.getImportedExerciseCount()
+        if existingCount > 0 {
+            ExRxDirectoryManager.shared.clearImportedExercises()
+        }
+        
+        // Import exercises
+        do {
+            let stats = try CSVExerciseImporter.shared.importExercisesFromFile(at: path)
+            csvImportMessage = "Successfully imported \(stats.finalCount) exercises!\n\nTotal rows: \(stats.totalRows)\nParsed: \(stats.parsed)\nSkipped: \(stats.skipped)\nDuplicates removed: \(stats.duplicatesRemoved)"
+            csvImportSuccess = true
+            Logger.info("✅ CSV import successful: \(stats)", category: .general)
+        } catch {
+            csvImportMessage = "Failed to import CSV: \(error.localizedDescription)"
+            csvImportSuccess = false
+            Logger.error("❌ CSV import failed", error: error, category: .general)
+        }
+        
+        showCSVImportAlert = true
     }
     
     private func formatTime(_ seconds: Int) -> String {
@@ -2793,6 +3549,251 @@ struct WarmupPreviewSection: View {
                 }
                 .padding(.top, 4)
             }
+        }
+    }
+}
+
+// MARK: - Apple Health Settings Section
+struct AppleHealthSettingsSection: View {
+    @ObservedObject private var healthKitManager = HealthKitManager.shared
+    @State private var isRequestingAuthorization = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.red)
+                
+                Text("Apple Health")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(AppColors.foreground)
+            }
+            
+            Text("Sync your workouts with Apple Health to track your fitness progress across all your apps.")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(AppColors.mutedForeground)
+            
+            // Connection Status
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(healthKitManager.isAuthorized ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        
+                        Text(healthKitManager.isAuthorized ? "Connected" : "Not Connected")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppColors.foreground)
+                    }
+                    
+                    Text(statusDescription)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                
+                Spacer()
+            }
+            .padding(16)
+            .background(AppColors.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            // Connect/Reconnect Button
+            Button(action: {
+                requestAuthorization()
+            }) {
+                HStack {
+                    Image(systemName: healthKitManager.isAuthorized ? "arrow.clockwise" : "link")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text(healthKitManager.isAuthorized ? "Reconnect" : "Connect to Apple Health")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(LinearGradient.primaryGradient)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .opacity(isRequestingAuthorization ? 0.6 : 1.0)
+            }
+            .disabled(isRequestingAuthorization)
+            
+            if healthKitManager.isAuthorized {
+                Text("Your workouts will automatically sync to Apple Health when you complete them.")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(AppColors.mutedForeground)
+                    .padding(.top, -8)
+            }
+        }
+        .padding(20)
+        .background(AppColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+        .onAppear {
+            healthKitManager.checkAuthorizationStatus()
+        }
+        .alert("HealthKit Error", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    private var statusDescription: String {
+        if !HKHealthStore.isHealthDataAvailable() {
+            return "HealthKit is not available on this device"
+        }
+        
+        switch healthKitManager.authorizationStatus {
+        case .notDetermined:
+            return "Tap Connect to authorize access"
+        case .sharingDenied:
+            return "Access denied. Enable in Settings > Privacy & Security > Health"
+        case .sharingAuthorized:
+            return "Workouts will sync automatically"
+        @unknown default:
+            return "Unknown status"
+        }
+    }
+    
+    private func requestAuthorization() {
+        isRequestingAuthorization = true
+        Task {
+            do {
+                try await healthKitManager.requestAuthorization()
+                await MainActor.run {
+                    isRequestingAuthorization = false
+                    HapticManager.success()
+                }
+            } catch {
+                await MainActor.run {
+                    isRequestingAuthorization = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    HapticManager.error()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Section Indicator
+struct SectionIndicator: View {
+    let sectionType: ExerciseSectionType
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: sectionType.icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(sectionColor)
+            
+            Text(sectionType.displayName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(sectionColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(sectionColor.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(sectionColor.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private var sectionColor: Color {
+        switch sectionType {
+        case .warmup:
+            return .orange
+        case .stretch:
+            return .blue
+        case .workingSets:
+            return AppColors.primary
+        case .cardio:
+            return .red
+        }
+    }
+}
+
+// MARK: - Collapsible Section View
+struct CollapsibleSectionView<Content: View>: View {
+    let sectionType: ExerciseSectionType
+    let exercises: [Exercise]
+    let isExpanded: Bool
+    let currentExerciseId: UUID?
+    let onToggle: () -> Void
+    let onExerciseSelect: (Exercise) -> Void
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Section Header
+            Button(action: {
+                HapticManager.impact(style: .light)
+                onToggle()
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: sectionType.icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(sectionColor)
+                        .frame(width: 24)
+                    
+                    Text(sectionType.displayName)
+                        .font(AppTypography.heading3)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Spacer()
+                    
+                    Text("\(exercises.count)")
+                        .font(AppTypography.bodyMedium)
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppColors.textSecondary)
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(sectionColor.opacity(0.1))
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Exercises (shown when expanded)
+            if isExpanded {
+                VStack(spacing: 0) {
+                    content
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top))
+                ))
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppColors.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(sectionColor.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+    }
+    
+    private var sectionColor: Color {
+        switch sectionType {
+        case .warmup:
+            return .orange
+        case .stretch:
+            return .blue
+        case .workingSets:
+            return AppColors.primary
+        case .cardio:
+            return .red
         }
     }
 }

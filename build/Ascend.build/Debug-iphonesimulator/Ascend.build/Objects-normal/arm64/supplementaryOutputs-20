@@ -1,0 +1,30 @@
+{
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/AppError.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/AppError.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/AppError.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/AppError.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/AppError.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/AppError.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutHistoryView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/WorkoutTrackerApp.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphonesimulator/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.swiftdeps"
+  }
+}

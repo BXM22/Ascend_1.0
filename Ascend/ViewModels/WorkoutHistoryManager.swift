@@ -83,11 +83,15 @@ class WorkoutHistoryManager: ObservableObject {
     
     func addCompletedWorkout(_ workout: Workout) {
         completedWorkouts.append(workout)
+        // Invalidate personalization cache when new workout is added
+        PersonalizationManager.shared.invalidateCache()
         Logger.info("✅ Workout added to history - Name: '\(workout.name)', Exercises: \(workout.exercises.count), Total workouts: \(completedWorkouts.count)", category: .general)
     }
     
     func deleteWorkout(_ workout: Workout) {
         completedWorkouts.removeAll { $0.id == workout.id }
+        // Invalidate personalization cache when workout is deleted
+        PersonalizationManager.shared.invalidateCache()
         Logger.info("🗑️ Workout deleted from history - Name: '\(workout.name)', Remaining workouts: \(completedWorkouts.count)", category: .general)
     }
     
@@ -95,6 +99,8 @@ class WorkoutHistoryManager: ObservableObject {
         guard index >= 0 && index < completedWorkouts.count else { return }
         let workout = completedWorkouts[index]
         completedWorkouts.remove(at: index)
+        // Invalidate personalization cache when workout is deleted
+        PersonalizationManager.shared.invalidateCache()
         Logger.info("🗑️ Workout deleted from history - Name: '\(workout.name)', Remaining workouts: \(completedWorkouts.count)", category: .general)
     }
     

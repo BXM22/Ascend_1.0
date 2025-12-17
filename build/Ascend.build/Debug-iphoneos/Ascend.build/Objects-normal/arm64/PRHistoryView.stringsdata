@@ -1,0 +1,128 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/PRHistoryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "PR History",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 171
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search exercises...",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "All Exercises",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "No PRs yet",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "No PRs found",
+        "location": {
+          "startingColumn": 93,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete sets to earn your first PR!",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 151
+        }
+      },
+      {
+        "comment": "",
+        "key": "Try adjusting your search or filter",
+        "location": {
+          "startingColumn": 119,
+          "startingLine": 151
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 175
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Personal Record",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 227
+        }
+      },
+      {
+        "comment": "",
+        "key": "×",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld reps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 235
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 270
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 271
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete this personal record? This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 276
+        }
+      }
+    ]
+  },
+  "version": 1
+}

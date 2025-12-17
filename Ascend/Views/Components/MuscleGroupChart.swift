@@ -219,9 +219,15 @@ struct MuscleGroupChart: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
         .onAppear {
+            // Force refresh on appear to ensure data is loaded
+            refreshData()
+        }
+        .onChange(of: workoutHistoryManager.completedWorkouts.count) { _, _ in
+            // Refresh when workout count changes
             refreshData()
         }
         .onReceive(workoutHistoryManager.$completedWorkouts) { _ in
+            // Also listen to published changes
             refreshData()
         }
     }

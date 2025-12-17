@@ -1,0 +1,200 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CreateCustomSkillView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "New Skill Progression",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 252
+        }
+      },
+      {
+        "comment": "",
+        "key": "Basic Information",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Skill Name",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., Iron Cross",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Description",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "What makes this skill unique?",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icon",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 97
+        }
+      },
+      {
+        "comment": "",
+        "key": "Progression Levels",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld levels",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Level %lld",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 144
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "e.g., Beginner Hold",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "Description",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 164
+        }
+      },
+      {
+        "comment": "",
+        "key": "Criteria for this level",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 168
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Type",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Type",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 183
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Reps",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld reps",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 198
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target Hold Duration",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld seconds",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 214
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Skill",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 256
+        }
+      }
+    ]
+  },
+  "version": 1
+}

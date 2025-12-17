@@ -1,0 +1,48 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/NextWorkoutDayCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Next Workout",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "Day %lld: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercises",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld more exercises",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start Next Workout",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 112
+        }
+      }
+    ]
+  },
+  "version": 1
+}

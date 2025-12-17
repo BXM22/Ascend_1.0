@@ -87,6 +87,11 @@ struct ContentView: View {
                         },
                         onSettings: {
                             showSettingsSheet = true
+                        },
+                        onNavigateToProgress: {
+                            withAnimation(AppAnimations.standard) {
+                                selectedTab = .progress
+                            }
                         }
                     )
                     .id(AppColors.themeID)

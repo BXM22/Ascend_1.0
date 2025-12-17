@@ -1,0 +1,40 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/SuggestedWorkoutCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Workout Generated",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start Session",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 203
+        }
+      },
+      {
+        "comment": "",
+        "key": "Got it",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 243
+        }
+      },
+      {
+        "comment": "",
+        "key": "A %@ intensity workout has been generated for %@.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 245
+        }
+      }
+    ]
+  },
+  "version": 1
+}

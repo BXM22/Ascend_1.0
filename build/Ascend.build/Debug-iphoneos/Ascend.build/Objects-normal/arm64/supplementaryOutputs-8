@@ -1,0 +1,65 @@
+{
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TemplateSelectionSheet.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TrendGraphsView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TutorialOverlay.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TutorialView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WeeklyCalendarWidget.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutCalendarView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutCompletionModal.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutDayDetailSheet.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutGenerationSettingsView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.dia",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.swiftdeps"
+  }
+}

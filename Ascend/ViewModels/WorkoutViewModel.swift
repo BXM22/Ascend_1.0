@@ -20,6 +20,10 @@ class WorkoutViewModel: ObservableObject {
     @Published var completionStats: WorkoutCompletionStats?
     @Published var showExerciseHistory: Bool = false
     @Published var isFromTemplate: Bool = false // Track if workout came from template
+    @Published var readyForNextSet: UUID = UUID() // Triggers UI update to prepare for next set
+    @Published var expandedSections: Set<ExerciseSectionType> = [] // Track which sections are expanded
+    @Published var autoAdvanceEnabled: Bool = false // Auto-advance to next set/exercise
+    @Published var autoAdvanceRestDuration: Int = 0 // Minimum rest before auto-advance (0 = immediate)
     
     // Undo state
     @Published var showUndoButton: Bool = false
@@ -64,6 +68,116 @@ class WorkoutViewModel: ObservableObject {
             return nil
         }
         return workout.exercises[currentExerciseIndex]
+    }
+    
+    /// Get sorted exercises: warmup/stretch → working sets → cardio
+    var sortedExercises: [Exercise] {
+        guard let workout = currentWorkout else { return [] }
+        
+        return workout.exercises.sorted { ex1, ex2 in
+            // Get category from ExRxExercise data if available
+            let exRx1 = ExRxDirectoryManager.shared.findExercise(name: ex1.name)
+            let exRx2 = ExRxDirectoryManager.shared.findExercise(name: ex2.name)
+            
+            let priority1 = ex1.name.getExerciseTypePriority(category: exRx1?.category)
+            let priority2 = ex2.name.getExerciseTypePriority(category: exRx2?.category)
+            
+            // First sort by type priority
+            if priority1 != priority2 {
+                return priority1 < priority2
+            }
+            
+            // Within same type, maintain original order (or compound-first for working sets)
+            if priority1 == 1 { // Working sets
+                return ex1.name.isCompoundExercise() && !ex2.name.isCompoundExercise()
+            }
+            
+            // For warmup/stretch/cardio, maintain original order
+            return false
+        }
+    }
+    
+    /// Group exercises by section type
+    var exercisesBySection: [ExerciseSectionType: [Exercise]] {
+        guard let workout = currentWorkout else { return [:] }
+        let sorted = sortedExercises
+        return Dictionary(grouping: sorted) { exercise in
+            getSectionType(for: exercise)
+        }
+    }
+    
+    /// Get section type for an exercise (for displaying section indicators)
+    func getSectionType(for exercise: Exercise) -> ExerciseSectionType {
+        // First check category from ExRxExercise data
+        if let exRxExercise = ExRxDirectoryManager.shared.findExercise(name: exercise.name) {
+            let category = exRxExercise.category.lowercased()
+            if category == "warmup" || exercise.name.isWarmupExercise(category: exRxExercise.category) {
+                return .warmup
+            } else if category == "stretching" || exercise.name.isStretchExercise(category: exRxExercise.category) {
+                return .stretch
+            } else if category == "cardio" || exercise.name.isCardioExercise(category: exRxExercise.category) {
+                return .cardio
+            }
+        }
+        
+        // Fallback to name-based detection
+        if exercise.name.isWarmupExercise() {
+            return .warmup
+        } else if exercise.name.isStretchExercise() {
+            return .stretch
+        } else if exercise.name.isCardioExercise() || (exercise.exerciseType == .hold && exercise.targetHoldDuration != nil && !isCalisthenicsExercise(exercise)) {
+            return .cardio
+        } else {
+            return .workingSets
+        }
+    }
+    
+    /// Check if this exercise is the first in its section
+    func isFirstInSection(exercise: Exercise, at index: Int) -> Bool {
+        let sorted = sortedExercises
+        guard index < sorted.count else { return false }
+        
+        let currentSection = getSectionType(for: exercise)
+        
+        // Check if previous exercise is in a different section
+        if index > 0 {
+            let previousExercise = sorted[index - 1]
+            let previousSection = getSectionType(for: previousExercise)
+            return currentSection != previousSection
+        }
+        
+        // First exercise is always first in its section
+        return true
+    }
+    
+    /// Toggle section expansion state
+    func toggleSection(_ section: ExerciseSectionType) {
+        if expandedSections.contains(section) {
+            expandedSections.remove(section)
+        } else {
+            expandedSections.insert(section)
+        }
+    }
+    
+    /// Ensure the section containing the given exercise is expanded
+    func ensureSectionExpanded(for exercise: Exercise) {
+        let section = getSectionType(for: exercise)
+        if !expandedSections.contains(section) {
+            expandedSections.insert(section)
+        }
+    }
+    
+    /// Check if an exercise is a cardio exercise (for Exercise objects with type info)
+    func isCardioExercise(_ exercise: Exercise) -> Bool {
+        // Check if name indicates cardio
+        if exercise.name.isCardioExercise() {
+            return true
+        }
+        // If it's a hold exercise but not calisthenics, it's likely cardio
+        if exercise.exerciseType == .hold && exercise.targetHoldDuration != nil && !isCalisthenicsExercise(exercise) {
+            return true
+        }
+        return false
     }
     
     /// Check if an exercise is a calisthenics exercise
@@ -127,12 +241,64 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
+    /// Count only working sets (exclude warm-up sets) for a given exercise
+    func workingSetsCount(for exercise: Exercise) -> Int {
+        return exercise.sets.filter { !$0.isWarmup }.count
+    }
+    
+    /// Check if an exercise has completed all of its working sets
+    func isExerciseCompleted(_ exercise: Exercise) -> Bool {
+        let workingSets = workingSetsCount(for: exercise)
+        return workingSets >= exercise.targetSets
+    }
+    
     /// Format volume with comma separator
     func formatVolume(_ volume: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
+    }
+    
+    /// Complete a stretch set (tracked by sets only, no weight/reps inputs).
+    /// Uses lightweight sets under the hood but skips PR/history for stretches.
+    func completeStretchSet() {
+        guard var exercise = currentExercise,
+              var workout = currentWorkout else { return }
+        
+        // Only handle stretch-type exercises here
+        guard getSectionType(for: exercise) == .stretch else {
+            return
+        }
+        
+        // Create a minimal working set entry (weight 0, reps 1) to track progress
+        let workingSetsCount = workingSetsCount(for: exercise)
+        let setNumber = workingSetsCount + 1
+        let set = ExerciseSet(
+            setNumber: setNumber,
+            weight: 0,
+            reps: 1,
+            holdDuration: nil,
+            isDropset: false,
+            dropsetNumber: nil,
+            isWarmup: false
+        )
+        
+        exercise.sets.append(set)
+        exercise.currentSet += 1
+        workout.exercises[currentExerciseIndex] = exercise
+        
+        objectWillChange.send()
+        currentWorkout = workout
+        
+        // No PR or history tracking for stretches
+        
+        // Advance or start rest like a normal set
+        if exercise.currentSet > exercise.targetSets {
+            advanceToNextExercise()
+        } else {
+            startRestTimer()
+        }
     }
     
     /// Initialize with required dependencies
@@ -154,6 +320,11 @@ class WorkoutViewModel: ObservableObject {
         self.programViewModel = programViewModel
         self.templatesViewModel = templatesViewModel
         self.themeManager = themeManager
+        
+        // Load auto-advance settings
+        self.autoAdvanceEnabled = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.autoAdvanceEnabled)
+        self.autoAdvanceRestDuration = UserDefaults.standard.integer(forKey: AppConstants.UserDefaultsKeys.autoAdvanceRestDuration)
+        
         setupAppLifecycleObservers()
         restoreRestTimerState()
         loadLastWeights()
@@ -163,6 +334,10 @@ class WorkoutViewModel: ObservableObject {
             restoreWorkoutState()
             // If workout was restored, also restore timer state
             if currentWorkout != nil {
+                // Initialize expanded sections with current exercise's section
+                if let currentExercise = currentExercise {
+                    expandedSections = [getSectionType(for: currentExercise)]
+                }
                 restoreWorkoutTimerState()
                 // Start timer if workout was restored (preserves restored start time)
                 if workoutStartTime != nil {
@@ -402,6 +577,12 @@ class WorkoutViewModel: ObservableObject {
         currentWorkout = Workout(name: template.name, exercises: exercises)
         currentExerciseIndex = 0
         isFromTemplate = true // Mark as from template
+        
+        // Initialize expanded sections with current exercise's section
+        if let currentExercise = currentExercise {
+            expandedSections = [getSectionType(for: currentExercise)]
+        }
+        
         syncDropsetStateFromCurrentExercise()
         startTimer()
         
@@ -434,6 +615,12 @@ class WorkoutViewModel: ObservableObject {
         currentWorkout = Workout(name: name)
         currentExerciseIndex = 0
         isFromTemplate = false // Mark as manually created
+        
+        // Initialize expanded sections with current exercise's section
+        if let currentExercise = currentExercise {
+            expandedSections = [getSectionType(for: currentExercise)]
+        }
+        
         startTimer()
     }
     
@@ -543,6 +730,22 @@ class WorkoutViewModel: ObservableObject {
         
         // Save completed workout FIRST - this triggers WorkoutHistoryManager updates
         WorkoutHistoryManager.shared.addCompletedWorkout(workout)
+        
+        // Save workout to Apple Health
+        Task {
+            do {
+                let endDate = workout.startDate.addingTimeInterval(TimeInterval(elapsedTime))
+                try await HealthKitManager.shared.saveWorkout(
+                    name: workout.name,
+                    exercises: workout.exercises,
+                    startDate: workout.startDate,
+                    endDate: endDate,
+                    totalVolume: totalVolume
+                )
+            } catch {
+                Logger.error("Failed to save workout to HealthKit", error: error, category: .general)
+            }
+        }
         
         // Add workout date to progress tracking and calculate streak IMMEDIATELY
         if let progressVM = progressViewModel {
@@ -1095,11 +1298,10 @@ class WorkoutViewModel: ObservableObject {
     }
     
     private func startRestTimer() {
-        restTimerActive = true
-        
         Logger.debug("startRestTimer called - prMessage: '\(prMessage)', isEmpty: \(prMessage.isEmpty), showPRBadge: \(showPRBadge)", category: .general)
         
         // Show PR badge when rest timer appears if there's a PR message
+        // IMPORTANT: PR badge must be shown regardless of auto-advance state
         if !prMessage.isEmpty {
             // Set badge state immediately
             showPRBadge = true
@@ -1130,6 +1332,21 @@ class WorkoutViewModel: ObservableObject {
         } else {
             Logger.debug("❌ No PR message to show - prMessage is empty", category: .general)
         }
+        
+        // Check if auto-advance is enabled with immediate (0 duration) rest
+        if autoAdvanceEnabled && autoAdvanceRestDuration == 0 {
+            // Don't start a visible rest timer - just show the PR badge (if any)
+            // and auto-advance AFTER the PR badge has had time to display
+            let autoAdvanceDelay = AppConstants.PRBadge.displayDuration + 0.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + autoAdvanceDelay) { [weak self] in
+                guard let self = self else { return }
+                self.completeRest()
+            }
+            return
+        }
+        
+        // Normal rest timer flow
+        restTimerActive = true
         restTimerOriginalDuration = settingsManager.restTimerDuration
         restTimerTotalDuration = restTimerOriginalDuration
         restTimeRemaining = restTimerOriginalDuration
@@ -1173,6 +1390,26 @@ class WorkoutViewModel: ObservableObject {
             // Ensure time remaining is never negative
             if self.restTimeRemaining > 0 {
                 self.restTimeRemaining -= 1
+                
+                // Haptic feedback for timer milestones
+                if self.restTimeRemaining == 30 {
+                    HapticManager.warning()
+                } else if self.restTimeRemaining == 15 {
+                    HapticManager.impact(style: .light)
+                } else if self.restTimeRemaining == 5 {
+                    HapticManager.impact(style: .medium)
+                }
+                
+                // Check for auto-advance
+                if self.autoAdvanceEnabled {
+                    let elapsed = self.restTimerTotalDuration - self.restTimeRemaining
+                    if elapsed >= self.autoAdvanceRestDuration {
+                        // Auto-advance after minimum rest duration
+                        self.restTimeRemaining = 0
+                        self.completeRest()
+                        return
+                    }
+                }
             } else {
                 // Timer reached zero or went negative - complete rest
                 self.restTimeRemaining = 0
@@ -1208,6 +1445,9 @@ class WorkoutViewModel: ObservableObject {
         // Clear saved state
         clearRestTimerState()
         
+        // Trigger UI update to prepare for next set
+        readyForNextSet = UUID()
+        
         // Check if exercise is complete and advance if needed
         checkAndAdvanceExercise()
     }
@@ -1234,8 +1474,53 @@ class WorkoutViewModel: ObservableObject {
         // Clear saved state
         clearRestTimerState()
         
+        // Trigger UI update to prepare for next set
+        readyForNextSet = UUID()
+        
         // Check if exercise is complete and advance if needed
         checkAndAdvanceExercise()
+    }
+    
+    // MARK: - Auto-Advance
+    
+    func toggleAutoAdvance() {
+        autoAdvanceEnabled.toggle()
+        UserDefaults.standard.set(autoAdvanceEnabled, forKey: AppConstants.UserDefaultsKeys.autoAdvanceEnabled)
+        HapticManager.impact(style: .light)
+    }
+    
+    func setAutoAdvanceRestDuration(_ duration: Int) {
+        autoAdvanceRestDuration = max(0, duration)
+        UserDefaults.standard.set(autoAdvanceRestDuration, forKey: AppConstants.UserDefaultsKeys.autoAdvanceRestDuration)
+    }
+    
+    // MARK: - Timer Controls
+    
+    func quickSkipRest() {
+        skipRest()
+    }
+    
+    func addTimeToRest(_ seconds: Int) {
+        guard restTimerActive else { return }
+        restTimeRemaining += seconds
+        restTimerTotalDuration += seconds
+        restTimerOriginalDuration += seconds
+        HapticManager.impact(style: .light)
+    }
+    
+    func subtractTimeFromRest(_ seconds: Int) {
+        guard restTimerActive else { return }
+        let newRemaining = max(0, restTimeRemaining - seconds)
+        let reduction = restTimeRemaining - newRemaining
+        restTimeRemaining = newRemaining
+        restTimerTotalDuration = max(restTimeRemaining, restTimerTotalDuration - reduction)
+        restTimerOriginalDuration = max(restTimeRemaining, restTimerOriginalDuration - reduction)
+        HapticManager.impact(style: .light)
+        
+        // If timer reaches zero, complete rest
+        if restTimeRemaining == 0 {
+            completeRest()
+        }
     }
     
     // MARK: - Timer Pause During Rest
@@ -1358,7 +1643,16 @@ class WorkoutViewModel: ObservableObject {
                 currentExerciseIndex += 1
             }
             syncDropsetStateFromCurrentExercise()
+            
+            // Ensure the section containing the next exercise is expanded
+            if let nextExercise = currentExercise {
+                ensureSectionExpanded(for: nextExercise)
+            }
+            
             HapticManager.selection()
+            
+            // Trigger UI update to prepare for next set in new exercise
+            readyForNextSet = UUID()
         }
     }
     
@@ -1695,6 +1989,40 @@ class WorkoutViewModel: ObservableObject {
         Logger.debug("Removed exercise at index \(index)", category: .general)
     }
     
+    // MARK: - Exercise Reordering
+    
+    /// Move an exercise within the current workout's exercise list.
+    /// Indices refer to the underlying `currentWorkout.exercises` order.
+    func moveExercise(from sourceIndex: Int, to destinationIndex: Int) {
+        guard var workout = currentWorkout else { return }
+        guard sourceIndex != destinationIndex,
+              sourceIndex >= 0, sourceIndex < workout.exercises.count else {
+            return
+        }
+        
+        // Clamp destination to valid range
+        let clampedDestination = max(0, min(destinationIndex, workout.exercises.count - 1))
+        guard clampedDestination != sourceIndex else { return }
+        
+        let movedExercise = workout.exercises.remove(at: sourceIndex)
+        workout.exercises.insert(movedExercise, at: clampedDestination)
+        
+        // Adjust currentExerciseIndex to track the same logical exercise
+        if sourceIndex == currentExerciseIndex {
+            currentExerciseIndex = clampedDestination
+        } else if sourceIndex < currentExerciseIndex && clampedDestination >= currentExerciseIndex {
+            // Item moved from before the current index to after/at it
+            currentExerciseIndex -= 1
+        } else if sourceIndex > currentExerciseIndex && clampedDestination <= currentExerciseIndex {
+            // Item moved from after the current index to before/at it
+            currentExerciseIndex += 1
+        }
+        
+        currentWorkout = workout
+        HapticManager.selection()
+        Logger.debug("Reordered exercise from index \(sourceIndex) to \(clampedDestination)", category: .general)
+    }
+    
     private func checkForPR(exercise: String, weight: Double, reps: Int, silent: Bool = false) -> Bool {
         guard let progressVM = progressViewModel else {
             // No progress view model connected - can't determine if it's a PR
@@ -1741,5 +2069,39 @@ class WorkoutViewModel: ObservableObject {
         // Remove all notification observers
         notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
         notificationObservers.removeAll()
+    }
+}
+
+// MARK: - Exercise Section Type
+enum ExerciseSectionType {
+    case warmup
+    case stretch
+    case workingSets
+    case cardio
+    
+    var displayName: String {
+        switch self {
+        case .warmup:
+            return "Warmup"
+        case .stretch:
+            return "Stretch"
+        case .workingSets:
+            return "Exercises"
+        case .cardio:
+            return "Cardio"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .warmup:
+            return "flame.fill"
+        case .stretch:
+            return "figure.flexibility"
+        case .workingSets:
+            return "dumbbell.fill"
+        case .cardio:
+            return "heart.fill"
+        }
     }
 }
