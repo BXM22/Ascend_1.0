@@ -10,6 +10,7 @@ struct DashboardView: View {
     let onNavigateToProgress: (() -> Void)?
     @State private var showGenerateTypeDialog = false
     @State private var showWorkoutHistory = false
+<<<<<<< Updated upstream
     @State private var showPRHistory = false
     
     init(
@@ -29,6 +30,9 @@ struct DashboardView: View {
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
     }
+=======
+    @State private var showSportsTimer = false
+>>>>>>> Stashed changes
     
     private enum GeneratedDayType {
         case custom, push, pull, legs, fullBody
@@ -56,12 +60,15 @@ struct DashboardView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             ScrollView {
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     // Hero Section with Greeting and Quick Stats
                     HeroSection(
                         progressViewModel: progressViewModel,
                         onGenerateWorkout: {
                             showGenerateTypeDialog = true
+                        },
+                        onOpenSportsTimer: {
+                            showSportsTimer = true
                         }
                     )
                     .padding(.top, 60) // Add top padding to account for buttons
@@ -105,6 +112,11 @@ struct DashboardView: View {
                         )
                     }
                     
+                    // Sports Timer Card (prominent placement)
+                    SportsTimerCard(onOpen: {
+                        showSportsTimer = true
+                    })
+                    
                     // Stat Cards (Recent PRs + Top Exercise)
                     HStack(alignment: .top, spacing: 12) {
                         RecentPRsStatCard(
@@ -131,6 +143,7 @@ struct DashboardView: View {
                     
                     // Muscle Group Chart
                     MuscleGroupChart(progressViewModel: progressViewModel)
+                        .drawingGroup() // Optimize chart rendering
                         .padding(.bottom, 100)
                     }
                     .padding(.horizontal, 20)
@@ -195,9 +208,66 @@ struct DashboardView: View {
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
         }
+<<<<<<< Updated upstream
         .sheet(isPresented: $showPRHistory) {
             PRHistoryView(progressViewModel: progressViewModel)
         }
+=======
+        .fullScreenCover(isPresented: $showSportsTimer) {
+            SportsTimerView()
+        }
+    }
+}
+
+// MARK: - Sports Timer Card
+
+struct SportsTimerCard: View {
+    let onOpen: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            HapticManager.impact(style: .light)
+            onOpen()
+        }) {
+            HStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient.primaryGradient.opacity(0.2))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "timer")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(LinearGradient.primaryGradient)
+                }
+                
+                // Content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sports Timer")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Text("Boxing, MMA, Wrestling & more")
+                        .font(.system(size: 13))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.mutedForeground)
+            }
+            .padding(20)
+            .background(AppColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+>>>>>>> Stashed changes
     }
 }
 

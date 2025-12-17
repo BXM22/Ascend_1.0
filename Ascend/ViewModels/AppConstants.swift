@@ -43,6 +43,8 @@ enum AppConstants {
         // Workout state persistence
         static let currentWorkout = "currentWorkout"
         static let currentExerciseIndex = "currentExerciseIndex"
+        // Custom sports timer
+        static let customSportsTimerConfigs = "customSportsTimerConfigs"
         static let isFromTemplate = "isFromTemplate"
         static let lastWeightPerExercise = "lastWeightPerExercise"
         // Auto-advance settings

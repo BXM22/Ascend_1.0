@@ -30,7 +30,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     // MARK: - Rest Timer Notifications
     
-    func scheduleRestTimerNotification(duration: Int) {
+    func scheduleRestTimerNotification(duration: Int, title: String = "Rest Timer Complete", body: String = "Your rest period is over. Time to get back to your workout! 💪") {
         // Remove any existing rest timer notification
         cancelRestTimerNotification()
         
@@ -42,8 +42,8 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         
         // Create notification content
         let content = UNMutableNotificationContent()
-        content.title = "Rest Timer Complete"
-        content.body = "Your rest period is over. Time to get back to your workout! 💪"
+        content.title = title
+        content.body = body
         content.sound = .default
         content.categoryIdentifier = "REST_TIMER"
         content.userInfo = ["restTimerCompleted": true]
@@ -69,6 +69,12 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [restTimerNotificationIdentifier])
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [restTimerNotificationIdentifier])
         Logger.debug("Cancelled rest timer notification", category: .notification)
+    }
+    
+    func cancelAllNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        Logger.debug("Cancelled all notifications", category: .notification)
     }
     
     // MARK: - UNUserNotificationCenterDelegate

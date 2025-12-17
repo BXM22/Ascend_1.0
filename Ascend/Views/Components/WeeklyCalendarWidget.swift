@@ -1,12 +1,18 @@
 import SwiftUI
 
+// Make Date identifiable for sheet(item:) modifier
+extension Date: Identifiable {
+    public var id: TimeInterval {
+        self.timeIntervalSince1970
+    }
+}
+
 struct WeeklyCalendarWidget: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     
     @State private var weekOffset: Int = 0 // 0 = current week, -1 = previous, +1 = next
     @State private var selectedDate: Date?
-    @State private var showWorkoutDetail = false
     
     private var currentWeekDays: [Date] {
         let calendar = Calendar.current
@@ -86,7 +92,6 @@ struct WeeklyCalendarWidget: View {
     
     private func handleDayTap(_ date: Date) {
         selectedDate = date
-        showWorkoutDetail = true
     }
     
     private func navigateWeek(_ direction: Int) {
@@ -326,52 +331,50 @@ struct WeeklyCalendarWidget: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $showWorkoutDetail) {
-            if let date = selectedDate {
-                if let workoutDay = getWorkoutDay(for: date) {
-                    WorkoutDayDetailSheet(
-                        workoutDay: workoutDay,
-                        date: date,
-                        intensity: getIntensity(for: date) ?? .moderate,
-                        isCompleted: getProgress(for: date) >= 1.0
-                    )
-                } else {
-                    // Show message for days without workouts
-                    NavigationView {
-                        VStack(spacing: AppSpacing.lg) {
-                            Image(systemName: "calendar.badge.exclamationmark")
-                                .font(.system(size: 48))
-                                .foregroundColor(AppColors.mutedForeground)
-                            
-                            Text("No Workout Scheduled")
-                                .font(AppTypography.heading3)
-                                .foregroundColor(AppColors.textPrimary)
-                            
-                            if programViewModel.activeProgram != nil {
-                                Text("This day doesn't have a scheduled workout in your active program.")
-                                    .font(AppTypography.body)
-                                    .foregroundColor(AppColors.textSecondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, AppSpacing.lg)
-                            } else {
-                                Text("No active workout program. Start a program to see scheduled workouts.")
-                                    .font(AppTypography.body)
-                                    .foregroundColor(AppColors.textSecondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, AppSpacing.lg)
-                            }
+        .sheet(item: $selectedDate) { date in
+            if let workoutDay = getWorkoutDay(for: date) {
+                WorkoutDayDetailSheet(
+                    workoutDay: workoutDay,
+                    date: date,
+                    intensity: getIntensity(for: date) ?? .moderate,
+                    isCompleted: getProgress(for: date) >= 1.0
+                )
+            } else {
+                // Show message for days without workouts
+                NavigationView {
+                    VStack(spacing: AppSpacing.lg) {
+                        Image(systemName: "calendar.badge.exclamationmark")
+                            .font(.system(size: 48))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Text("No Workout Scheduled")
+                            .font(AppTypography.heading3)
+                            .foregroundColor(AppColors.textPrimary)
+                        
+                        if programViewModel.activeProgram != nil {
+                            Text("This day doesn't have a scheduled workout in your active program.")
+                                .font(AppTypography.body)
+                                .foregroundColor(AppColors.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, AppSpacing.lg)
+                        } else {
+                            Text("No active workout program. Start a program to see scheduled workouts.")
+                                .font(AppTypography.body)
+                                .foregroundColor(AppColors.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, AppSpacing.lg)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppColors.background)
-                        .navigationTitle("Workout Details")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    showWorkoutDetail = false
-                                }
-                                .foregroundColor(AppColors.primary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppColors.background)
+                    .navigationTitle("Workout Details")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                selectedDate = nil
                             }
+                            .foregroundColor(AppColors.primary)
                         }
                     }
                 }

@@ -7,7 +7,7 @@ struct TrendGraphsView: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
+            LazyHStack(spacing: 16) {
                 Spacer(minLength: 0)
                 
                 // PR Trend Graph
@@ -33,11 +33,20 @@ struct TrendGraphsView: View {
 // MARK: - PR Trend Graph
 struct PRTrendGraphView: View {
     @ObservedObject var viewModel: ProgressViewModel
+    @State private var cachedChartData: [PRDataPoint] = []
+    @State private var lastExercise: String = ""
     
     private var chartData: [PRDataPoint] {
-        viewModel.selectedExercisePRs
-            .sorted { $0.date < $1.date }
-            .map { PRDataPoint(date: $0.date, weight: $0.weight) }
+        // Cache chart data to avoid recalculating on every render
+        if viewModel.selectedExercise != lastExercise || cachedChartData.isEmpty {
+            let data = viewModel.selectedExercisePRs
+                .sorted { $0.date < $1.date }
+                .map { PRDataPoint(date: $0.date, weight: $0.weight) }
+            cachedChartData = data
+            lastExercise = viewModel.selectedExercise
+            return data
+        }
+        return cachedChartData
     }
     
     var body: some View {
@@ -93,11 +102,20 @@ struct PRTrendGraphView: View {
 // MARK: - Rep Trend Graph
 struct RepTrendGraphView: View {
     @ObservedObject var viewModel: ProgressViewModel
+    @State private var cachedChartData: [RepDataPoint] = []
+    @State private var lastExercise: String = ""
     
     private var chartData: [RepDataPoint] {
-        viewModel.selectedExercisePRs
-            .sorted { $0.date < $1.date }
-            .map { RepDataPoint(date: $0.date, reps: $0.reps) }
+        // Cache chart data to avoid recalculating on every render
+        if viewModel.selectedExercise != lastExercise || cachedChartData.isEmpty {
+            let data = viewModel.selectedExercisePRs
+                .sorted { $0.date < $1.date }
+                .map { RepDataPoint(date: $0.date, reps: $0.reps) }
+            cachedChartData = data
+            lastExercise = viewModel.selectedExercise
+            return data
+        }
+        return cachedChartData
     }
     
     var body: some View {
@@ -147,6 +165,11 @@ struct RepTrendGraphView: View {
                 .frame(height: 200)
             }
         }
+        .onChange(of: viewModel.selectedExercise) { _, _ in
+            // Invalidate cache when exercise changes
+            cachedChartData = []
+        }
+        .drawingGroup() // Optimize chart rendering
     }
 }
 

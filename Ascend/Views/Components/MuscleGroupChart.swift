@@ -95,10 +95,25 @@ struct MuscleGroupChart: View {
     
     private func refreshData() {
         let start = Date()
-        let data = calculateMuscleGroupDistribution()
-        cachedMuscleGroupData = data
-        cachedTotalSets = data.reduce(0) { $0 + $1.count }
-        debugLog("refreshData", data: ["durationMs": Int(Date().timeIntervalSince(start)*1000), "totalSets": cachedTotalSets])
+        // Process on background queue for large datasets
+        let allWorkouts = workoutHistoryManager.completedWorkouts
+        if allWorkouts.count > 50 {
+            PerformanceOptimizer.performOnBackground(
+                {
+                    return self.calculateMuscleGroupDistribution()
+                },
+                completion: { (data: [MuscleGroupData]) in
+                    self.cachedMuscleGroupData = data
+                    self.cachedTotalSets = data.reduce(0) { $0 + $1.count }
+                    self.debugLog("refreshData", data: ["durationMs": Int(Date().timeIntervalSince(start)*1000), "totalSets": self.cachedTotalSets])
+                }
+            )
+        } else {
+            let data = calculateMuscleGroupDistribution()
+            cachedMuscleGroupData = data
+            cachedTotalSets = data.reduce(0) { $0 + $1.count }
+            debugLog("refreshData", data: ["durationMs": Int(Date().timeIntervalSince(start)*1000), "totalSets": cachedTotalSets])
+        }
     }
     
     private func normalizeMuscleGroup(_ group: String) -> String {
@@ -218,6 +233,7 @@ struct MuscleGroupChart: View {
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+        .drawingGroup() // Optimize complex chart rendering
         .onAppear {
             // Force refresh on appear to ensure data is loaded
             refreshData()
@@ -227,9 +243,17 @@ struct MuscleGroupChart: View {
             refreshData()
         }
         .onReceive(workoutHistoryManager.$completedWorkouts) { _ in
+<<<<<<< Updated upstream
             // Also listen to published changes
             refreshData()
+=======
+            // Debounce refresh to avoid excessive recalculations
+            PerformanceOptimizer.shared.debouncedSave(delay: 0.3) {
+                self.refreshData()
+            }
+>>>>>>> Stashed changes
         }
+        .drawingGroup() // Optimize rendering for complex chart
     }
     
     private func cumulativeFraction(for index: Int) -> Double {

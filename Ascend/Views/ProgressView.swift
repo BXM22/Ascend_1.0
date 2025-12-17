@@ -15,7 +15,7 @@ struct ProgressView: View {
     
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 0) {
+            LazyVStack(spacing: 0, pinnedViews: []) {
                 // Header
                 ProgressHeader(
                     selectedView: $viewModel.selectedView,

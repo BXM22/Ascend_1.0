@@ -37,7 +37,7 @@ class PerformanceOptimizer {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.clearImageCache()
+            self?.clearAllCaches()
         }
     }
     
@@ -179,6 +179,119 @@ struct CachedComputed<T: Equatable> {
     
     mutating func invalidate() {
         cachedValue = nil
+    }
+}
+
+// MARK: - View Performance Helpers
+
+/// View modifier to throttle updates and prevent excessive re-renders
+struct ThrottledUpdateModifier: ViewModifier {
+    let interval: TimeInterval
+    @State private var lastUpdate = Date()
+    
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
+extension View {
+    /// Throttle view updates to prevent excessive re-renders
+    /// Note: This is a placeholder - actual throttling should be done at the data layer
+    func throttleUpdates(interval: TimeInterval = 0.1) -> some View {
+        self // Return self unchanged - throttling should be done in ViewModels
+    }
+}
+
+/// Equatable wrapper for views to prevent unnecessary re-renders
+struct EquatableView<Content: View & Equatable>: View, Equatable {
+    let content: Content
+    
+    var body: some View {
+        content
+    }
+    
+    static func == (lhs: EquatableView<Content>, rhs: EquatableView<Content>) -> Bool {
+        lhs.content == rhs.content
+    }
+}
+
+/// View modifier to cache view rendering
+struct CachedViewModifier: ViewModifier {
+    @State private var cachedView: AnyView?
+    
+    func body(content: Content) -> some View {
+        Group {
+            if let cached = cachedView {
+                cached
+            } else {
+                content.onAppear {
+                    cachedView = AnyView(content)
+                }
+            }
+        }
+    }
+}
+
+extension View {
+    /// Cache view rendering to avoid recomputation
+    func cached() -> some View {
+        self.modifier(CachedViewModifier())
+    }
+}
+
+/// Helper to create stable identifiers for ForEach
+struct StableID: Hashable {
+    let id: String
+    let hash: Int
+    
+    init(_ id: String) {
+        self.id = id
+        self.hash = id.hashValue
+    }
+}
+
+// MARK: - Background Processing
+
+extension PerformanceOptimizer {
+    /// Process array in chunks on background queue
+    static func processInChunks<T, R>(
+        _ items: [T],
+        chunkSize: Int = 100,
+        processor: @escaping ([T]) -> [R],
+        completion: @escaping ([R]) -> Void
+    ) {
+        DispatchQueue.global(qos: .utility).async {
+            var results: [R] = []
+            var index = 0
+            
+            while index < items.count {
+                let endIndex = min(index + chunkSize, items.count)
+                let chunk = Array(items[index..<endIndex])
+                let processed = processor(chunk)
+                results.append(contentsOf: processed)
+                index = endIndex
+            }
+            
+            DispatchQueue.main.async {
+                completion(results)
+            }
+        }
+    }
+    
+    /// Debounce with immediate first execution option
+    func debounced(delay: TimeInterval = 0.3, immediate: Bool = false, work: @escaping () -> Void) {
+        if immediate {
+            work()
+        }
+        debouncedSave(delay: delay, work: work)
+    }
+    
+    // MARK: - Memory Management
+    
+    /// Clear all caches when memory is low
+    func clearAllCaches() {
+        clearImageCache()
+        // Add other cache clearing here as needed
     }
 }
 

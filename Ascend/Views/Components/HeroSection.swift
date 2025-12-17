@@ -3,6 +3,7 @@ import SwiftUI
 struct HeroSection: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     let onGenerateWorkout: () -> Void
+    var onOpenSportsTimer: (() -> Void)? = nil
     
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -77,44 +78,88 @@ struct HeroSection: View {
                 )
             }
             
-            // Generate Workout Button
-            Button(action: {
-                HapticManager.impact(style: .medium)
-                onGenerateWorkout()
-            }) {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 20, weight: .semibold))
-                    
-                    Text("Generate Workout")
-                        .font(AppTypography.heading4)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
+            // Action Buttons
+            VStack(spacing: 12) {
+                // Generate Workout Button
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    onGenerateWorkout()
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 20, weight: .semibold))
+                        
+                        Text("Generate Workout")
+                            .font(AppTypography.heading4)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 18)
+                    .background(
+                        LinearGradient.primaryGradient
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(
+                        color: AppColors.primary.opacity(0.4),
+                        radius: 20,
+                        x: 0,
+                        y: 8
+                    )
+                    .shadow(
+                        color: AppColors.primary.opacity(0.2),
+                        radius: 8,
+                        x: 0,
+                        y: 4
+                    )
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 18)
-                .background(
-                    LinearGradient.primaryGradient
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(
-                    color: AppColors.primary.opacity(0.4),
-                    radius: 20,
-                    x: 0,
-                    y: 8
-                )
-                .shadow(
-                    color: AppColors.primary.opacity(0.2),
-                    radius: 8,
-                    x: 0,
-                    y: 4
-                )
+                .buttonStyle(HeroButtonStyle())
+                
+                // Sports Timer Button
+                if let onOpenSportsTimer = onOpenSportsTimer {
+                    Button(action: {
+                        HapticManager.impact(style: .medium)
+                        onOpenSportsTimer()
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 20, weight: .semibold))
+                            
+                            Text("Sports Timer")
+                                .font(AppTypography.heading4)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 18)
+                        .background(
+                            LinearGradient.primaryGradient
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(
+                            color: AppColors.primary.opacity(0.4),
+                            radius: 20,
+                            x: 0,
+                            y: 8
+                        )
+                        .shadow(
+                            color: AppColors.primary.opacity(0.2),
+                            radius: 8,
+                            x: 0,
+                            y: 4
+                        )
+                    }
+                    .buttonStyle(HeroButtonStyle())
+                }
             }
-            .buttonStyle(HeroButtonStyle())
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, AppSpacing.md)
@@ -174,10 +219,11 @@ struct HeroButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.02 : 1.0))
-            .brightness(configuration.isPressed ? -0.1 : (isHovered ? 0.05 : 0))
-            .animation(AppAnimations.quick, value: configuration.isPressed)
-            .animation(AppAnimations.quick, value: isHovered)
+            .scaleEffect(configuration.isPressed ? 0.96 : (isHovered ? 1.02 : 1.0))
+            .brightness(configuration.isPressed ? -0.08 : (isHovered ? 0.05 : 0))
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
     }
 }
 
