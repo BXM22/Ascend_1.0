@@ -94,47 +94,34 @@ class HealthKitManager: ObservableObject {
         // Determine workout activity type based on exercises
         let activityType = determineWorkoutActivityType(exercises: exercises)
         
-        // Create workout
-        let workout = HKWorkout(
-            activityType: activityType,
-            start: startDate,
-            end: endDate,
-            duration: endDate.timeIntervalSince(startDate),
-            totalEnergyBurned: nil,
-            totalDistance: nil,
-            metadata: [
-                "app": "Ascend",
-                "exerciseCount": exercises.count,
-                "totalVolume": totalVolume,
-                "workoutName": name
-            ]
-        )
+        // Configure workout builder
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = activityType
+        configuration.locationType = .unknown
         
-        // Save workout
-        do {
-            try await healthStore.save(workout)
-            Logger.info("✅ Workout saved to HealthKit: \(name)", category: .general)
-            
-            // Optionally save additional metrics
-            try await saveWorkoutMetrics(workout: workout, exercises: exercises, totalVolume: totalVolume)
-        } catch {
-            Logger.error("Failed to save workout to HealthKit", error: error, category: .general)
-            throw error
+        let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
+        
+        // Begin collection
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.beginCollection(withStart: startDate) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "HealthKit",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to begin workout collection"]
+                        )
+                    )
+                }
+            }
         }
-    }
-    
-    // MARK: - Save Workout Metrics
-    
-    private func saveWorkoutMetrics(
-        workout: HKWorkout,
-        exercises: [Exercise],
-        totalVolume: Int
-    ) async throws {
-        var samples: [HKSample] = []
         
-        // Calculate total active energy (rough estimate: 0.1 kcal per lb of volume)
+        // Estimate and attach active energy burned as a sample
         let estimatedCalories = Double(totalVolume) * 0.1
-        
         if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
             let energyQuantity = HKQuantity(
                 unit: HKUnit.kilocalorie(),
@@ -143,27 +130,94 @@ class HealthKitManager: ObservableObject {
             let energySample = HKQuantitySample(
                 type: energyType,
                 quantity: energyQuantity,
-                start: workout.startDate,
-                end: workout.endDate
+                start: startDate,
+                end: endDate
             )
-            samples.append(energySample)
-        }
-        
-        // Save all samples
-        if !samples.isEmpty {
+            
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                healthStore.add(samples, to: workout) { success, error in
+                builder.add([energySample]) { success, error in
                     if let error = error {
                         continuation.resume(throwing: error)
                     } else if success {
                         continuation.resume()
                     } else {
-                        continuation.resume(throwing: NSError(domain: "HealthKit", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to save samples"]))
+                        continuation.resume(
+                            throwing: NSError(
+                                domain: "HealthKit",
+                                code: -1,
+                                userInfo: [NSLocalizedDescriptionKey: "Failed to add energy sample to workout"]
+                            )
+                        )
                     }
                 }
             }
-            Logger.info("✅ Workout metrics saved to HealthKit", category: .general)
         }
+        
+        // End collection
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.endCollection(withEnd: endDate) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "HealthKit",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to end workout collection"]
+                        )
+                    )
+                }
+            }
+        }
+        
+        // Attach metadata
+        let metadata: [String: Any] = [
+            "app": "Ascend",
+            "exerciseCount": exercises.count,
+            "totalVolume": totalVolume,
+            "workoutName": name
+        ]
+        
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.addMetadata(metadata) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "HealthKit",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to add metadata to workout"]
+                        )
+                    )
+                }
+            }
+        }
+        
+        // Finish and save workout
+        let workout: HKWorkout = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HKWorkout, Error>) in
+            builder.finishWorkout { workout, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let workout = workout {
+                    continuation.resume(returning: workout)
+                } else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "HealthKit",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to finish workout"]
+                        )
+                    )
+                }
+            }
+        }
+        
+        Logger.info("✅ Workout saved to HealthKit: \(name) (\(workout.workoutActivityType.rawValue))", category: .general)
     }
     
     // MARK: - Helper Methods

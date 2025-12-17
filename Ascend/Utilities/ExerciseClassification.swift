@@ -24,7 +24,21 @@ extension String {
             return true
         }
         let nameLower = self.lowercased()
-        let cardioKeywords = ["run", "bike", "row", "cardio", "treadmill", "elliptical", "cycling", "running", "jog", "sprint"]
+        // Avoid treating strength rows (e.g. Barbell Row, T-Bar Row) as cardio:
+        // use more specific rowing terms instead of the generic "row".
+        let cardioKeywords = [
+            "run",
+            "bike",
+            "rowing",
+            "rower",
+            "cardio",
+            "treadmill",
+            "elliptical",
+            "cycling",
+            "running",
+            "jog",
+            "sprint"
+        ]
         return cardioKeywords.contains { nameLower.contains($0) }
     }
     

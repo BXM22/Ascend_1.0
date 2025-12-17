@@ -8,6 +8,29 @@
 import SwiftUI
 import HealthKit
 
+// Segments for the horizontal master list at the top of the workout screen
+private enum WorkoutExerciseSegment: CaseIterable {
+    case warmup
+    case main
+    case cardio
+    
+    var title: String {
+        switch self {
+        case .warmup: return "Warmup"
+        case .main: return "Exercises"
+        case .cardio: return "Cardio"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .warmup: return "flame.fill"
+        case .main: return "dumbbell.fill"
+        case .cardio: return "heart.fill"
+        }
+    }
+}
+
 struct WorkoutView: View {
     @ObservedObject var viewModel: WorkoutViewModel
     @State private var weight: String = "185"
@@ -20,6 +43,44 @@ struct WorkoutView: View {
     @State private var showDeleteExerciseConfirmation = false
     @State private var exerciseToDelete: Int?
     @State private var currentSetIsWarmup = false
+    @State private var selectedSegment: WorkoutExerciseSegment = .main
+    
+    /// Map an exercise section type to the corresponding horizontal segment.
+    private func segment(for sectionType: ExerciseSectionType) -> WorkoutExerciseSegment {
+        switch sectionType {
+        case .warmup, .stretch:
+            return .warmup
+        case .workingSets:
+            return .main
+        case .cardio:
+            return .cardio
+        }
+    }
+    
+    /// Map the selected segment to one or more underlying exercise section types.
+    private func sectionTypes(for segment: WorkoutExerciseSegment) -> [ExerciseSectionType] {
+        switch segment {
+        case .warmup:
+            return [.warmup, .stretch]
+        case .main:
+            return [.workingSets]
+        case .cardio:
+            return [.cardio]
+        }
+    }
+    
+    /// Exercises that should appear in the horizontal master list for the current segment.
+    private var currentSegmentExercises: [Exercise] {
+        guard viewModel.currentWorkout != nil else { return [] }
+        
+        let exercisesBySection = viewModel.exercisesBySection
+        let selectedTypes = sectionTypes(for: selectedSegment)
+        let orderedTypes: [ExerciseSectionType] = [.warmup, .stretch, .workingSets, .cardio]
+        
+        return orderedTypes
+            .filter { selectedTypes.contains($0) }
+            .flatMap { exercisesBySection[$0] ?? [] }
+    }
     
     // Helper to render exercise card based on type
     @ViewBuilder
@@ -215,25 +276,160 @@ struct WorkoutView: View {
         .padding(.vertical, isCurrent ? 8 : 4)
     }
     
+    // MARK: - Horizontal Master List + Active Detail
+    @ViewBuilder
+    private func masterListSection(proxy: ScrollViewProxy) -> some View {
+        if let workout = viewModel.currentWorkout {
+            let currentExercise = viewModel.currentExercise
+            let segmentExercises = currentSegmentExercises
+            
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                // Segmented header
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(WorkoutExerciseSegment.allCases, id: \.self) { segment in
+                        let isSelected = segment == selectedSegment
+                        
+                        Button(action: {
+                            withAnimation(AppAnimations.smooth) {
+                                selectedSegment = segment
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: segment.iconName)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(segment.title)
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.xs)
+                            .frame(maxWidth: .infinity)
+                            .foregroundColor(isSelected ? AppColors.alabasterGrey : AppColors.textSecondary)
+                            .background(
+                                isSelected
+                                ? LinearGradient.primaryGradient
+                                : LinearGradient(
+                                    colors: [AppColors.secondary.opacity(0.7)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.md)
+                
+                // Horizontal master list of exercises for the selected segment
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppSpacing.sm) {
+                        if segmentExercises.isEmpty {
+                            Text("No exercises in this section yet")
+                                .font(.system(size: 13))
+                                .foregroundColor(AppColors.textSecondary)
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.vertical, AppSpacing.sm)
+                        } else {
+                            ForEach(segmentExercises) { exercise in
+                                ExerciseChip(
+                                    exercise: exercise,
+                                    isCurrent: exercise.id == currentExercise?.id,
+                                    workingSetsCompleted: viewModel.workingSetsCount(for: exercise),
+                                    targetSets: exercise.targetSets,
+                                    onTap: {
+                                        if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                            HapticManager.impact(style: .light)
+                                            viewModel.currentExerciseIndex = index
+                                            viewModel.ensureSectionExpanded(for: exercise)
+                                            viewModel.syncDropsetStateFromCurrentExercise()
+                                            
+                                            let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
+                                            withAnimation(AppAnimations.smooth) {
+                                                proxy.scrollTo(exerciseId, anchor: .top)
+                                            }
+                                        }
+                                    },
+                                    onDelete: {
+                                        if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                                            if !exercise.sets.isEmpty {
+                                                showDeleteExerciseConfirmation = true
+                                                exerciseToDelete = index
+                                            } else {
+                                                viewModel.removeExercise(at: index)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.sm)
+                }
+                
+                // Active exercise detail card with integrated alternative view
+                if let exercise = currentExercise {
+                    exerciseCardView(
+                        for: exercise,
+                        isCurrent: true
+                    )
+                    .padding(.top, AppSpacing.md)
+                    .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                    
+                    // Alternative Exercises Section (directly under active card)
+                    if !viewModel.isCalisthenicsExercise(exercise) {
+                        let allAlternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
+                        let alternatives = Array(allAlternatives.prefix(3))
+                        if !alternatives.isEmpty {
+                            AlternativeExercisesView(
+                                exerciseName: exercise.name,
+                                alternatives: alternatives,
+                                onSelectAlternative: { alternativeName in
+                                    viewModel.switchToAlternative(alternativeName: alternativeName)
+                                }
+                            )
+                            .padding(.top, AppSpacing.sm)
+                            .padding(.horizontal, AppSpacing.lg)
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                if let exercise = currentExercise {
+                    selectedSegment = segment(for: viewModel.getSectionType(for: exercise))
+                }
+            }
+            .onChange(of: viewModel.currentExerciseIndex) { _, _ in
+                if let exercise = viewModel.currentExercise {
+                    withAnimation(AppAnimations.smooth) {
+                        selectedSegment = segment(for: viewModel.getSectionType(for: exercise))
+                    }
+                }
+            }
+        }
+    }
+    
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                // Header
-                WorkoutHeader(
-                    title: viewModel.currentWorkout?.name ?? "Workout",
-                    totalVolume: viewModel.totalWorkoutVolume,
-                    elapsedTime: viewModel.formatTime(viewModel.elapsedTime),
-                    autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
-                    onPause: { viewModel.pauseWorkout() },
-                    onFinish: { showFinishConfirmation = true },
-                    onSettings: { viewModel.showSettingsSheet = true },
-                    onToggleAutoAdvance: { viewModel.toggleAutoAdvance() }
-                )
-                .id("header-\(viewModel.totalWorkoutVolume)-\(viewModel.elapsedTime)")
+                    // Header
+                    WorkoutHeader(
+                        title: viewModel.currentWorkout?.name ?? "Workout",
+                        totalVolume: viewModel.totalWorkoutVolume,
+                        elapsedTime: viewModel.formatTime(viewModel.elapsedTime),
+                        autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
+                        onPause: { viewModel.pauseWorkout() },
+                        onFinish: { showFinishConfirmation = true },
+                        onSettings: { viewModel.showSettingsSheet = true },
+                        onToggleAutoAdvance: { viewModel.toggleAutoAdvance() }
+                    )
+                    .id("header-\(viewModel.totalWorkoutVolume)-\(viewModel.elapsedTime)")
+                    .padding(.top, AppSpacing.lg)
                 
-                // Sticky Rest Timer (always visible)
-                VStack(spacing: 0) {
+                    // Sticky Rest Timer (always visible)
+                    VStack(spacing: 0) {
                     if viewModel.restTimerActive {
                         RestTimerView(
                             timeRemaining: max(0, viewModel.restTimeRemaining),
@@ -278,267 +474,8 @@ struct WorkoutView: View {
                     }
                 )
                 
-                // Collapsible Exercise Sections
-                if let workout = viewModel.currentWorkout {
-                    let exercisesBySection = viewModel.exercisesBySection
-                    let sectionOrder: [ExerciseSectionType] = [.warmup, .stretch, .workingSets, .cardio]
-                    let currentExerciseId = viewModel.currentExercise?.id
-                    
-                    ForEach(sectionOrder, id: \.self) { sectionType in
-                        if let exercises = exercisesBySection[sectionType], !exercises.isEmpty {
-                            CollapsibleSectionView(
-                                sectionType: sectionType,
-                                exercises: exercises,
-                                isExpanded: viewModel.expandedSections.contains(sectionType),
-                                currentExerciseId: currentExerciseId,
-                                onToggle: {
-                                    withAnimation(AppAnimations.smooth) {
-                                        viewModel.toggleSection(sectionType)
-                                    }
-                                },
-                                onExerciseSelect: { exercise in
-                                    // Find and set the exercise index
-                                    if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
-                                        viewModel.currentExerciseIndex = index
-                                        viewModel.ensureSectionExpanded(for: exercise)
-                                        viewModel.syncDropsetStateFromCurrentExercise()
-                                        
-                                        // Scroll directly to the tapped exercise card
-                                        let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
-                                        withAnimation(AppAnimations.smooth) {
-                                            proxy.scrollTo(exerciseId, anchor: .top)
-                                        }
-                                    }
-                                }
-                            ) {
-                                // Exercise cards content
-                                ForEach(exercises) { exercise in
-                                    exerciseCardView(
-                                        for: exercise,
-                                        isCurrent: exercise.id == currentExerciseId
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        // Allow user to select any exercise card as active
-                                        if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }) {
-                                            HapticManager.impact(style: .light)
-                                            viewModel.currentExerciseIndex = index
-                                            viewModel.ensureSectionExpanded(for: exercise)
-                                            viewModel.syncDropsetStateFromCurrentExercise()
-                                            
-                                            // Scroll to the selected exercise card
-                                            let exerciseId = "exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)"
-                                            withAnimation(AppAnimations.smooth) {
-                                                proxy.scrollTo(exerciseId, anchor: .top)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Legacy single exercise card (hidden, kept for reference)
-                if false, let exercise = viewModel.currentExercise {
-                    // Check if it's a cardio exercise (time-based, not calisthenics)
-                    if viewModel.isCardioExercise(exercise) {
-                        // Cardio exercises use hold card for time input
-                        CalisthenicsHoldExerciseCard(
-                            exercise: exercise,
-                            holdDuration: $holdDuration,
-                            additionalWeight: $calisthenicsWeight,
-                            showPRBadge: viewModel.showPRBadge,
-                            prMessage: viewModel.prMessage,
-                            onCompleteSet: {
-                                if let duration = Int(holdDuration) {
-                                    // Cardio exercises don't use additional weight
-                                    viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
-                                }
-                            }
-                        )
-                        .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
-                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
-                        .onAppear {
-                            calisthenicsWeight = "0" // Cardio doesn't use weight
-                            if exercise.targetHoldDuration != nil {
-                                holdDuration = String(exercise.targetHoldDuration ?? 300)
-                            } else {
-                                holdDuration = "300" // Default 5 minutes
-                            }
-                        }
-                        .onChange(of: viewModel.currentExerciseIndex) {
-                            calisthenicsWeight = "0" // Cardio doesn't use weight
-                            if exercise.targetHoldDuration != nil {
-                                holdDuration = String(exercise.targetHoldDuration ?? 300)
-                            } else {
-                                holdDuration = "300" // Default 5 minutes
-                            }
-                        }
-                    } else if viewModel.isCalisthenicsExercise(exercise) {
-                        // If it's a hold-based calisthenics exercise (has targetHoldDuration), use hold card
-                        if exercise.targetHoldDuration != nil {
-                            CalisthenicsHoldExerciseCard(
-                                exercise: exercise,
-                                holdDuration: $holdDuration,
-                                additionalWeight: $calisthenicsWeight,
-                                showPRBadge: viewModel.showPRBadge,
-                                prMessage: viewModel.prMessage,
-                                onCompleteSet: {
-                                    if let duration = Int(holdDuration),
-                                       let weightValue = Double(calisthenicsWeight) {
-                                        viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
-                                    }
-                                }
-                            )
-                            .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
-                            .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
-                            .onAppear {
-                                // Load last additional weight for hold-based calisthenics
-                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                } else {
-                                    calisthenicsWeight = "0"
-                                }
-                                if exercise.targetHoldDuration != nil {
-                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
-                                }
-                            }
-                            .onChange(of: viewModel.currentExerciseIndex) {
-                                // Load last additional weight when switching exercises
-                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                } else {
-                                    calisthenicsWeight = "0"
-                                }
-                                if exercise.targetHoldDuration != nil {
-                                    holdDuration = String(exercise.targetHoldDuration ?? 30)
-                                }
-                            }
-                        } else {
-                            // Rep-based calisthenics exercise (reps + additional weight, NO hold duration)
-                            CalisthenicsExerciseCard(
-                                exercise: exercise,
-                                reps: $calisthenicsReps,
-                                additionalWeight: $calisthenicsWeight,
-                                showPRBadge: viewModel.showPRBadge,
-                                prMessage: viewModel.prMessage,
-                                onCompleteSet: {
-                                    if let repsValue = Int(calisthenicsReps),
-                                       let weightValue = Double(calisthenicsWeight) {
-                                        viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
-                                    }
-                                }
-                            )
-                            .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
-                            .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
-                            .onAppear {
-                                // Load last additional weight for rep-based calisthenics
-                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                } else {
-                                    calisthenicsWeight = "0"
-                                }
-                            }
-                            .onChange(of: viewModel.currentExerciseIndex) {
-                                // Load last additional weight when switching exercises
-                                if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                    calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                } else {
-                                    calisthenicsWeight = "0"
-                                }
-                                calisthenicsReps = "8"
-                            }
-                        }
-                    } else {
-                        ExerciseCard(
-                            exercise: exercise,
-                            weight: $weight,
-                            reps: $reps,
-                            showPRBadge: viewModel.showPRBadge,
-                            prMessage: viewModel.prMessage,
-                            dropsetsEnabled: $viewModel.dropsetsEnabled,
-                            numberOfDropsets: $viewModel.numberOfDropsets,
-                            weightReductionPerDropset: $viewModel.weightReductionPerDropset,
-                            currentSetIsWarmup: $currentSetIsWarmup,
-                            isCollapsed: viewModel.restTimerActive,
-                            showUndoButton: viewModel.showUndoButton,
-                            barWeight: viewModel.settingsManager.barWeight,
-                            currentExerciseVolume: viewModel.currentExerciseVolume,
-                            viewModel: viewModel,
-                            onCompleteSet: {
-                                viewModel.updateCurrentExerciseDropsetConfiguration()
-                                if let weightValue = Double(weight),
-                                   let repsValue = Int(reps) {
-                                    viewModel.completeSet(weight: weightValue, reps: repsValue, isWarmup: currentSetIsWarmup)
-                                    currentSetIsWarmup = false
-                                }
-                            },
-                            onUndoSet: {
-                                viewModel.undoLastSet()
-                            },
-                            onSelectAlternative: { alternativeName in
-                                viewModel.switchToAlternative(alternativeName: alternativeName)
-                            },
-                            onExerciseNameTapped: {
-                                selectedExerciseForHistory = exercise.name
-                                viewModel.showExerciseHistory = true
-                            }
-                        )
-                        .animateOnAppear(delay: 0.1, animation: AppAnimations.smooth)
-                        .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
-                        .onAppear {
-                            viewModel.syncDropsetStateFromCurrentExercise()
-                            // Load last weight for current exercise
-                            if let exercise = viewModel.currentExercise {
-                                if viewModel.isCalisthenicsExercise(exercise) {
-                                    // For calisthenics, load last additional weight
-                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                        calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                    } else {
-                                        calisthenicsWeight = "0"
-                                    }
-                                    // Set default hold duration if it's a hold exercise
-                                    if exercise.targetHoldDuration != nil {
-                                        holdDuration = String(exercise.targetHoldDuration ?? 30)
-                                    }
-                                } else {
-                                    // For regular exercises, load last weight
-                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
-                                        weight = String(format: "%.0f", lastWeight)
-                                    }
-                                }
-                            }
-                        }
-                        .onChange(of: viewModel.currentExerciseIndex) {
-                            viewModel.syncDropsetStateFromCurrentExercise()
-                            // Load last weight when switching exercises
-                            if let exercise = viewModel.currentExercise {
-                                if viewModel.isCalisthenicsExercise(exercise) {
-                                    // For calisthenics, load last additional weight
-                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
-                                        calisthenicsWeight = String(format: "%.0f", lastWeight)
-                                    } else {
-                                        calisthenicsWeight = "0"
-                                    }
-                                    if exercise.targetHoldDuration != nil {
-                                        holdDuration = String(exercise.targetHoldDuration ?? 30)
-                                    } else {
-                                        calisthenicsReps = "8"
-                                    }
-                                } else {
-                                    // For regular exercises, load last weight
-                                    if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
-                                        weight = String(format: "%.0f", lastWeight)
-                                    }
-                                }
-                            }
-                        }
-                        .onChange(of: exercise.sets.count) { _, _ in
-                            // Force update when sets change - volume will recalculate
-                        }
-                    }
-                }
+                // Horizontal master list by segment + active exercise detail card
+                masterListSection(proxy: proxy)
                 
                 // PR Badge (shown when PR is achieved, appears below sticky timer)
                 if viewModel.showPRBadge && !viewModel.restTimerActive {
@@ -585,24 +522,6 @@ struct WorkoutView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
-                }
-                
-                // Alternative Exercises Section (appears after rest timer)
-                if let exercise = viewModel.currentExercise, !viewModel.isCalisthenicsExercise(exercise) {
-                    let allAlternatives = ExerciseDataManager.shared.getAlternatives(for: exercise.name)
-                    // Limit to 3 alternatives
-                    let alternatives = Array(allAlternatives.prefix(3))
-                    if !alternatives.isEmpty {
-                        AlternativeExercisesView(
-                            exerciseName: exercise.name,
-                            alternatives: alternatives,
-                            onSelectAlternative: { alternativeName in
-                                viewModel.switchToAlternative(alternativeName: alternativeName)
-                            }
-                        )
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, 20)
-                    }
                 }
                 
                 // Previous Sets
@@ -777,100 +696,105 @@ struct WorkoutHeader: View {
             
             Spacer()
             
-            HStack(spacing: 10) {
-                // Auto-Advance Toggle
-                if autoAdvanceEnabled {
-                    Button(action: {
-                        onToggleAutoAdvance()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 14))
-                            Text("Auto")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(AppColors.primary)
-                        .frame(width: 60, height: 44)
-                        .background(AppColors.primary.opacity(0.15))
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .accessibilityLabel("Auto-advance enabled")
-                } else {
-                    Button(action: {
-                        onToggleAutoAdvance()
-                    }) {
-                        Image(systemName: "bolt.slash.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(AppColors.textSecondary)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial)
+            // Compact two-row layout on the right to give the title more room
+            VStack(alignment: .trailing, spacing: 10) {
+                HStack(spacing: 10) {
+                    // Auto-Advance Toggle
+                    if autoAdvanceEnabled {
+                        Button(action: {
+                            onToggleAutoAdvance()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 14))
+                                Text("Auto")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(AppColors.primary)
+                            .frame(width: 60, height: 44)
+                            .background(AppColors.primary.opacity(0.15))
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
+                                    .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        .accessibilityLabel("Auto-advance enabled")
+                    } else {
+                        Button(action: {
+                            onToggleAutoAdvance()
+                        }) {
+                            Image(systemName: "bolt.slash.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.textSecondary)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        .accessibilityLabel("Auto-advance disabled")
+                    }
+                    
+                    HelpButton(pageType: .workout)
+                }
+                
+                HStack(spacing: 10) {
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onSettings()
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
                                     .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
                             )
                     }
                     .buttonStyle(ScaleButtonStyle())
-                    .accessibilityLabel("Auto-advance disabled")
+                    .accessibilityLabel("Settings")
+                    
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onPause()
+                    }) {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Pause Workout")
+                    
+                    Button(action: {
+                        HapticManager.success()
+                        onFinish()
+                    }) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppColors.alabasterGrey)
+                            .frame(width: 44, height: 44)
+                            .background(LinearGradient.primaryGradient)
+                            .clipShape(Circle())
+                            .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Finish Workout")
                 }
-                
-                HelpButton(pageType: .workout)
-                
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Settings")
-                
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onPause()
-                }) {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(AppColors.border.opacity(0.2), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Pause Workout")
-                
-                Button(action: {
-                    HapticManager.success()
-                    onFinish()
-                }) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(AppColors.alabasterGrey)
-                        .frame(width: 44, height: 44)
-                        .background(LinearGradient.primaryGradient)
-                        .clipShape(Circle())
-                        .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Finish Workout")
             }
         }
         .padding(.horizontal, AppSpacing.lg)

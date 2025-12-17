@@ -10,13 +10,13 @@ class ExRxDirectoryManager: ObservableObject {
     private let importedExercisesKey = "importedExercises"
     
     private init() {
-        // Load imported exercises FIRST, then load hardcoded and merge
+        // Load imported exercises FIRST, then load hardcoded/JSON and merge
         loadImportedExercises()
-        loadExercises() // This will merge imported exercises with hardcoded ones
+        loadExercises() // This will merge imported exercises with base ones
     }
     
     // Load exercises from ExRx directory
-    // This is a comprehensive list based on ExRx.net's exercise directory structure
+    // Primary data now comes from a curated JSON dataset, with hardcoded entries as fallback
     private func loadExercises() {
         let hardcodedExercises: [ExRxExercise] = [
             // Chest Exercises
@@ -78,7 +78,26 @@ class ExRxDirectoryManager: ObservableObject {
             ExRxExercise(id: "l-sit", name: "L-Sit", category: "Calisthenics", muscleGroup: "Abs", equipment: "Bodyweight", url: "https://exrx.net/WeightExercises/RectusAbdominis/BWLSit", alternatives: ["Tucked L-Sit", "V-Sit", "Hanging Leg Raises"])
         ]
         
-        exercises = hardcodedExercises
+        // Load curated JSON dataset from bundle (if available)
+        let jsonExercises = JSONExerciseImporter.shared.loadFromBundle()
+        
+        if jsonExercises.isEmpty {
+            exercises = hardcodedExercises
+        } else {
+            // Merge JSON and hardcoded exercises by name (JSON takes precedence)
+            var byName: [String: ExRxExercise] = [:]
+            
+            for exercise in hardcodedExercises {
+                byName[exercise.name.lowercased()] = exercise
+            }
+            
+            for exercise in jsonExercises {
+                byName[exercise.name.lowercased()] = exercise
+            }
+            
+            exercises = Array(byName.values)
+        }
+        
         mergeImportedExercises()
     }
     
@@ -101,16 +120,16 @@ class ExRxDirectoryManager: ObservableObject {
         }
     }
     
-    /// Merge imported exercises with hardcoded exercises
+    /// Merge imported exercises with base exercises
     /// Imported exercises take precedence for duplicates (by name)
     private func mergeImportedExercises() {
-        // Get hardcoded exercises (stored temporarily)
-        let hardcodedExercises = exercises
+        // Get current base exercises (JSON + hardcoded)
+        let baseExercises = exercises
         var merged: [ExRxExercise] = []
         let importedNames = Set(importedExercises.map { $0.name.lowercased() })
         
-        // Add hardcoded exercises that aren't in imported list
-        for exercise in hardcodedExercises {
+        // Add base exercises that aren't in imported list
+        for exercise in baseExercises {
             if !importedNames.contains(exercise.name.lowercased()) {
                 merged.append(exercise)
             }
@@ -122,10 +141,10 @@ class ExRxDirectoryManager: ObservableObject {
         exercises = merged
         
         // Verify merge was successful
-        let totalExpected = hardcodedExercises.count + importedExercises.count
+        let totalExpected = baseExercises.count + importedExercises.count
         let duplicatesRemoved = totalExpected - merged.count
         
-        Logger.info("🔄 Merged exercises: \(exercises.count) total (hardcoded: \(hardcodedExercises.count), imported: \(importedExercises.count), duplicates removed: \(duplicatesRemoved))", category: .general)
+        Logger.info("🔄 Merged exercises: \(exercises.count) total (base: \(baseExercises.count), imported: \(importedExercises.count), duplicates removed: \(duplicatesRemoved))", category: .general)
         
         // Ensure imported exercises are actually in the merged list
         if importedExercises.count > 0 {
@@ -138,7 +157,7 @@ class ExRxDirectoryManager: ObservableObject {
         }
     }
     
-    /// Import exercises from CSV importer
+    /// Import exercises from CSV/JSON importer (legacy path)
     func importExercises(_ newExercises: [ExRxExercise]) {
         // Remove existing imported exercises
         importedExercises.removeAll()
@@ -152,8 +171,7 @@ class ExRxDirectoryManager: ObservableObject {
         // Force UserDefaults to synchronize to ensure data is written
         UserDefaults.standard.synchronize()
         
-        // Re-merge with hardcoded exercises
-        // This will reload hardcoded exercises and merge with imported ones
+        // Re-merge with base exercises
         loadExercises()
         
         // Verify the merge worked
@@ -163,7 +181,7 @@ class ExRxDirectoryManager: ObservableObject {
         
         // Ensure merge happened correctly
         Logger.info("✅ Imported \(newExercises.count) exercises into ExRxDirectoryManager", category: .general)
-        Logger.info("📊 Total exercises after import: \(exercises.count) (hardcoded + imported)", category: .general)
+        Logger.info("📊 Total exercises after import: \(exercises.count) (base + imported)", category: .general)
         Logger.info("🔍 Verification: \(importedInFinal.count) of \(importedExercises.count) imported exercises found in final list", category: .general)
         
         if importedInFinal.count != importedExercises.count {
@@ -193,7 +211,7 @@ class ExRxDirectoryManager: ObservableObject {
         
         importedExercises[index] = exercise
         saveImportedExercises()
-        loadExercises() // Re-merge with hardcoded exercises
+        loadExercises() // Re-merge with base exercises
         Logger.info("✅ Updated exercise: \(exercise.name)", category: .general)
     }
     
@@ -206,7 +224,7 @@ class ExRxDirectoryManager: ObservableObject {
         
         importedExercises.remove(at: index)
         saveImportedExercises()
-        loadExercises() // Re-merge with hardcoded exercises
+        loadExercises() // Re-merge with base exercises
         Logger.info("🗑️ Deleted exercise: \(exercise.name)", category: .general)
     }
     
@@ -284,4 +302,5 @@ class ExRxDirectoryManager: ObservableObject {
         return exercises.map { $0.name }
     }
 }
+
 

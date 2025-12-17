@@ -57,6 +57,9 @@ class WorkoutViewModel: ObservableObject {
     // Weight persistence per exercise
     private var lastWeightPerExercise: [String: Double] = [:]
     
+    // Cached section types per exercise name to avoid repeated ExRx lookups
+    private var exerciseSectionCache: [String: ExerciseSectionType] = [:]
+    
     /// Public property to check if timer is paused during rest
     var isTimerPausedDuringRest: Bool {
         return isTimerPaused && settingsManager.pauseTimerDuringRest
@@ -99,7 +102,7 @@ class WorkoutViewModel: ObservableObject {
     
     /// Group exercises by section type
     var exercisesBySection: [ExerciseSectionType: [Exercise]] {
-        guard let workout = currentWorkout else { return [:] }
+        guard currentWorkout != nil else { return [:] }
         let sorted = sortedExercises
         return Dictionary(grouping: sorted) { exercise in
             getSectionType(for: exercise)
@@ -108,19 +111,37 @@ class WorkoutViewModel: ObservableObject {
     
     /// Get section type for an exercise (for displaying section indicators)
     func getSectionType(for exercise: Exercise) -> ExerciseSectionType {
+        // Use cached value first to avoid repeated ExRx lookups and string work
+        if let cached = exerciseSectionCache[exercise.name] {
+            return cached
+        }
+        
+        let resolvedType: ExerciseSectionType
+        
         // First check category from ExRxExercise data
         if let exRxExercise = ExRxDirectoryManager.shared.findExercise(name: exercise.name) {
             let category = exRxExercise.category.lowercased()
             if category == "warmup" || exercise.name.isWarmupExercise(category: exRxExercise.category) {
-                return .warmup
+                resolvedType = .warmup
             } else if category == "stretching" || exercise.name.isStretchExercise(category: exRxExercise.category) {
-                return .stretch
+                resolvedType = .stretch
             } else if category == "cardio" || exercise.name.isCardioExercise(category: exRxExercise.category) {
-                return .cardio
+                resolvedType = .cardio
+            } else {
+                // Fall back to name-based detection below
+                resolvedType = fallbackSectionType(for: exercise)
             }
+        } else {
+            // Fallback to name-based detection when ExRx data is unavailable
+            resolvedType = fallbackSectionType(for: exercise)
         }
         
-        // Fallback to name-based detection
+        exerciseSectionCache[exercise.name] = resolvedType
+        return resolvedType
+    }
+    
+    /// Pure helper for name/type-based section classification (no caching, no ExRx lookup).
+    private func fallbackSectionType(for exercise: Exercise) -> ExerciseSectionType {
         if exercise.name.isWarmupExercise() {
             return .warmup
         } else if exercise.name.isStretchExercise() {

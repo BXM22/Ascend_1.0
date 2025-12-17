@@ -121,7 +121,7 @@ class WorkoutGenerator {
             }
         }
         
-        var total = counts.values.reduce(0, +)
+        let total = counts.values.reduce(0, +)
         
         // Adjust to match target count
         if total < targetCount {
@@ -324,7 +324,6 @@ class WorkoutGenerator {
             
             // Check exercise type
             let isCardio = exerciseName.isCardioExercise(category: exercise?.category)
-            let isWarmup = exerciseName.isWarmupExercise(category: exercise?.category)
             
             if isCardio {
                 // Cardio exercises use time instead of weight/reps

@@ -1,0 +1,336 @@
+{
+  "push": {
+    "chest": [
+      {
+        "name": "Barbell Bench Press",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["chest", "triceps", "front_delts"]
+      },
+      {
+        "name": "Incline Bench Press",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["upper_chest", "triceps"]
+      },
+      {
+        "name": "Decline Bench Press",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["lower_chest"]
+      },
+      {
+        "name": "Dumbbell Bench Press",
+        "equipment": "dumbbell",
+        "type": "compound",
+        "primary_muscles": ["chest", "triceps"]
+      },
+      {
+        "name": "Push-Up",
+        "equipment": "bodyweight",
+        "type": "compound",
+        "primary_muscles": ["chest", "triceps"]
+      },
+      {
+        "name": "Cable Fly",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["chest"]
+      },
+      {
+        "name": "Pec Deck",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["chest"]
+      }
+    ],
+    "shoulders": [
+      {
+        "name": "Overhead Press",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["front_delts", "triceps"]
+      },
+      {
+        "name": "Dumbbell Shoulder Press",
+        "equipment": "dumbbell",
+        "type": "compound",
+        "primary_muscles": ["delts"]
+      },
+      {
+        "name": "Lateral Raise",
+        "equipment": "dumbbell",
+        "type": "isolation",
+        "primary_muscles": ["lateral_delts"]
+      },
+      {
+        "name": "Front Raise",
+        "equipment": "dumbbell",
+        "type": "isolation",
+        "primary_muscles": ["front_delts"]
+      },
+      {
+        "name": "Handstand Push-Up",
+        "equipment": "bodyweight",
+        "type": "compound",
+        "primary_muscles": ["delts", "triceps"]
+      }
+    ],
+    "triceps": [
+      {
+        "name": "Close-Grip Bench Press",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["triceps"]
+      },
+      {
+        "name": "Skull Crushers",
+        "equipment": "barbell",
+        "type": "isolation",
+        "primary_muscles": ["triceps"]
+      },
+      {
+        "name": "Cable Pushdown",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["triceps"]
+      },
+      {
+        "name": "Overhead Tricep Extension",
+        "equipment": "dumbbell",
+        "type": "isolation",
+        "primary_muscles": ["long_head_triceps"]
+      }
+    ]
+  },
+
+  "pull": {
+    "back": [
+      {
+        "name": "Deadlift",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["back", "glutes", "hamstrings"]
+      },
+      {
+        "name": "Pull-Up",
+        "equipment": "bodyweight",
+        "type": "compound",
+        "primary_muscles": ["lats"]
+      },
+      {
+        "name": "Lat Pulldown",
+        "equipment": "machine",
+        "type": "compound",
+        "primary_muscles": ["lats"]
+      },
+      {
+        "name": "Barbell Row",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["upper_back"]
+      },
+      {
+        "name": "Seated Cable Row",
+        "equipment": "machine",
+        "type": "compound",
+        "primary_muscles": ["mid_back"]
+      },
+      {
+        "name": "Face Pull",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["rear_delts", "upper_back"]
+      }
+    ],
+    "biceps": [
+      {
+        "name": "Barbell Curl",
+        "equipment": "barbell",
+        "type": "isolation",
+        "primary_muscles": ["biceps"]
+      },
+      {
+        "name": "Dumbbell Curl",
+        "equipment": "dumbbell",
+        "type": "isolation",
+        "primary_muscles": ["biceps"]
+      },
+      {
+        "name": "Hammer Curl",
+        "equipment": "dumbbell",
+        "type": "isolation",
+        "primary_muscles": ["brachialis"]
+      },
+      {
+        "name": "Preacher Curl",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["biceps"]
+      }
+    ]
+  },
+
+  "legs": {
+    "quads": [
+      {
+        "name": "Back Squat",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["quads"]
+      },
+      {
+        "name": "Front Squat",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["quads"]
+      },
+      {
+        "name": "Leg Press",
+        "equipment": "machine",
+        "type": "compound",
+        "primary_muscles": ["quads"]
+      },
+      {
+        "name": "Leg Extension",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["quads"]
+      }
+    ],
+    "hamstrings": [
+      {
+        "name": "Romanian Deadlift",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["hamstrings"]
+      },
+      {
+        "name": "Lying Leg Curl",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["hamstrings"]
+      },
+      {
+        "name": "Nordic Curl",
+        "equipment": "bodyweight",
+        "type": "isolation",
+        "primary_muscles": ["hamstrings"]
+      }
+    ],
+    "glutes": [
+      {
+        "name": "Hip Thrust",
+        "equipment": "barbell",
+        "type": "compound",
+        "primary_muscles": ["glutes"]
+      },
+      {
+        "name": "Walking Lunge",
+        "equipment": "dumbbell",
+        "type": "compound",
+        "primary_muscles": ["glutes"]
+      }
+    ],
+    "calves": [
+      {
+        "name": "Standing Calf Raise",
+        "equipment": "bodyweight",
+        "type": "isolation",
+        "primary_muscles": ["gastrocnemius"]
+      },
+      {
+        "name": "Seated Calf Raise",
+        "equipment": "machine",
+        "type": "isolation",
+        "primary_muscles": ["soleus"]
+      }
+    ]
+  },
+
+  "cardio": [
+    {
+      "name": "Walking",
+      "equipment": "bodyweight",
+      "type": "endurance",
+      "primary_muscles": ["legs"]
+    },
+    {
+      "name": "Running",
+      "equipment": "bodyweight",
+      "type": "endurance",
+      "primary_muscles": ["legs"]
+    },
+    {
+      "name": "Cycling",
+      "equipment": "machine",
+      "type": "endurance",
+      "primary_muscles": ["quads"]
+    },
+    {
+      "name": "Rowing",
+      "equipment": "machine",
+      "type": "endurance",
+      "primary_muscles": ["full_body"]
+    },
+    {
+      "name": "Jump Rope",
+      "equipment": "other",
+      "type": "conditioning",
+      "primary_muscles": ["calves"]
+    }
+  ],
+
+  "stretches": [
+    {
+      "name": "Chest Opener",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["chest", "front_delts"]
+    },
+    {
+      "name": "Overhead Tricep Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["triceps"]
+    },
+    {
+      "name": "Lat Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["lats"]
+    },
+    {
+      "name": "Standing Hamstring Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["hamstrings"]
+    },
+    {
+      "name": "Quad Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["quads"]
+    },
+    {
+      "name": "Hip Flexor Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["hip_flexors"]
+    },
+    {
+      "name": "Calf Stretch",
+      "equipment": "bodyweight",
+      "type": "static",
+      "muscles_stretched": ["calves"]
+    },
+    {
+      "name": "World\u2019s Greatest Stretch",
+      "equipment": "bodyweight",
+      "type": "dynamic",
+      "muscles_stretched": ["hips", "hamstrings", "thoracic_spine"]
+    }
+  ]
+}
+
+

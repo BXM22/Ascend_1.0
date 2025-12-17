@@ -1,6 +1,8 @@
-# How to Add CSV File to App Bundle
+# Legacy: How to Add CSV File to App Bundle
 
-## Step 1: Add CSV File to Xcode Project
+> **Note:** The app now ships with a curated JSON exercise dataset (`exercises.json`) that is loaded automatically by `ExRxDirectoryManager`. CSV import is optional and intended only for advanced users or development tooling.
+
+## Step 1: Add CSV File to Xcode Project (Optional)
 
 1. **Open your Xcode project**
 2. **Right-click on the `Ascend` folder** in the Project Navigator (left sidebar)
@@ -28,7 +30,7 @@ If you want to use a simpler name:
 1. **Rename the file** in Xcode to: `exercises.csv`
 2. The code will automatically find it with this name
 
-## Step 4: Build and Test
+## Step 4: Build and Test (Optional)
 
 1. **Build the app** (Cmd+B)
 2. **Run the app** (Cmd+R)
@@ -36,13 +38,15 @@ If you want to use a simpler name:
    - `📚 Found CSV in app bundle`
    - `✅ CSV import successful: ...`
 
-## How It Works
+## How It Worked (Legacy Path)
 
-The app will automatically:
+Historically, the app would:
 1. Look for the CSV file in the app bundle first (production)
 2. Fall back to Downloads folder (development only)
 3. Import exercises on first launch if not already imported
 4. Store imported exercises in UserDefaults (persistent)
+
+In the current version, exercise data comes from the bundled JSON file instead, so you generally do **not** need to add or manage a CSV file unless you have a very specific migration workflow.
 
 ## Troubleshooting
 

@@ -45,27 +45,14 @@ struct TemplatesView: View {
         }
     }
     
-    // Cache filtered templates to avoid recalculating on every render
-    @State private var cachedFilteredTemplates: [WorkoutTemplate] = []
-    @State private var lastSearchText: String = ""
-    @State private var lastSortOption: SortOption = .name
-    
     private var filteredTemplates: [WorkoutTemplate] {
-        // Only recalculate if search text or sort option changed
-        if debouncedSearchText != lastSearchText || sortOption != lastSortOption {
-            let filtered = viewModel.templates.filter { template in
-                if template.name.contains("Progression") { return false }
-                if debouncedSearchText.isEmpty { return true }
-                return template.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
-                       template.exercises.contains { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }
-            }
-            let sorted = sortOption.sort(filtered)
-            cachedFilteredTemplates = sorted
-            lastSearchText = debouncedSearchText
-            lastSortOption = sortOption
-            return sorted
+        let filtered = viewModel.templates.filter { template in
+            if template.name.contains("Progression") { return false }
+            if debouncedSearchText.isEmpty { return true }
+            return template.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
+                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }
         }
-        return cachedFilteredTemplates
+        return sortOption.sort(filtered)
     }
     
     var body: some View {
