@@ -7,8 +7,28 @@ struct DashboardView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
+    let onNavigateToProgress: (() -> Void)?
     @State private var showGenerateTypeDialog = false
     @State private var showWorkoutHistory = false
+    @State private var showPRHistory = false
+    
+    init(
+        progressViewModel: ProgressViewModel,
+        workoutViewModel: WorkoutViewModel,
+        templatesViewModel: TemplatesViewModel,
+        programViewModel: WorkoutProgramViewModel,
+        onStartWorkout: @escaping () -> Void,
+        onSettings: @escaping () -> Void,
+        onNavigateToProgress: (() -> Void)? = nil
+    ) {
+        self.progressViewModel = progressViewModel
+        self.workoutViewModel = workoutViewModel
+        self.templatesViewModel = templatesViewModel
+        self.programViewModel = programViewModel
+        self.onStartWorkout = onStartWorkout
+        self.onSettings = onSettings
+        self.onNavigateToProgress = onNavigateToProgress
+    }
     
     private enum GeneratedDayType {
         case custom, push, pull, legs, fullBody
@@ -56,6 +76,12 @@ struct DashboardView: View {
                         programViewModel: programViewModel
                     )
                     
+                    // Workout Pattern Insight Card
+                    WorkoutPatternInsightCard(progressViewModel: progressViewModel)
+                    
+                    // Recovery Suggestion Card
+                    RecoverySuggestionCard()
+                    
                     // Next Workout Day Card (only shows when program is active)
                     if programViewModel.activeProgram != nil {
                         NextWorkoutDayCard(
@@ -65,6 +91,9 @@ struct DashboardView: View {
                             onStartWorkout: onStartWorkout
                         )
                     }
+                    
+                    // Personalized Recommendations Card (only show if sufficient history)
+                    PersonalizedRecommendationsCard()
                     
                     // Suggested Workout Card (only show if no active program)
                     if programViewModel.activeProgram == nil {
@@ -78,8 +107,23 @@ struct DashboardView: View {
                     
                     // Stat Cards (Recent PRs + Top Exercise)
                     HStack(alignment: .top, spacing: 12) {
-                        RecentPRsStatCard(progressViewModel: progressViewModel)
-                        TopExerciseStatCard(progressViewModel: progressViewModel)
+                        RecentPRsStatCard(
+                            progressViewModel: progressViewModel,
+                            onTap: {
+                                HapticManager.impact(style: .light)
+                                showPRHistory = true
+                            }
+                        )
+                        TopExerciseStatCard(
+                            progressViewModel: progressViewModel,
+                            onTap: { exerciseName in
+                                if let onNavigate = onNavigateToProgress {
+                                    HapticManager.impact(style: .light)
+                                    progressViewModel.selectedExercise = exerciseName
+                                    onNavigate()
+                                }
+                            }
+                        )
                     }
                     
                     // Rest Day Button
@@ -91,6 +135,21 @@ struct DashboardView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                }
+            }
+            .onAppear {
+                // Ensure data is loaded when dashboard appears
+                progressViewModel.updateVolumeAndCount()
+                // Force refresh of workout dates from history
+                let historyManager = WorkoutHistoryManager.shared
+                let calendar = Calendar.current
+                let workoutDatesFromHistory = historyManager.completedWorkouts.map { workout in
+                    calendar.startOfDay(for: workout.startDate)
+                }
+                let existingDates = Set(progressViewModel.workoutDates.map { calendar.startOfDay(for: $0) })
+                let newDates = workoutDatesFromHistory.filter { !existingDates.contains($0) }
+                for date in newDates {
+                    progressViewModel.addWorkoutDate(date)
                 }
             }
             
@@ -135,6 +194,9 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
+        }
+        .sheet(isPresented: $showPRHistory) {
+            PRHistoryView(progressViewModel: progressViewModel)
         }
     }
 }
@@ -186,6 +248,7 @@ struct SettingsButton: View {
 
 struct RecentPRsStatCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
+    let onTap: () -> Void
     
     private var recentPRsCount: Int {
         let calendar = Calendar.current
@@ -290,11 +353,16 @@ struct RecentPRsStatCard: View {
                 .strokeBorder(LinearGradient.chestGradient.opacity(0.3), lineWidth: 2)
         )
         .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture {
+            onTap()
+        }
     }
 }
 
 struct TopExerciseStatCard: View {
     @ObservedObject var progressViewModel: ProgressViewModel
+    let onTap: (String) -> Void
     
     private var topExercise: (name: String, count: Int)? {
         let exerciseCounts = Dictionary(grouping: progressViewModel.prs, by: { $0.exercise })
@@ -420,6 +488,12 @@ struct TopExerciseStatCard: View {
                 .strokeBorder(LinearGradient.backGradient.opacity(0.3), lineWidth: 2)
         )
         .shadow(color: AppColors.foreground.opacity(0.1), radius: 16, x: 0, y: 6)
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture {
+            if let exercise = topExercise {
+                onTap(exercise.name)
+            }
+        }
     }
 }
 
@@ -550,7 +624,8 @@ struct DashboardView_Previews: PreviewProvider {
             templatesViewModel: templatesVM,
             programViewModel: programVM,
             onStartWorkout: {},
-            onSettings: {}
+            onSettings: {},
+            onNavigateToProgress: nil
         )
     }
 }

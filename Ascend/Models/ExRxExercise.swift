@@ -36,6 +36,8 @@ enum ExRxCategory: String, CaseIterable {
     case fullBody = "Full Body"
     case cardio = "Cardio"
     case calisthenics = "Calisthenics"
+    case stretching = "Stretching"
+    case warmup = "Warmup"
 }
 
 // MARK: - ExRx Muscle Group

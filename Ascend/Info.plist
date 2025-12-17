@@ -6,5 +6,9 @@
 	<array>
 		<string>Avenir Regular.ttf</string>
 	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Ascend needs access to read your health data to sync your workout history and progress with Apple Health.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Ascend needs access to write workout data to Apple Health so your exercises and progress are tracked in the Health app.</string>
 </dict>
 </plist>

@@ -1,0 +1,919 @@
+{
+  "" : {
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Ascend-primary.dia",
+    "emit-module-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Ascend-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Ascend-primary-emit-module.dia",
+    "pch" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Ascend-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Ascend-primary.swiftdeps"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/AppError.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppError~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Logger.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Logger~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Managers/ExerciseHistoryManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Managers/ExerciseUsageTracker.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseUsageTracker~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Managers/FavoritesManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/FavoritesManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Managers/OnboardingManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/OnboardingManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Managers/SetTemplatesManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SetTemplatesManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/ActiveProgram.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ActiveProgram~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/ColorTheme.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ColorTheme~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/CustomExercise.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercise~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/ExRxExercise.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxExercise~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/Models.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Models~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/SkillProgression.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SkillProgression~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/TrainingPhase.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrainingPhase~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutGenerationSettings.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettings~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutProgram.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgram~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Models/WorkoutSplit.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplit~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Animations.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Animations~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/AppColors.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppColors~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Haptics.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Haptics~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Spacing.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Spacing~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Theme/Typography.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/Typography~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Utilities/DesignSystem.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DesignSystem~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/AppConstants.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AppConstants~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/CSVExerciseImporter.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CSVExerciseImporter~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/CloudKitSyncManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CloudKitSyncManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ExRxDirectoryManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExRxDirectoryManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ExerciseDataManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseDataManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/HealthKitManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HealthKitManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/NotificationManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NotificationManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/PerformanceOptimizer.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PerformanceOptimizer~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/PersonalizationManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizationManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ProgressViewModel.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressViewModel~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/SettingsManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SettingsManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/TemplatesViewModel.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesViewModel~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/ThemeManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ThemeManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutGenerator.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerator~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutHistoryManager.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryManager~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutProgramViewModel.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramViewModel~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutSplitViewModel.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitViewModel~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutViewModel+Validation.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel+Validation~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/ViewModels/WorkoutViewModel.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutViewModel~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/CalisthenicsSkillView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/AddCustomExerciseView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AddCustomExerciseView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/AlternativeExercisesView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/AlternativeExercisesView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CalisthenicsSkillsSection.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CalisthenicsSkillsSection~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CircularStartWidget.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CircularStartWidget~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CreateCustomSkillView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CreateCustomSkillView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/CustomExercisesListView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/CustomExercisesListView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/DayCircle.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DayCircle~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/ExerciseAutocompleteField.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseAutocompleteField~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/GradientBorderedCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GradientBorderedCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/HeroSection.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/HeroSection~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/InteractiveTutorialView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/InteractiveTutorialView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/KeyboardDismissModifier.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/KeyboardDismissModifier~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/MasterExerciseListView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MasterExerciseListView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/MuscleGroupChart.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/MuscleGroupChart~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/NextWorkoutDayCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/NextWorkoutDayCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/PageFeaturesView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PageFeaturesView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/PersonalizedRecommendationsCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PersonalizedRecommendationsCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/PreviousSetsView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PreviousSetsView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/ProgramDayTracker.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgramDayTracker~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/RecoverySuggestionCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RecoverySuggestionCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/RestTimerView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/RestTimerView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/SparkleEffect.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SparkleEffect~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/SuggestedWorkoutCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/SuggestedWorkoutCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TemplateExerciseEditView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateExerciseEditView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TemplateSelectionSheet.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplateSelectionSheet~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TrendGraphsView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TrendGraphsView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TutorialOverlay.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialOverlay~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/TutorialView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TutorialView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WeeklyCalendarWidget.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WeeklyCalendarWidget~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutCalendarView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCalendarView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutCompletionModal.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutCompletionModal~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutDayDetailSheet.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutDayDetailSheet~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutGenerationSettingsView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationSettingsView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutGenerationView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutGenerationView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutPatternInsightCard.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutPatternInsightCard~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutProgramsSection.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramsSection~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/WorkoutSplitsSection.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutSplitsSection~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ContentView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/DashboardView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/DashboardView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ExerciseHistoryView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ExerciseHistoryView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/PRHistoryView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/PRHistoryView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ProgressView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/ProgressView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/TemplatesView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/TemplatesView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutHistoryView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutHistoryView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutProgramView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutProgramView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutView.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutView~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/Ascend/WorkoutTrackerApp.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/WorkoutTrackerApp~partial.swiftmodule"
+  },
+  "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/brennenmeregillano/Desktop/Ascend/build/Ascend.build/Debug-iphoneos/Ascend.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

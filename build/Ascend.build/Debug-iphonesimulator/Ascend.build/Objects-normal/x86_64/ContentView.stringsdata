@@ -1,0 +1,80 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ContentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Custom Color Theme",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 339
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 350
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import from Coolors.co",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 366
+        }
+      },
+      {
+        "comment": "",
+        "key": "Theme imported successfully!",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 393
+        }
+      },
+      {
+        "comment": "",
+        "key": "Paste Coolors.co URL",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 377
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 419
+        }
+      },
+      {
+        "comment": "",
+        "key": "Currently selected %@ tab",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 626
+        }
+      },
+      {
+        "comment": "",
+        "key": "Switch to %@ tab",
+        "location": {
+          "startingColumn": 77,
+          "startingLine": 626
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,168 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ExerciseHistoryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No sets completed yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld sets completed",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "No history yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 97
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete sets to see your progress here",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "PR Progression",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 122
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 146
+        }
+      },
+      {
+        "comment": "",
+        "key": "Personal Records",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 170
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs × %lld reps",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight Progression",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 204
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 219
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 220
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recent Sets",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 237
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs × %lld reps",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 245
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 275
+        }
+      }
+    ]
+  },
+  "version": 1
+}

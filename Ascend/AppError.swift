@@ -13,6 +13,7 @@ enum AppError: LocalizedError {
     case templateNotFound
     case programNotFound
     case invalidState(String)
+    case healthKitNotAvailable
     
     var errorDescription: String? {
         switch self {
@@ -38,6 +39,8 @@ enum AppError: LocalizedError {
             return "Program not found"
         case .invalidState(let message):
             return "Invalid state: \(message)"
+        case .healthKitNotAvailable:
+            return "HealthKit is not available on this device"
         }
     }
     
@@ -65,6 +68,8 @@ enum AppError: LocalizedError {
             return "The requested program could not be found."
         case .invalidState:
             return "The application is in an invalid state for this operation."
+        case .healthKitNotAvailable:
+            return "The HealthKit framework is not supported or accessible on this device."
         }
     }
     
@@ -92,6 +97,8 @@ enum AppError: LocalizedError {
             return "The program may have been deleted. Please select a different program."
         case .invalidState:
             return "Please try again or restart the app."
+        case .healthKitNotAvailable:
+            return "HealthKit is only available on iOS devices. Your workout data will be saved locally."
         }
     }
 }

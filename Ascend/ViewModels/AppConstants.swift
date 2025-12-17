@@ -45,6 +45,9 @@ enum AppConstants {
         static let currentExerciseIndex = "currentExerciseIndex"
         static let isFromTemplate = "isFromTemplate"
         static let lastWeightPerExercise = "lastWeightPerExercise"
+        // Auto-advance settings
+        static let autoAdvanceEnabled = "autoAdvanceEnabled"
+        static let autoAdvanceRestDuration = "autoAdvanceRestDuration"
     }
     
     // MARK: - Timer Constants

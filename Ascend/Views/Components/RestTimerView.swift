@@ -12,10 +12,28 @@ struct RestTimerView: View {
     let totalDuration: Int
     let onSkip: () -> Void
     let onComplete: () -> Void
+    let onAddTime: (() -> Void)?
+    let onSubtractTime: (() -> Void)?
     @State private var progressValue: Double = 0
     @State private var scale: CGFloat = 0.9
     @State private var opacity: Double = 0
     @State private var breathingScale: CGFloat = 1.0
+    
+    init(
+        timeRemaining: Int,
+        totalDuration: Int,
+        onSkip: @escaping () -> Void,
+        onComplete: @escaping () -> Void,
+        onAddTime: (() -> Void)? = nil,
+        onSubtractTime: (() -> Void)? = nil
+    ) {
+        self.timeRemaining = timeRemaining
+        self.totalDuration = totalDuration
+        self.onSkip = onSkip
+        self.onComplete = onComplete
+        self.onAddTime = onAddTime
+        self.onSubtractTime = onSubtractTime
+    }
     
     private var minutes: Int {
         max(0, timeRemaining) / 60
@@ -115,6 +133,51 @@ struct RestTimerView: View {
             }
             .frame(height: 200)
             
+            // Quick time adjustment buttons (if available)
+            if onAddTime != nil || onSubtractTime != nil {
+                HStack(spacing: 12) {
+                    if let onSubtract = onSubtractTime {
+                        Button(action: {
+                            HapticManager.impact(style: .light)
+                            onSubtract()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("-30s")
+                                    .font(AppTypography.bodyMedium)
+                            }
+                            .foregroundColor(AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppColors.secondary.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.small))
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    
+                    if let onAdd = onAddTime {
+                        Button(action: {
+                            HapticManager.impact(style: .light)
+                            onAdd()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("+30s")
+                                    .font(AppTypography.bodyMedium)
+                            }
+                            .foregroundColor(AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppColors.secondary.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.small))
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+            }
+            
             // Enhanced Action buttons
             HStack(spacing: 12) {
                 Button(action: {
@@ -185,11 +248,15 @@ struct RestTimerView: View {
                 progressValue = progress
             }
             
-            // Warning haptic when time is running out
-            if newValue == 10 {
+            // Haptic feedback for timer milestones (already handled in WorkoutViewModel, but keep for UI feedback)
+            if newValue == 30 {
+                HapticManager.warning()
+            } else if newValue == 15 {
+                HapticManager.impact(style: .light)
+            } else if newValue == 10 {
                 HapticManager.warning()
             } else if newValue == 5 {
-                HapticManager.impact(style: .light)
+                HapticManager.impact(style: .medium)
             } else if newValue == 0 {
                 HapticManager.success()
             }
@@ -202,7 +269,9 @@ struct RestTimerView: View {
         timeRemaining: 45,
         totalDuration: 90,
         onSkip: {},
-        onComplete: {}
+        onComplete: {},
+        onAddTime: {},
+        onSubtractTime: {}
     )
     .padding()
     .background(AppColors.background)

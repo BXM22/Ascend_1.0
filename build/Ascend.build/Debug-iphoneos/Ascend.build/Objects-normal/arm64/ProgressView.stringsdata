@@ -1,0 +1,440 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/ProgressView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Charts",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "View All PRs",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Progress",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 117
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Month",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "Month",
+        "location": {
+          "startingColumn": 63,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "Workout Streak",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 208
+        }
+      },
+      {
+        "comment": "",
+        "key": "Current Streak",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "days",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "Longest Streak",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 235
+        }
+      },
+      {
+        "comment": "",
+        "key": "days",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "PR Tracker",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercise",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 316
+        }
+      },
+      {
+        "comment": "",
+        "key": "No exercises found",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 344
+        }
+      },
+      {
+        "comment": "",
+        "key": "Try adjusting your search or filter",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 348
+        }
+      },
+      {
+        "comment": "",
+        "key": "No PRs yet",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 353
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete sets to earn your first PR!",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 357
+        }
+      },
+      {
+        "comment": "",
+        "key": "PR History",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 374
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Personal Record",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 501
+        }
+      },
+      {
+        "comment": "",
+        "key": "Current PR",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 446
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 467
+        }
+      },
+      {
+        "comment": "",
+        "key": "lbs",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 471
+        }
+      },
+      {
+        "comment": "",
+        "key": "×",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 475
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 479
+        }
+      },
+      {
+        "comment": "",
+        "key": "reps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 483
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 502
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 503
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete this personal record? This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 508
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Personal Record",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 585
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs × %lld reps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 543
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 586
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 587
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete this personal record? This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 592
+        }
+      },
+      {
+        "comment": "",
+        "key": "Personal Records",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 606
+        }
+      },
+      {
+        "comment": "",
+        "key": "No PRs yet",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 613
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete sets to earn your first PR!",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 617
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs × %lld reps • %@",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 654
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 713
+        }
+      },
+      {
+        "comment": "",
+        "key": "Day Streak",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 717
+        }
+      },
+      {
+        "comment": "",
+        "key": "Best: %lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 722
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 765
+        }
+      },
+      {
+        "comment": "",
+        "key": "This Week",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 769
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total: %lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 773
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select Exercise",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 930
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search exercises...",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 813
+        }
+      },
+      {
+        "comment": "",
+        "key": "All",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 850
+        }
+      },
+      {
+        "comment": "",
+        "key": "No exercises found",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 886
+        }
+      },
+      {
+        "comment": "",
+        "key": "Try adjusting your search or filter",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 889
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 934
+        }
+      }
+    ]
+  },
+  "version": 1
+}

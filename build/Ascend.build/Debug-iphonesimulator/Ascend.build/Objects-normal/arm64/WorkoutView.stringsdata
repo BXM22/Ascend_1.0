@@ -1,0 +1,1040 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/WorkoutView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Finish Workout?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Exercise?",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 353
+        }
+      },
+      {
+        "comment": "",
+        "key": "PR Badge Debug: showPRBadge=true but prMessage is empty",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete Workout",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 320
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 346
+        }
+      },
+      {
+        "comment": "",
+        "key": "Finish",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 347
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to finish this workout? This action cannot be undone.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 351
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 354
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 357
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete '%@'? This will remove all completed sets for this exercise.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 367
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete this exercise? This will remove all completed sets.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 369
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ lbs",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 438
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 471
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pause Workout",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 489
+        }
+      },
+      {
+        "comment": "",
+        "key": "Finish Workout",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 504
+        }
+      },
+      {
+        "comment": "",
+        "key": "(Paused)",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 534
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset Timer",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 558
+        }
+      },
+      {
+        "comment": "",
+        "key": "Resets the workout timer to zero",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 559
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset Timer",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 547
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set %lld of %lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 616
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set %lld of %lld",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 671
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ lbs",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 681
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 727
+        }
+      },
+      {
+        "comment": "",
+        "key": "lbs",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 757
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 747
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reps",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 785
+        }
+      },
+      {
+        "comment": "",
+        "key": "reps",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 815
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 805
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 842
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warm-up Set",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 862
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dropsets",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 885
+        }
+      },
+      {
+        "comment": "",
+        "key": "After main set: %lld dropset%@, reducing by %lld lbs each",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 988
+        }
+      },
+      {
+        "comment": "",
+        "key": "Number of dropsets",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 896
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 916
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weight reduction per dropset",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 942
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 962
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete Set",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1029
+        }
+      },
+      {
+        "comment": "",
+        "key": "Undo Last Set",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1062
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set %lld of %lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete Set",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set %lld of %lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1225
+        }
+      },
+      {
+        "comment": "",
+        "key": "Hold Duration",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1243
+        }
+      },
+      {
+        "comment": "",
+        "key": "seconds",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1261
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1248
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quick Select",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1278
+        }
+      },
+      {
+        "comment": "",
+        "key": "%llds",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1292
+        }
+      },
+      {
+        "comment": "",
+        "key": "Complete Set",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1309
+        }
+      },
+      {
+        "comment": "",
+        "key": "NEW PR!",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1415
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1546
+        }
+      },
+      {
+        "comment": "",
+        "key": "No value",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 1575
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %@",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 1575
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enter %@ in %@. Swipe left or right to adjust.",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 1576
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1641
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1676
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove from favorites",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1710
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add to favorites",
+        "location": {
+          "startingColumn": 68,
+          "startingLine": 1710
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warm-up",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1740
+        }
+      },
+      {
+        "comment": "",
+        "key": "Templates",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1769
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set Templates",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1862
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saved Templates",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1817
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Current Set as Template",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1809
+        }
+      },
+      {
+        "comment": "",
+        "key": "No templates saved",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1819
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs × %lld reps",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 1840
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 1855
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1866
+        }
+      },
+      {
+        "comment": "",
+        "key": "Plates per side: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1920
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last time: %lld lbs × %lld reps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1949
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use Last",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1960
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Exercise",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2035
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2088
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Exercise",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 2143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2452
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset All Data",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2473
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import Successful",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 2486
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import Error",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 2486
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rest Timer",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2180
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set the default rest time between sets",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2184
+        }
+      },
+      {
+        "comment": "",
+        "key": "Current: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2190
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld seconds",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quick Options",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2206
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 2221
+        }
+      },
+      {
+        "comment": "",
+        "key": "%llds",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 2224
+        }
+      },
+      {
+        "comment": "",
+        "key": "Custom Duration",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2239
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2263
+        }
+      },
+      {
+        "comment": "",
+        "key": "30s",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2244
+        }
+      },
+      {
+        "comment": "",
+        "key": "10m",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2258
+        }
+      },
+      {
+        "comment": "",
+        "key": "Data Management",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2284
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset all app data including workouts, templates, programs, and progress. This action cannot be undone.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2288
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset All Data",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2298
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exercise Database",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2316
+        }
+      },
+      {
+        "comment": "",
+        "key": "Manage all exercises in the database",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2320
+        }
+      },
+      {
+        "comment": "",
+        "key": "View All Exercises (%lld)",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2332
+        }
+      },
+      {
+        "comment": "",
+        "key": "Custom Exercises",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2355
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Custom Exercise",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2366
+        }
+      },
+      {
+        "comment": "",
+        "key": "View Custom Exercises (%lld)",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 2383
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help & Support",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2407
+        }
+      },
+      {
+        "comment": "",
+        "key": "Learn how to use Ascend's key features and navigate the app",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2437
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show Tutorial",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 2419
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2456
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2474
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2475
+        }
+      },
+      {
+        "comment": "",
+        "key": "This will permanently delete all your workout data, templates, programs, progress, and settings. This action cannot be undone. Are you sure you want to continue?",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2484
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2487
+        }
+      },
+      {
+        "comment": "",
+        "key": "Configure warm-up set percentages based on your working weight",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2625
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warm-up Sets",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2620
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warm-up Percentages",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2631
+        }
+      },
+      {
+        "comment": "",
+        "key": "No warm-up sets configured",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2636
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quick Presets",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2667
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Warm-up Percentage",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2707
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preview",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2720
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset to Default",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2755
+        }
+      },
+      {
+        "comment": "",
+        "key": "%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2796
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2786
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2825
+        }
+      },
+      {
+        "comment": "",
+        "key": "Working Weight:",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2897
+        }
+      },
+      {
+        "comment": "",
+        "key": "lbs",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2911
+        }
+      },
+      {
+        "comment": "",
+        "key": "185",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2901
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warm-up Sets:",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2918
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2930
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld lbs",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2935
+        }
+      },
+      {
+        "comment": "",
+        "key": "HealthKit Error",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 3031
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sync your workouts with Apple Health to track your fitness progress across all your apps.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2969
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your workouts will automatically sync to Apple Health when you complete them.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 3017
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Health",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2964
+        }
+      },
+      {
+        "comment": "",
+        "key": "Connected",
+        "location": {
+          "startingColumn": 62,
+          "startingLine": 2981
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not Connected",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 2981
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reconnect",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 3004
+        }
+      },
+      {
+        "comment": "",
+        "key": "Connect to Apple Health",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 3004
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 3032
+        }
+      }
+    ]
+  },
+  "version": 1
+}

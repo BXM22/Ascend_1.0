@@ -1,19 +1,24 @@
 import Foundation
+import Combine
 
-class ExRxDirectoryManager {
+class ExRxDirectoryManager: ObservableObject {
     static let shared = ExRxDirectoryManager()
     
-    private var exercises: [ExRxExercise] = []
+    @Published private var exercises: [ExRxExercise] = []
+    @Published private var importedExercises: [ExRxExercise] = []
     private let baseURL = "https://exrx.net/Lists/Directory"
+    private let importedExercisesKey = "importedExercises"
     
     private init() {
-        loadExercises()
+        // Load imported exercises FIRST, then load hardcoded and merge
+        loadImportedExercises()
+        loadExercises() // This will merge imported exercises with hardcoded ones
     }
     
     // Load exercises from ExRx directory
     // This is a comprehensive list based on ExRx.net's exercise directory structure
     private func loadExercises() {
-        exercises = [
+        let hardcodedExercises: [ExRxExercise] = [
             // Chest Exercises
             ExRxExercise(id: "bench-press", name: "Bench Press", category: "Chest", muscleGroup: "Chest", equipment: "Barbell", url: "https://exrx.net/WeightExercises/PectoralSternal/BBBenchPress", alternatives: ["Push-ups", "Dumbbell Press", "Incline Push-ups"]),
             ExRxExercise(id: "incline-bench-press", name: "Incline Bench Press", category: "Chest", muscleGroup: "Chest", equipment: "Barbell", url: "https://exrx.net/WeightExercises/PectoralClavicular/BBInclineBenchPress", alternatives: ["Incline Push-ups", "Dumbbell Incline Press"]),
@@ -72,6 +77,142 @@ class ExRxDirectoryManager {
             ExRxExercise(id: "human-flag", name: "Human Flag", category: "Calisthenics", muscleGroup: "Obliques", equipment: "Bodyweight", url: "https://exrx.net/WeightExercises/Obliques/BWHumanFlag", alternatives: ["Side Plank", "Tucked Human Flag", "Core Work"]),
             ExRxExercise(id: "l-sit", name: "L-Sit", category: "Calisthenics", muscleGroup: "Abs", equipment: "Bodyweight", url: "https://exrx.net/WeightExercises/RectusAbdominis/BWLSit", alternatives: ["Tucked L-Sit", "V-Sit", "Hanging Leg Raises"])
         ]
+        
+        exercises = hardcodedExercises
+        mergeImportedExercises()
+    }
+    
+    // MARK: - Imported Exercises Management
+    
+    /// Load imported exercises from UserDefaults
+    private func loadImportedExercises() {
+        if let data = UserDefaults.standard.data(forKey: importedExercisesKey),
+           let decoded = try? JSONDecoder().decode([ExRxExercise].self, from: data) {
+            importedExercises = decoded
+            Logger.info("📥 Loaded \(importedExercises.count) imported exercises from UserDefaults", category: .general)
+        }
+    }
+    
+    /// Save imported exercises to UserDefaults
+    private func saveImportedExercises() {
+        if let data = try? JSONEncoder().encode(importedExercises) {
+            UserDefaults.standard.set(data, forKey: importedExercisesKey)
+            Logger.info("💾 Saved \(importedExercises.count) imported exercises to UserDefaults", category: .general)
+        }
+    }
+    
+    /// Merge imported exercises with hardcoded exercises
+    /// Imported exercises take precedence for duplicates (by name)
+    private func mergeImportedExercises() {
+        // Get hardcoded exercises (stored temporarily)
+        let hardcodedExercises = exercises
+        var merged: [ExRxExercise] = []
+        let importedNames = Set(importedExercises.map { $0.name.lowercased() })
+        
+        // Add hardcoded exercises that aren't in imported list
+        for exercise in hardcodedExercises {
+            if !importedNames.contains(exercise.name.lowercased()) {
+                merged.append(exercise)
+            }
+        }
+        
+        // Add all imported exercises (they take precedence)
+        merged.append(contentsOf: importedExercises)
+        
+        exercises = merged
+        
+        // Verify merge was successful
+        let totalExpected = hardcodedExercises.count + importedExercises.count
+        let duplicatesRemoved = totalExpected - merged.count
+        
+        Logger.info("🔄 Merged exercises: \(exercises.count) total (hardcoded: \(hardcodedExercises.count), imported: \(importedExercises.count), duplicates removed: \(duplicatesRemoved))", category: .general)
+        
+        // Ensure imported exercises are actually in the merged list
+        if importedExercises.count > 0 {
+            let importedInMerged = merged.filter { exercise in
+                importedExercises.contains { $0.id == exercise.id }
+            }
+            if importedInMerged.count != importedExercises.count {
+                Logger.error("⚠️ Not all imported exercises were merged! Expected \(importedExercises.count), found \(importedInMerged.count)", category: .general)
+            }
+        }
+    }
+    
+    /// Import exercises from CSV importer
+    func importExercises(_ newExercises: [ExRxExercise]) {
+        // Remove existing imported exercises
+        importedExercises.removeAll()
+        
+        // Add new imported exercises
+        importedExercises = newExercises
+        
+        // Save to UserDefaults immediately - this is critical for persistence
+        saveImportedExercises()
+        
+        // Force UserDefaults to synchronize to ensure data is written
+        UserDefaults.standard.synchronize()
+        
+        // Re-merge with hardcoded exercises
+        // This will reload hardcoded exercises and merge with imported ones
+        loadExercises()
+        
+        // Verify the merge worked
+        let importedInFinal = exercises.filter { exercise in
+            importedExercises.contains { $0.id == exercise.id }
+        }
+        
+        // Ensure merge happened correctly
+        Logger.info("✅ Imported \(newExercises.count) exercises into ExRxDirectoryManager", category: .general)
+        Logger.info("📊 Total exercises after import: \(exercises.count) (hardcoded + imported)", category: .general)
+        Logger.info("🔍 Verification: \(importedInFinal.count) of \(importedExercises.count) imported exercises found in final list", category: .general)
+        
+        if importedInFinal.count != importedExercises.count {
+            Logger.error("❌ Import verification failed! Expected \(importedExercises.count) imported exercises, but only \(importedInFinal.count) found in final list", category: .general)
+        }
+    }
+    
+    /// Clear all imported exercises
+    func clearImportedExercises() {
+        importedExercises.removeAll()
+        saveImportedExercises()
+        loadExercises()
+        Logger.info("🗑️ Cleared all imported exercises", category: .general)
+    }
+    
+    /// Get count of imported exercises
+    func getImportedExerciseCount() -> Int {
+        return importedExercises.count
+    }
+    
+    /// Update an imported exercise
+    func updateImportedExercise(_ exercise: ExRxExercise) {
+        guard let index = importedExercises.firstIndex(where: { $0.id == exercise.id }) else {
+            Logger.info("⚠️ Exercise not found for update: \(exercise.name)", category: .general)
+            return
+        }
+        
+        importedExercises[index] = exercise
+        saveImportedExercises()
+        loadExercises() // Re-merge with hardcoded exercises
+        Logger.info("✅ Updated exercise: \(exercise.name)", category: .general)
+    }
+    
+    /// Delete an imported exercise
+    func deleteImportedExercise(_ exercise: ExRxExercise) {
+        guard let index = importedExercises.firstIndex(where: { $0.id == exercise.id }) else {
+            Logger.info("⚠️ Exercise not found for deletion: \(exercise.name)", category: .general)
+            return
+        }
+        
+        importedExercises.remove(at: index)
+        saveImportedExercises()
+        loadExercises() // Re-merge with hardcoded exercises
+        Logger.info("🗑️ Deleted exercise: \(exercise.name)", category: .general)
+    }
+    
+    /// Check if an exercise is imported (can be edited/deleted)
+    func isImportedExercise(_ exercise: ExRxExercise) -> Bool {
+        return importedExercises.contains(where: { $0.id == exercise.id })
     }
     
     // Search exercises by name (fuzzy matching)

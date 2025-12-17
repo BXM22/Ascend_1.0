@@ -108,7 +108,6 @@ struct WeeklyCalendarWidget: View {
             return nil
         }
         
-        let calendar = Calendar.current
         let today = Date()
         
         guard let workoutDay = programViewModel.getWorkoutDay(for: today, inProgram: program.id) else {
@@ -376,6 +375,44 @@ struct WeeklyCalendarWidget: View {
                         }
                     }
                 }
+            }
+        }
+        .onAppear {
+            // Ensure workout dates are synced when calendar appears
+            syncWorkoutDates()
+        }
+        .onChange(of: progressViewModel.workoutDates.count) { _, _ in
+            // Refresh when workout dates change
+            syncWorkoutDates()
+        }
+        .onChange(of: programViewModel.activeProgram?.programId) { _, _ in
+            // Refresh when active program changes
+            syncWorkoutDates()
+        }
+        .onChange(of: programViewModel.programs.count) { _, _ in
+            // Refresh when programs are loaded
+            syncWorkoutDates()
+        }
+    }
+    
+    private func syncWorkoutDates() {
+        // Sync workout dates from WorkoutHistoryManager if needed
+        let historyManager = WorkoutHistoryManager.shared
+        let calendar = Calendar.current
+        
+        // Get all workout dates from completed workouts
+        let workoutDatesFromHistory = historyManager.completedWorkouts.map { workout in
+            calendar.startOfDay(for: workout.startDate)
+        }
+        
+        // Update progressViewModel if dates are missing
+        let existingDates = Set(progressViewModel.workoutDates.map { calendar.startOfDay(for: $0) })
+        let newDates = workoutDatesFromHistory.filter { !existingDates.contains($0) }
+        
+        if !newDates.isEmpty {
+            // Add missing dates
+            for date in newDates {
+                progressViewModel.addWorkoutDate(date)
             }
         }
     }

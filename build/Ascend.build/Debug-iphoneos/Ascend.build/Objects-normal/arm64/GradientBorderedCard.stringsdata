@@ -1,0 +1,56 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/GradientBorderedCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Chest Exercise",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "3 sets × 12 reps",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "Back Exercise",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "4 sets × 10 reps",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "Leg Exercise",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "5 sets × 8 reps",
+        "location": {
+          "startingColumn": 1,
+          "startingLine": 78
+        }
+      }
+    ]
+  },
+  "version": 1
+}

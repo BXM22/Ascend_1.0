@@ -121,6 +121,20 @@ struct WorkoutDayDetailSheet: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, AppSpacing.lg)
+                    } else {
+                        // Exercises List
+                        if !workoutDay.exercises.isEmpty {
+                            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                                Text("Exercises")
+                                    .font(AppTypography.heading3)
+                                    .foregroundColor(AppColors.textPrimary)
+                                    .padding(.top, AppSpacing.sm)
+                                
+                                ForEach(workoutDay.exercises) { exercise in
+                                    ProgramExerciseRow(exercise: exercise)
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(AppSpacing.lg)
@@ -172,5 +186,6 @@ struct SummaryCard: View {
         )
     }
 }
+
 
 

@@ -6,6 +6,9 @@ struct ProgramDayTracker: View {
     @ObservedObject var workoutViewModel: WorkoutViewModel
     let onStartWorkout: () -> Void
     
+    @State private var showGeneratedAlert = false
+    @State private var generatedWorkoutInfo: (name: String, intensity: WorkoutIntensity)?
+    
     var activeProgramInfo: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)? {
         guard let active = programViewModel.activeProgram,
               let program = programViewModel.programs.first(where: { $0.id == active.programId }),
@@ -129,6 +132,22 @@ struct ProgramDayTracker: View {
                                     .background(AppColors.accent.opacity(0.1))
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
+                            } else {
+                                // No template and no exercises - generate one
+                                Button(action: {
+                                    generateAndStartWorkout(day: info.currentDay, dayIndex: info.dayIndex, program: info.program)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "sparkles")
+                                        Text("Generate & Start")
+                                    }
+                                    .font(AppTypography.captionMedium)
+                                    .foregroundColor(AppColors.accent)
+                                    .padding(.horizontal, AppSpacing.sm)
+                                    .padding(.vertical, AppSpacing.xs)
+                                    .background(AppColors.accent.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
                             }
                         }
                     }
@@ -154,6 +173,31 @@ struct ProgramDayTracker: View {
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: AppColors.foreground.opacity(0.3), radius: 8, x: 0, y: 4)
+            .alert("Workout Generated", isPresented: $showGeneratedAlert, presenting: generatedWorkoutInfo) { info in
+                Button("Got it", role: .cancel) { }
+            } message: { info in
+                Text("A \(info.intensity.rawValue) intensity workout has been generated for \(info.name).")
+            }
+        }
+    }
+    
+    private func generateAndStartWorkout(day: WorkoutDay, dayIndex: Int, program: WorkoutProgram) {
+        // Generate template using current generation settings
+        if let result = programViewModel.ensureTemplateForDay(
+            dayIndex: dayIndex,
+            inProgram: program.id,
+            settings: templatesViewModel.generationSettings,
+            templatesViewModel: templatesViewModel
+        ) {
+            // Show alert if it was just generated
+            if result.wasGenerated {
+                generatedWorkoutInfo = (name: result.template.name, intensity: result.intensity)
+                showGeneratedAlert = true
+            }
+            
+            // Start the workout
+            templatesViewModel.startTemplate(result.template, workoutViewModel: workoutViewModel)
+            onStartWorkout()
         }
     }
     

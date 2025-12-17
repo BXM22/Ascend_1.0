@@ -474,6 +474,32 @@ class ProgressViewModel: ObservableObject {
         }
     }
     
+    /// Deletes a Personal Record (PR)
+    /// - Parameter pr: The PersonalRecord to delete
+    func deletePR(_ pr: PersonalRecord) {
+        // Remove PR from array
+        prs.removeAll { $0.id == pr.id }
+        
+        // Invalidate caches to force recalculation
+        invalidateExerciseCache()
+        invalidateVolumeCache()
+        
+        // If the deleted PR was for the currently selected exercise, check if we need to update selection
+        if selectedExercise == pr.exercise {
+            // Check if there are any remaining PRs for this exercise
+            let remainingPRs = prs.filter { $0.exercise == pr.exercise }
+            if remainingPRs.isEmpty {
+                // No more PRs for this exercise, clear selection
+                selectedExercise = ""
+            }
+        }
+        
+        // Save PRs immediately after deletion
+        savePRsImmediately()
+        
+        Logger.info("✅ PR deleted: \(pr.exercise) - \(Int(pr.weight)) lbs × \(pr.reps) reps | Remaining PRs: \(prs.count)", category: .general)
+    }
+    
     // MARK: - Trend Data for Graphs
     
     // Cache for volume data

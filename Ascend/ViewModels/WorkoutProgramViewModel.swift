@@ -232,6 +232,63 @@ class WorkoutProgramViewModel: ObservableObject {
         }
     }
     
+    /// Generate and assign a template for a day if it doesn't have one
+    /// Returns: (template, intensity, wasGenerated) - template is the generated/assigned template, intensity is the calculated intensity, wasGenerated indicates if a new template was created
+    func ensureTemplateForDay(dayIndex: Int, inProgram programId: UUID, settings: WorkoutGenerationSettings, templatesViewModel: TemplatesViewModel) -> (template: WorkoutTemplate, intensity: WorkoutIntensity, wasGenerated: Bool)? {
+        guard let programIndex = programs.firstIndex(where: { $0.id == programId }),
+              dayIndex < programs[programIndex].days.count else {
+            return nil
+        }
+        
+        let day = programs[programIndex].days[dayIndex]
+        
+        // If day already has a template, return it
+        if let templateId = day.templateId,
+           let existingTemplate = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+            let intensity = calculateIntensity(from: day)
+            return (existingTemplate, intensity, false)
+        }
+        
+        // Skip rest days
+        if day.isRestDay {
+            return nil
+        }
+        
+        // Generate new template based on day name
+        let generatedTemplate = autoGenerateTemplate(forDay: day, inProgram: programs[programIndex], settings: settings)
+        
+        // Save the generated template
+        templatesViewModel.saveTemplate(generatedTemplate)
+        
+        // Assign template to the day
+        assignTemplate(generatedTemplate.id, toDay: dayIndex, inProgram: programId, templatesViewModel: templatesViewModel)
+        
+        // Calculate intensity from the generated template
+        // Create a temporary WorkoutDay with the template's exercises to calculate intensity
+        let templateExercises = generatedTemplate.exercises.map { templateExercise in
+            ProgramExercise(
+                name: templateExercise.name,
+                sets: templateExercise.sets,
+                reps: templateExercise.reps,
+                notes: nil,
+                exerciseType: templateExercise.exerciseType,
+                targetHoldDuration: templateExercise.targetHoldDuration
+            )
+        }
+        let tempDay = WorkoutDay(
+            dayNumber: day.dayNumber,
+            name: day.name,
+            description: day.description,
+            exercises: templateExercises,
+            estimatedDuration: generatedTemplate.estimatedDuration,
+            templateId: generatedTemplate.id,
+            isRestDay: false
+        )
+        let intensity = calculateIntensity(from: tempDay)
+        
+        return (generatedTemplate, intensity, true)
+    }
+    
     func autoGenerateTemplate(forDay day: WorkoutDay, inProgram program: WorkoutProgram, settings: WorkoutGenerationSettings) -> WorkoutTemplate {
         let dayName = day.name.lowercased()
         
@@ -255,7 +312,8 @@ class WorkoutProgramViewModel: ObservableObject {
             settings.exercisesPerMuscleGroup["Calves"] = 0
             settings.exercisesPerMuscleGroup["Abs"] = 0
             settings.exercisesPerMuscleGroup["Obliques"] = 0
-            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+            let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
         } else if dayName.contains("shoulders") && dayName.contains("arms") {
             // Shoulders & Arms day
             var settings = settings
@@ -268,7 +326,8 @@ class WorkoutProgramViewModel: ObservableObject {
             settings.exercisesPerMuscleGroup["Calves"] = 0
             settings.exercisesPerMuscleGroup["Abs"] = 0
             settings.exercisesPerMuscleGroup["Obliques"] = 0
-            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+            let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
         } else if dayName.contains("chest") {
             // Just Chest day
             var settings = settings
@@ -282,7 +341,8 @@ class WorkoutProgramViewModel: ObservableObject {
             settings.exercisesPerMuscleGroup["Calves"] = 0
             settings.exercisesPerMuscleGroup["Abs"] = 0
             settings.exercisesPerMuscleGroup["Obliques"] = 0
-            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+            let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
         } else if dayName.contains("back") {
             // Just Back day
             var settings = settings
@@ -296,7 +356,8 @@ class WorkoutProgramViewModel: ObservableObject {
             settings.exercisesPerMuscleGroup["Calves"] = 0
             settings.exercisesPerMuscleGroup["Abs"] = 0
             settings.exercisesPerMuscleGroup["Obliques"] = 0
-            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+            let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
         } else if dayName.contains("shoulders") {
             // Just Shoulders day
             var settings = settings
@@ -311,12 +372,22 @@ class WorkoutProgramViewModel: ObservableObject {
             settings.exercisesPerMuscleGroup["Calves"] = 0
             settings.exercisesPerMuscleGroup["Abs"] = 0
             settings.exercisesPerMuscleGroup["Obliques"] = 0
-            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+            let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+            return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
+        } else if dayName.contains("upper") {
+            return WorkoutGenerator.shared.generateUpperWorkout(settings: settings)
+        } else if dayName.contains("lower") {
+            return WorkoutGenerator.shared.generateLowerWorkout(settings: settings)
+        } else if dayName.contains("full body") || dayName.contains("fullbody") {
+            return WorkoutGenerator.shared.generateFullBodyWorkout(settings: settings)
         }
         
         // Default: generate custom workout
-        return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name)
+        let dayType = WorkoutDayTypeExtractor.extract(from: day.name)
+        return WorkoutGenerator.shared.generateWorkout(settings: settings, name: day.name, workoutDayType: dayType)
     }
+    
+    // MARK: - Helper Functions
     
     // MARK: - Calendar Helpers
     

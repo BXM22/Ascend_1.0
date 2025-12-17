@@ -1,0 +1,16 @@
+{
+  "source": "/Users/brennenmeregillano/Desktop/Ascend/Ascend/Views/Components/HeroSection.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Generate Workout",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 89
+        }
+      }
+    ]
+  },
+  "version": 1
+}
