@@ -75,7 +75,8 @@ class AudioManager {
     private func playSound(named filename: String, volume: Float = 1.0) {
         guard soundEnabled else { return }
         
-        if let player = loadSound(named: filename) {
+        // Check if sound file exists
+        if loadSound(named: filename) != nil {
             // Create a new player instance for each play to allow overlapping sounds
             if let url = Bundle.main.url(forResource: filename, withExtension: "mp3") ??
                          Bundle.main.url(forResource: filename, withExtension: "wav") ??

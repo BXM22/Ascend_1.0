@@ -117,7 +117,10 @@ class SportsTimerViewModel: ObservableObject {
         guard isActive && isPaused else { return }
         
         isPaused = false
-        phaseStartTime = Date()
+        // Set phaseStartTime to account for already elapsed time (pausedTimeAccumulator)
+        // This ensures the timer continues from where it was paused
+        // We set phaseStartTime to a point in the past so that elapsed time = pausedTimeAccumulator
+        phaseStartTime = Date().addingTimeInterval(-pausedTimeAccumulator)
         lastPauseTime = nil
         
         startUpdateTimer()

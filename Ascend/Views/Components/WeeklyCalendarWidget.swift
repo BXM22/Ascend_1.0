@@ -1,9 +1,13 @@
 import SwiftUI
 
-// Make Date identifiable for sheet(item:) modifier
-extension Date: Identifiable {
-    public var id: TimeInterval {
-        self.timeIntervalSince1970
+// Wrapper to make Date identifiable for sheet(item:) modifier
+struct IdentifiableDate: Identifiable {
+    let id: TimeInterval
+    let date: Date
+    
+    init(_ date: Date) {
+        self.date = date
+        self.id = date.timeIntervalSince1970
     }
 }
 
@@ -12,7 +16,7 @@ struct WeeklyCalendarWidget: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     
     @State private var weekOffset: Int = 0 // 0 = current week, -1 = previous, +1 = next
-    @State private var selectedDate: Date?
+    @State private var selectedDate: IdentifiableDate?
     
     private var currentWeekDays: [Date] {
         let calendar = Calendar.current
@@ -91,7 +95,7 @@ struct WeeklyCalendarWidget: View {
     }
     
     private func handleDayTap(_ date: Date) {
-        selectedDate = date
+        selectedDate = IdentifiableDate(date)
     }
     
     private func navigateWeek(_ direction: Int) {
@@ -331,7 +335,8 @@ struct WeeklyCalendarWidget: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(item: $selectedDate) { date in
+        .sheet(item: $selectedDate) { identifiableDate in
+            let date = identifiableDate.date
             if let workoutDay = getWorkoutDay(for: date) {
                 WorkoutDayDetailSheet(
                     workoutDay: workoutDay,

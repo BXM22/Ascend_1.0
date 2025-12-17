@@ -10,8 +10,8 @@ struct DashboardView: View {
     let onNavigateToProgress: (() -> Void)?
     @State private var showGenerateTypeDialog = false
     @State private var showWorkoutHistory = false
-<<<<<<< Updated upstream
     @State private var showPRHistory = false
+    @State private var showSportsTimer = false
     
     init(
         progressViewModel: ProgressViewModel,
@@ -30,9 +30,6 @@ struct DashboardView: View {
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
     }
-=======
-    @State private var showSportsTimer = false
->>>>>>> Stashed changes
     
     private enum GeneratedDayType {
         case custom, push, pull, legs, fullBody
@@ -208,11 +205,9 @@ struct DashboardView: View {
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
         }
-<<<<<<< Updated upstream
         .sheet(isPresented: $showPRHistory) {
             PRHistoryView(progressViewModel: progressViewModel)
         }
-=======
         .fullScreenCover(isPresented: $showSportsTimer) {
             SportsTimerView()
         }
@@ -267,7 +262,6 @@ struct SportsTimerCard: View {
             )
         }
         .buttonStyle(ScaleButtonStyle())
->>>>>>> Stashed changes
     }
 }
 

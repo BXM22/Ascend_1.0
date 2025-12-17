@@ -243,15 +243,10 @@ struct MuscleGroupChart: View {
             refreshData()
         }
         .onReceive(workoutHistoryManager.$completedWorkouts) { _ in
-<<<<<<< Updated upstream
-            // Also listen to published changes
-            refreshData()
-=======
             // Debounce refresh to avoid excessive recalculations
             PerformanceOptimizer.shared.debouncedSave(delay: 0.3) {
                 self.refreshData()
             }
->>>>>>> Stashed changes
         }
         .drawingGroup() // Optimize rendering for complex chart
     }

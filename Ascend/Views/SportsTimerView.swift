@@ -16,7 +16,6 @@ struct SportsTimerView: View {
     @State private var isHolding: Bool = false
     
     // Animation states
-    @State private var timerPulse: Bool = false
     @State private var showCompletionScreen: Bool = false
     @State private var sessionStartTime: Date?
     @State private var soundEnabled: Bool = AudioManager.shared.soundEnabled
@@ -165,20 +164,15 @@ struct SportsTimerView: View {
                             .id(viewModel.phaseLabel)
                             .opacity(viewModel.isActive ? 1.0 : 0.7)
                         
-                        // Large Timer Display - Made even bigger with animations
+                        // Large Timer Display - Made even bigger
                         VStack(spacing: 32) {
                             ZStack {
-                                // Warning glow when time is low
+                                // Warning glow when time is low (static, no pulsing)
                                 if viewModel.isActive && !viewModel.isPaused && viewModel.timeRemainingSeconds <= 10 && viewModel.timeRemainingSeconds > 0 {
                                     Circle()
                                         .fill(Color.white.opacity(0.2))
                                         .frame(width: 300, height: 300)
                                         .blur(radius: 30)
-                                        .scaleEffect(timerPulse ? 1.2 : 1.0)
-                                        .animation(
-                                            Animation.easeInOut(duration: 0.5).repeatForever(autoreverses: true),
-                                            value: timerPulse
-                                        )
                                 }
                                 
                                 Text(viewModel.displayTime)
@@ -191,13 +185,6 @@ struct SportsTimerView: View {
                                     .monospacedDigit()
                                     .minimumScaleFactor(0.3)
                                     .lineLimit(1)
-                                    .scaleEffect(timerPulse && viewModel.isActive && !viewModel.isPaused ? 1.05 : 1.0)
-                                    .animation(
-                                        viewModel.isActive && !viewModel.isPaused && viewModel.displayTime != "00:00" ?
-                                        Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) :
-                                        .default,
-                                        value: timerPulse
-                                    )
                                     .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
                             }
                             
@@ -215,17 +202,12 @@ struct SportsTimerView: View {
                         }
                         .onChange(of: viewModel.isActive) {
                             if viewModel.isActive {
-                                timerPulse = true
                                 sessionStartTime = Date()
                             } else {
-                                timerPulse = false
                                 if viewModel.currentPhase == .completed {
                                     showCompletionScreen = true
                                 }
                             }
-                        }
-                        .onChange(of: viewModel.isPaused) {
-                            timerPulse = !viewModel.isPaused && viewModel.isActive
                         }
                         
                         // Round Progress
