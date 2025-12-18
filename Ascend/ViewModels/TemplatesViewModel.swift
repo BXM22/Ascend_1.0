@@ -3,6 +3,8 @@ import SwiftUI
 import Combine
 
 class TemplatesViewModel: ObservableObject {
+    static let shared = TemplatesViewModel()
+    
     @Published var templates: [WorkoutTemplate] = [] {
         didSet {
             // Debounce saves to avoid excessive UserDefaults writes

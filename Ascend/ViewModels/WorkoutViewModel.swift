@@ -1918,6 +1918,13 @@ class WorkoutViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+        
+        // Reset local properties
+        workoutStartTime = nil
+        pausedTimeAccumulator = 0
+        isTimerPaused = false
+        pauseStartTime = nil
+        elapsedTime = 0
     }
     
     // MARK: - Workout State Persistence

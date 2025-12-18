@@ -44,7 +44,8 @@ class SportsTimerViewModel: ObservableObject {
         self.config = sport.defaultConfig
         self.totalRounds = sport.defaultConfig.numberOfRounds
         self.phaseLabel = "\(sport.defaultConfig.roundLabel) 1"
-        self.displayTime = formatTime(sport.defaultConfig.roundDuration)
+        self.displayTime = "00:00"
+        self.progress = 0.0
     }
     
     init(customSport: CustomSport) {
@@ -54,7 +55,8 @@ class SportsTimerViewModel: ObservableObject {
         self.config = customConfig
         self.totalRounds = customConfig.numberOfRounds
         self.phaseLabel = "\(customConfig.roundLabel) 1"
-        self.displayTime = formatTime(customConfig.roundDuration)
+        self.displayTime = "00:00"
+        self.progress = 0.0
     }
     
     // MARK: - Public Methods
@@ -233,14 +235,20 @@ class SportsTimerViewModel: ObservableObject {
             displayTime = formatTime(timeRemainingInt)
             progress = max(0.0, min(1.0, 1.0 - (timeRemaining / phaseDurationValue)))
         } else {
-            // Paused or inactive - use cached or initial values
-            phaseDurationValue = currentPhase == .round ? 
-                Double(config.roundDuration) : Double(config.restDuration)
-            let timeRemaining = phaseDurationValue - pausedTimeAccumulator
-            timeRemainingInt = max(0, Int(timeRemaining))
-            
-            displayTime = formatTime(timeRemainingInt)
-            progress = max(0.0, min(1.0, 1.0 - (Double(timeRemainingInt) / phaseDurationValue)))
+            // Paused or inactive
+            if !isActive && !isPaused {
+                displayTime = "00:00"
+                progress = 0.0
+                timeRemainingInt = 0
+            } else {
+                phaseDurationValue = currentPhase == .round ? 
+                    Double(config.roundDuration) : Double(config.restDuration)
+                let timeRemaining = phaseDurationValue - pausedTimeAccumulator
+                timeRemainingInt = max(0, Int(timeRemaining))
+                
+                displayTime = formatTime(timeRemainingInt)
+                progress = max(0.0, min(1.0, 1.0 - (Double(timeRemainingInt) / phaseDurationValue)))
+            }
         }
         
         // Update time remaining

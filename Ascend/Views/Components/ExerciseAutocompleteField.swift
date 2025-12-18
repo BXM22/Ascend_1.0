@@ -7,6 +7,7 @@ struct ExerciseAutocompleteField: View {
     @State private var showSuggestions = false
     @State private var filteredSuggestions: [String] = []
     @State private var favoriteSuggestions: [String] = []
+    @State private var mergedExercises: [(original: String, lowercased: String)] = []
     @FocusState private var isFocused: Bool
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     @StateObject private var favoritesManager = FavoritesManager.shared
@@ -34,37 +35,31 @@ struct ExerciseAutocompleteField: View {
         return Array(Set(exercises)).sorted()
     }()
     
-    private var allExercises: [String] {
+    private func updateMergedExercises() {
         var exercises = Self.cachedExercises
         
         // Add custom exercises
         let customExercises = ExerciseDataManager.shared.customExercises.map { $0.name }
         exercises.append(contentsOf: customExercises)
         
-        // Remove duplicates and sort
-        return Array(Set(exercises)).sorted()
+        // Remove duplicates, sort, and pre-lowercase for faster searching
+        let sortedUnique = Array(Set(exercises)).sorted()
+        mergedExercises = sortedUnique.map { ($0, $0.lowercased()) }
     }
     
     // Optimized filtering function - uses early exit and single pass where possible
     private func filterExercises(_ query: String) -> ([String], [String]) {
-        // Separate favorites, recent, most used, and regular exercises
-        // Use Set for O(1) lookup performance
-        let favoritesSet = Set(favoritesManager.favoriteExercises)
-        let recentSet = Set(usageTracker.recentExercises)
-        let mostUsedSet = Set(usageTracker.getMostUsedExercises(limit: 10))
-        
         let favorites = favoritesManager.favoriteExercises
         let recent = usageTracker.recentExercises
         let mostUsed = usageTracker.getMostUsedExercises(limit: 10)
-        let regularExercises = allExercises.filter { 
-            !favoritesSet.contains($0) && !recentSet.contains($0) && !mostUsedSet.contains($0)
-        }
+        
+        // Use Set for O(1) lookup performance
+        let favoritesSet = Set(favorites)
+        let recentSet = Set(recent)
+        let mostUsedSet = Set(mostUsed)
         
         guard !query.isEmpty else {
-            // If no query, return: recent → most used → favorites → alphabetical
-            // Use Set for O(1) lookup performance
-            let recentSet = Set(recent)
-            let mostUsedSet = Set(mostUsed)
+            // If no query, return: recent → most used → favorites
             var ordered: [String] = []
             ordered.append(contentsOf: recent)
             ordered.append(contentsOf: mostUsed.filter { !recentSet.contains($0) })
@@ -73,67 +68,47 @@ struct ExerciseAutocompleteField: View {
         }
         
         let lowercasedQuery = query.lowercased()
+        let resultLimit = 20
         
-        // Pre-allocate result arrays for better performance
-        var recentMatches: [String] = []
-        var mostUsedMatches: [String] = []
-        var favoritePrefixMatches: [String] = []
-        var favoriteContainsMatches: [String] = []
+        // Matches from priority lists
+        var orderedMatches: [String] = []
+        var seenMatches = Set<String>()
+        
+        // 1. Check priority lists (recent, most used, favorites)
+        let priorityLists = [recent, mostUsed, favorites]
+        for list in priorityLists {
+            for exercise in list {
+                if seenMatches.contains(exercise) { continue }
+                
+                let lowerExercise = exercise.lowercased()
+                if lowerExercise.hasPrefix(lowercasedQuery) || lowerExercise.contains(lowercasedQuery) {
+                    orderedMatches.append(exercise)
+                    seenMatches.insert(exercise)
+                    
+                    if orderedMatches.count >= resultLimit {
+                        return (orderedMatches, [])
+                    }
+                }
+            }
+        }
+        
+        // 2. Check regular exercises (single pass)
         var prefixMatches: [String] = []
         var containsMatches: [String] = []
         
-        // Filter recent exercises first (optimized with early exit)
-        for exercise in recent {
-            let lowerExercise = exercise.lowercased()
-            if lowerExercise.hasPrefix(lowercasedQuery) || lowerExercise.contains(lowercasedQuery) {
-                recentMatches.append(exercise)
+        for (original, lowercased) in mergedExercises {
+            if seenMatches.contains(original) { continue }
+            
+            if lowercased.hasPrefix(lowercasedQuery) {
+                prefixMatches.append(original)
+                if orderedMatches.count + prefixMatches.count + containsMatches.count >= resultLimit { break }
+            } else if lowercased.contains(lowercasedQuery) {
+                containsMatches.append(original)
+                if orderedMatches.count + prefixMatches.count + containsMatches.count >= resultLimit { break }
             }
         }
         
-        // Filter most used exercises (skip if already in recent) - use Set for O(1) lookup
-        let recentMatchesSet = Set(recentMatches)
-        for exercise in mostUsed {
-            if recentMatchesSet.contains(exercise) { continue }
-            let lowerExercise = exercise.lowercased()
-            if lowerExercise.hasPrefix(lowercasedQuery) || lowerExercise.contains(lowercasedQuery) {
-                mostUsedMatches.append(exercise)
-            }
-        }
-        
-        // Filter favorites - use Set for O(1) lookup
-        let mostUsedMatchesSet = Set(mostUsedMatches)
-        for exercise in favorites {
-            if recentMatchesSet.contains(exercise) || mostUsedMatchesSet.contains(exercise) { continue }
-            let lowerExercise = exercise.lowercased()
-            if lowerExercise.hasPrefix(lowercasedQuery) {
-                favoritePrefixMatches.append(exercise)
-            } else if lowerExercise.contains(lowercasedQuery) {
-                favoriteContainsMatches.append(exercise)
-            }
-        }
-        
-        // Filter regular exercises
-        for exercise in regularExercises {
-            let lowerExercise = exercise.lowercased()
-            if lowerExercise.hasPrefix(lowercasedQuery) {
-                prefixMatches.append(exercise)
-            } else if lowerExercise.contains(lowercasedQuery) {
-                containsMatches.append(exercise)
-            }
-        }
-        
-        // Combine: recent → most used → favorites (prefix, then contains) → regular (prefix, then contains)
-        var orderedResults = recentMatches
-        orderedResults.append(contentsOf: mostUsedMatches)
-        
-        var favoriteResults = favoritePrefixMatches
-        favoriteResults.append(contentsOf: favoriteContainsMatches)
-        orderedResults.append(contentsOf: favoriteResults)
-        
-        var regularResults = prefixMatches
-        regularResults.append(contentsOf: containsMatches)
-        
-        return (orderedResults, regularResults)
+        return (orderedMatches, Array(prefixMatches + containsMatches).prefix(resultLimit - orderedMatches.count).map { String($0) })
     }
     
     var body: some View {
@@ -182,6 +157,12 @@ struct ExerciseAutocompleteField: View {
                             showSuggestions = shouldShow
                         }
                     }
+                }
+                .onAppear {
+                    updateMergedExercises()
+                }
+                .onChange(of: exerciseDataManager.customExercises) {
+                    updateMergedExercises()
                 }
             
             // Suggestions List

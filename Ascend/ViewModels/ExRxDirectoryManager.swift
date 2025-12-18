@@ -6,6 +6,7 @@ class ExRxDirectoryManager: ObservableObject {
     
     @Published private var exercises: [ExRxExercise] = []
     @Published private var importedExercises: [ExRxExercise] = []
+    private var cachedExerciseNames: [String] = []
     private let baseURL = "https://exrx.net/Lists/Directory"
     private let importedExercisesKey = "importedExercises"
     
@@ -99,6 +100,11 @@ class ExRxDirectoryManager: ObservableObject {
         }
         
         mergeImportedExercises()
+        updateNameCache()
+    }
+    
+    private func updateNameCache() {
+        cachedExerciseNames = exercises.map { $0.name }
     }
     
     // MARK: - Imported Exercises Management
@@ -139,6 +145,7 @@ class ExRxDirectoryManager: ObservableObject {
         merged.append(contentsOf: importedExercises)
         
         exercises = merged
+        updateNameCache()
         
         // Verify merge was successful
         let totalExpected = baseExercises.count + importedExercises.count
@@ -299,7 +306,7 @@ class ExRxDirectoryManager: ObservableObject {
     
     // Get all exercise names for autocomplete
     func getAllExerciseNames() -> [String] {
-        return exercises.map { $0.name }
+        return cachedExerciseNames
     }
 }
 
