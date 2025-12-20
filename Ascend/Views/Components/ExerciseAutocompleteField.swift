@@ -54,7 +54,7 @@ struct ExerciseAutocompleteField: View {
         let mostUsed = usageTracker.getMostUsedExercises(limit: 10)
         
         // Use Set for O(1) lookup performance
-        let favoritesSet = Set(favorites)
+        let _ = Set(favorites) // favoritesSet not used in current implementation
         let recentSet = Set(recent)
         let mostUsedSet = Set(mostUsed)
         

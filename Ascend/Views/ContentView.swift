@@ -55,7 +55,7 @@ struct ContentView: View {
     }
     
     enum Tab {
-        case dashboard, workout, progress, templates
+        case dashboard, workout, progress, templates, sportsTimer
     }
     
     var effectiveColorScheme: ColorScheme {
@@ -80,6 +80,7 @@ struct ContentView: View {
                         workoutViewModel: workoutViewModel,
                         templatesViewModel: templatesViewModel,
                         programViewModel: programViewModel,
+                        themeManager: themeManager,
                         onStartWorkout: {
                             withAnimation(AppAnimations.standard) {
                                 selectedTab = .workout
@@ -103,6 +104,7 @@ struct ContentView: View {
                 case .progress:
                     ProgressView(
                         viewModel: progressViewModel,
+                        themeManager: themeManager,
                         onSettings: {
                             showSettingsSheet = true
                         }
@@ -114,6 +116,7 @@ struct ContentView: View {
                         viewModel: templatesViewModel,
                         workoutViewModel: workoutViewModel,
                         programViewModel: programViewModel,
+                        themeManager: themeManager,
                         onStartTemplate: {
                             withAnimation(AppAnimations.standard) {
                                 selectedTab = .workout
@@ -125,6 +128,10 @@ struct ContentView: View {
                     )
                     .id(AppColors.themeID)
                     .transition(.slideFromBottom)
+                case .sportsTimer:
+                    SportsTimerView()
+                        .id(AppColors.themeID)
+                        .transition(.slideFromBottom)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -228,98 +235,79 @@ struct BottomNavigationBar: View {
     @Binding var selectedTab: ContentView.Tab
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject var settingsManager: SettingsManager
-    @State private var showThemePicker = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Theme Picker (when shown)
-            if showThemePicker {
-                ThemePickerView(
-                    themeManager: themeManager,
-                    settingsManager: settingsManager
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
+        // Connected circles design
+        HStack(spacing: -8) {
+            NavButton(
+                icon: "house.fill",
+                title: "Home",
+                isSelected: selectedTab == .dashboard
+            ) {
+                HapticManager.selection()
+                withAnimation(AppAnimations.quick) {
+                    selectedTab = .dashboard
+                }
             }
             
-            // Connected circles design
-            HStack(spacing: -8) {
-                NavButton(
-                    icon: "house.fill",
-                    title: "Home",
-                    isSelected: selectedTab == .dashboard
-                ) {
-                    HapticManager.selection()
-                    withAnimation(AppAnimations.quick) {
-                        selectedTab = .dashboard
-                    }
+            NavButton(
+                icon: "dumbbell.fill",
+                title: "Workout",
+                isSelected: selectedTab == .workout
+            ) {
+                HapticManager.selection()
+                withAnimation(AppAnimations.quick) {
+                    selectedTab = .workout
                 }
-                
-                NavButton(
-                    icon: "dumbbell.fill",
-                    title: "Workout",
-                    isSelected: selectedTab == .workout
-                ) {
-                    HapticManager.selection()
-                    withAnimation(AppAnimations.quick) {
-                        selectedTab = .workout
-                    }
-                }
-                
-                NavButton(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "Progress",
-                    isSelected: selectedTab == .progress
-                ) {
-                    HapticManager.selection()
-                    withAnimation(AppAnimations.quick) {
-                        selectedTab = .progress
-                    }
-                }
-                
-                NavButton(
-                    icon: "list.bullet.rectangle",
-                    title: "Templates",
-                    isSelected: selectedTab == .templates
-                ) {
-                    HapticManager.selection()
-                    withAnimation(AppAnimations.quick) {
-                        selectedTab = .templates
-                    }
-                }
-                
-                // Theme Toggle Button
-                ThemeToggleButton(
-                    isSelected: showThemePicker,
-                    iconName: showThemePicker ? "paintbrush.fill" : "paintbrush",
-                    action: {
-                        HapticManager.impact(style: .light)
-                        withAnimation(AppAnimations.standard) {
-                            showThemePicker.toggle()
-                        }
-                    }
-                )
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-                // Connected circles background
-                ConnectedCirclesBackground()
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            
+            NavButton(
+                icon: "chart.line.uptrend.xyaxis",
+                title: "Progress",
+                isSelected: selectedTab == .progress
+            ) {
+                HapticManager.selection()
+                withAnimation(AppAnimations.quick) {
+                    selectedTab = .progress
+                }
+            }
+            
+            NavButton(
+                icon: "list.bullet.rectangle",
+                title: "Templates",
+                isSelected: selectedTab == .templates
+            ) {
+                HapticManager.selection()
+                withAnimation(AppAnimations.quick) {
+                    selectedTab = .templates
+                }
+            }
+            
+            NavButton(
+                icon: "timer",
+                title: "Timer",
+                isSelected: selectedTab == .sportsTimer
+            ) {
+                HapticManager.selection()
+                withAnimation(AppAnimations.quick) {
+                    selectedTab = .sportsTimer
+                }
+            }
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            // Connected circles background
+            ConnectedCirclesBackground()
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 }
 
 struct ThemePickerView: View {
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject var settingsManager: SettingsManager
-    @State private var showColorImport = false
-    @State private var colorURLText = ""
-    @State private var importError: String?
-    @State private var importSuccess = false
     
     var body: some View {
         VStack(spacing: AppSpacing.md) {
@@ -330,134 +318,6 @@ struct ThemePickerView: View {
                 }
             }
             
-            Divider()
-                .background(AppColors.border)
-            
-            // Color Theme Import Section
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                HStack {
-                    Text("Custom Color Theme")
-                        .font(AppTypography.bodyMedium)
-                        .foregroundColor(AppColors.textPrimary)
-                    
-                    Spacer()
-                    
-                    if settingsManager.customTheme != nil {
-                        Button(action: {
-                            settingsManager.resetToDefaultTheme()
-                            importSuccess = false
-                        }) {
-                            Text("Reset")
-                                .font(AppTypography.captionMedium)
-                                .foregroundColor(AppColors.destructive)
-                        }
-                    }
-                }
-                
-                if !showColorImport {
-                    Button(action: {
-                        withAnimation(AppAnimations.standard) {
-                            showColorImport = true
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "link")
-                                .font(AppTypography.body)
-                            Text("Import from Coolors.co")
-                                .font(AppTypography.bodyMedium)
-                        }
-                        .foregroundColor(AppColors.accentForeground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSpacing.sm)
-                        .background(AppColors.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                        TextField("Paste Coolors.co URL", text: $colorURLText)
-                            .font(AppTypography.body)
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding(AppSpacing.sm)
-                            .background(AppColors.input)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
-                        
-                        if let error = importError {
-                            Text(error)
-                                .font(AppTypography.caption)
-                                .foregroundColor(AppColors.destructive)
-                        }
-                        
-                        if importSuccess {
-                            Text("Theme imported successfully!")
-                                .font(AppTypography.caption)
-                                .foregroundColor(AppColors.success)
-                        }
-                        
-                        HStack(spacing: AppSpacing.sm) {
-                            Button(action: {
-                                importTheme()
-                            }) {
-                                Text("Import")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.accentForeground)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, AppSpacing.sm)
-                                    .background(AppColors.accent)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            
-                            Button(action: {
-                                withAnimation(AppAnimations.standard) {
-                                    showColorImport = false
-                                    colorURLText = ""
-                                    importError = nil
-                                    importSuccess = false
-                                }
-                            }) {
-                                Text("Cancel")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textSecondary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, AppSpacing.sm)
-                                    .background(AppColors.secondary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: AppConstants.Notification.colorThemeDidChange)) { _ in
-            // Refresh view when theme changes
-        }
-    }
-    
-    private func importTheme() {
-        importError = nil
-        importSuccess = false
-        
-        guard !colorURLText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            importError = "Please enter a URL"
-            return
-        }
-        
-        let result = settingsManager.importTheme(from: colorURLText)
-        
-        switch result {
-        case .success:
-            importSuccess = true
-            // Clear text after successful import
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(AppAnimations.standard) {
-                    showColorImport = false
-                    colorURLText = ""
-                    importSuccess = false
-                }
-            }
-        case .failure(let error):
-            importError = error.localizedDescription
         }
     }
 }
@@ -637,7 +497,7 @@ struct ConnectedCirclesBackground: View {
             let circleDiameter = circleRadius * 2
             let totalWidth = geometry.size.width
             let totalHeight = geometry.size.height
-            let circleCount: CGFloat = 5 // 4 nav buttons + 1 theme button
+            let circleCount: CGFloat = 5 // 5 nav buttons
             let spacing = (totalWidth - (circleCount * circleDiameter)) / (circleCount - 1)
             
             ZStack {

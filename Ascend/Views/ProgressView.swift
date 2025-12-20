@@ -1,115 +1,97 @@
 //
 //  ProgressView.swift
-//  WorkoutTracker
+//  Ascend
 //
-//  Created on 2024
+//  Redesigned on 2025
 //
 
 import SwiftUI
 
+enum ViewMode {
+    case list, grouped
+}
+
 struct ProgressView: View {
     @ObservedObject var viewModel: ProgressViewModel
+    @ObservedObject var themeManager: ThemeManager
     let onSettings: () -> Void
     @Environment(\.colorScheme) var colorScheme
+    
+    // State for redesign
+    @State private var selectedTab: ProgressTab = .overview
     @State private var showPRHistory = false
+    @State private var showFilterSheet = false
+    @State private var showExerciseDetail = false
+    @State private var selectedExerciseForDetail: String = ""
+    @State private var searchText: String = ""
+    @State private var filters = PRFilters()
+    @State private var viewMode: ViewMode = .list
+    @State private var expandedGroups: Set<String> = []
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: []) {
-                // Header
-                ProgressHeader(
-                    selectedView: $viewModel.selectedView,
-                    onWeekSelected: { viewModel.selectedView = .week },
-                    onMonthSelected: { viewModel.selectedView = .month },
-                    onSettings: onSettings
-                )
-                
-                VStack(spacing: 20) {
-                    // Stat Cards Row
-                    HStack(spacing: 12) {
-                        StreakStatCard(
-                            currentStreak: viewModel.currentStreak,
-                            longestStreak: viewModel.longestStreak
-                        )
-                        
-                        WorkoutCountStatCard(viewModel: viewModel)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    
-                    // Charts Header
-                    HStack {
-                        Text("Charts")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // Trend Graphs (Horizontal Scrolling)
-                    TrendGraphsView(viewModel: viewModel)
-                        .padding(.top, 8)
-                        .frame(maxWidth: .infinity)
-                    
-                    // Exercise PR Tracker
-                    ExercisePRTrackerView(viewModel: viewModel)
-                        .padding(.horizontal, 20)
-                    
-                    // View All PRs Button
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        showPRHistory = true
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "list.bullet.rectangle")
-                                .font(.system(size: 18, weight: .semibold))
-                            
-                            Text("View All PRs")
-                                .font(.system(size: 16, weight: .semibold))
-                            
-                            Spacer()
-                            
-                            Text("\(viewModel.prs.count)")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColors.mutedForeground)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(AppColors.secondary)
-                                .clipShape(Capsule())
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppColors.mutedForeground)
-                        }
-                        .foregroundColor(AppColors.foreground)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(AppColors.border.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 100)
-                   
+        VStack(spacing: 0) {
+            // Redesigned Header
+            RedesignedProgressHeader(
+                selectedTab: $selectedTab,
+                themeManager: themeManager,
+                onSettings: onSettings
+            )
+            
+            // Segment Control
+            Picker("Progress Tab", selection: $selectedTab) {
+                ForEach(ProgressTab.allCases, id: \.self) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon)
+                        .tag(tab)
                 }
             }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+            
+            // Tab Content
+            TabView(selection: $selectedTab) {
+                OverviewTab(viewModel: viewModel, showExerciseDetail: $showExerciseDetail, selectedExercise: $selectedExerciseForDetail)
+                    .tag(ProgressTab.overview)
+                
+                ExercisesTab(
+                    viewModel: viewModel,
+                    searchText: $searchText,
+                    filters: $filters,
+                    showFilterSheet: $showFilterSheet,
+                    showExerciseDetail: $showExerciseDetail,
+                    selectedExercise: $selectedExerciseForDetail,
+                    viewMode: $viewMode,
+                    expandedGroups: $expandedGroups
+                )
+                .tag(ProgressTab.exercises)
+                
+                StatsTab(viewModel: viewModel)
+                    .tag(ProgressTab.stats)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
         .sheet(isPresented: $showPRHistory) {
             PRHistoryView(progressViewModel: viewModel)
         }
+        .sheet(isPresented: $showFilterSheet) {
+            PRFilterSheet(filters: $filters)
+        }
+        .sheet(isPresented: $showExerciseDetail) {
+            if !selectedExerciseForDetail.isEmpty {
+                ExerciseDetailSheet(exercise: selectedExerciseForDetail, viewModel: viewModel)
+            }
+        }
     }
 }
 
-struct ProgressHeader: View {
-    @Binding var selectedView: ProgressViewModel.ProgressViewType
-    let onWeekSelected: () -> Void
-    let onMonthSelected: () -> Void
+// MARK: - Redesigned Header
+
+struct RedesignedProgressHeader: View {
+    @Binding var selectedTab: ProgressTab
+    @ObservedObject var themeManager: ThemeManager
     let onSettings: () -> Void
     
     var body: some View {
@@ -117,65 +99,38 @@ struct ProgressHeader: View {
             Text("Progress")
                 .font(AppTypography.largeTitleBold)
                 .foregroundStyle(LinearGradient.primaryGradient)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
             
             Spacer()
             
             HStack(spacing: 12) {
                 HelpButton(pageType: .progress)
                 
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
+                // Theme Toggle
+                HeaderThemeToggle(themeManager: themeManager)
+                
+                // Consolidated Settings Menu
+                Menu {
+                    Section("Export") {
+                        Button(action: { /* Future: Export data */ }) {
+                            Label("Export Data", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    
+                    Section {
+                        Button(action: {
+                            HapticManager.impact(style: .light)
+                            onSettings()
+                        }) {
+                            Label("Settings", systemImage: "gearshape")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 18))
                         .foregroundColor(AppColors.textPrimary)
                         .frame(width: 40, height: 40)
                         .background(AppColors.card)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .accessibilityLabel("Settings")
-                
-                Menu {
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        onWeekSelected()
-                    }) {
-                        HStack {
-                            Text("Week")
-                            if selectedView == .week {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        onMonthSelected()
-                    }) {
-                        HStack {
-                            Text("Month")
-                            if selectedView == .month {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(selectedView == .week ? "Week" : "Month")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.primary)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(AppColors.primary)
-                    }
-                    .frame(minWidth: 80)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(AppColors.secondary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -183,6 +138,457 @@ struct ProgressHeader: View {
         .padding(.vertical, 16)
     }
 }
+
+// MARK: - Overview Tab
+
+struct OverviewTab: View {
+    @ObservedObject var viewModel: ProgressViewModel
+    @Binding var showExerciseDetail: Bool
+    @Binding var selectedExercise: String
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 20, pinnedViews: []) {
+                // Stat Cards
+                HStack(spacing: 12) {
+                    EnhancedStatCard(
+                        icon: "flame.fill",
+                        gradient: LinearGradient.armsGradient,
+                        primaryValue: "\(viewModel.currentStreak)",
+                        primaryLabel: "Day Streak",
+                        secondaryValue: "Best: \(viewModel.longestStreak)",
+                        secondaryLabel: "Personal Best"
+                    )
+                    
+                    EnhancedStatCard(
+                        icon: "chart.bar.fill",
+                        gradient: LinearGradient.backGradient,
+                        primaryValue: "\(viewModel.weeklyWorkouts)",
+                        primaryLabel: "This Week",
+                        secondaryValue: "\(viewModel.workoutCount) Total",
+                        secondaryLabel: "All Time"
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                
+                // Recent PRs Section
+                if !viewModel.recentPRs().isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionHeader(title: "Recent PRs", subtitle: "Last 7 days")
+                            .padding(.horizontal, 20)
+                        
+                        VStack(spacing: 8) {
+                            ForEach(viewModel.recentPRs().prefix(5), id: \.id) { pr in
+                                RecentPRCard(pr: pr)
+                                    .onTapGesture {
+                                        HapticManager.impact(style: .light)
+                                        selectedExercise = pr.exercise
+                                        showExerciseDetail = true
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                
+                // Top Exercises
+                if !viewModel.topExercises().isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionHeader(title: "Top Exercises", subtitle: "Most improved")
+                            .padding(.horizontal, 20)
+                        
+                        HStack(spacing: 12) {
+                            ForEach(viewModel.topExercises(), id: \.exercise) { item in
+                                TopExerciseCard(
+                                    exercise: item.exercise,
+                                    prCount: item.prCount,
+                                    gradient: AppColors.categoryGradient(for: item.exercise)
+                                )
+                                .onTapGesture {
+                                    HapticManager.impact(style: .light)
+                                    selectedExercise = item.exercise
+                                    showExerciseDetail = true
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                
+                // Quick Insights
+                if let insight = viewModel.generateInsight() {
+                    InsightCard(insight: insight)
+                        .padding(.horizontal, 20)
+                }
+                
+                // Empty state if no PRs
+                if viewModel.prs.isEmpty {
+                    ProgressEmptyState(
+                        icon: "trophy.fill",
+                        title: "No PRs Yet",
+                        message: "Complete a workout and crush some sets to earn your first personal record!",
+                        primaryAction: nil,
+                        secondaryAction: nil
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 40)
+                }
+            }
+            .padding(.bottom, 100)
+        }
+    }
+}
+
+// MARK: - Exercises Tab
+
+struct ExercisesTab: View {
+    @ObservedObject var viewModel: ProgressViewModel
+    @Binding var searchText: String
+    @Binding var filters: PRFilters
+    @Binding var showFilterSheet: Bool
+    @Binding var showExerciseDetail: Bool
+    @Binding var selectedExercise: String
+    @Binding var viewMode: ViewMode
+    @Binding var expandedGroups: Set<String>
+    
+    private var filteredExercises: [String] {
+        var exercises = viewModel.availableExercises
+        
+        // Apply search
+        if !searchText.isEmpty {
+            exercises = exercises.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        }
+        
+        // Apply filters
+        exercises = exercises.filter { exercise in
+            let prs = viewModel.prsForExercise(exercise)
+            return prs.contains { filters.matches($0) }
+        }
+        
+        return exercises
+    }
+    
+    private var groupedExercises: [String: [String]] {
+        var groups: [String: [String]] = [:]
+        
+        for exercise in filteredExercises {
+            let (primary, _) = ExerciseDataManager.shared.getMuscleGroups(for: exercise)
+            let group = primary.first ?? "Other"
+            
+            if groups[group] == nil {
+                groups[group] = []
+            }
+            groups[group]?.append(exercise)
+        }
+        
+        return groups
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Search & Filter Bar
+            HStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.mutedForeground)
+                    TextField("Search exercises", text: $searchText)
+                        .foregroundColor(AppColors.textPrimary)
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(AppColors.card)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                
+                Button(action: { 
+                    HapticManager.impact(style: .light)
+                    showFilterSheet = true 
+                }) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.textPrimary)
+                            .frame(width: 48, height: 48)
+                            .background(AppColors.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        
+                        if filters.isActive {
+                            Circle()
+                                .fill(AppColors.destructive)
+                                .frame(width: 8, height: 8)
+                                .offset(x: -8, y: 8)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+            
+            // Exercise List
+            ScrollView {
+                LazyVStack(spacing: 12, pinnedViews: []) {
+                    if filteredExercises.isEmpty {
+                        ProgressEmptyState(
+                            icon: "magnifyingglass",
+                            title: searchText.isEmpty ? "No PRs Yet" : "No exercises found",
+                            message: searchText.isEmpty ?
+                                "Complete a workout and crush some sets to earn your first personal record!" :
+                                "Try adjusting your filters or search terms",
+                            primaryAction: searchText.isEmpty ? nil : EmptyStateAction(title: "Clear Filters", action: {
+                                searchText = ""
+                                filters = PRFilters()
+                            }),
+                            secondaryAction: nil
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 40)
+                    } else {
+                        ForEach(filteredExercises, id: \.self) { exercise in
+                            ExercisePreviewCard(
+                                exercise: exercise,
+                                currentPR: viewModel.prsForExercise(exercise).first,
+                                prCount: viewModel.prsForExercise(exercise).count,
+                                lastPerformed: viewModel.prsForExercise(exercise).first?.date,
+                                trend: viewModel.calculateTrend(for: exercise)
+                            )
+                            .onTapGesture {
+                                HapticManager.impact(style: .light)
+                                selectedExercise = exercise
+                                showExerciseDetail = true
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    HapticManager.impact(style: .light)
+                                    let prs = viewModel.prsForExercise(exercise)
+                                    for pr in prs {
+                                        viewModel.deletePR(pr)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 100)
+            }
+        }
+    }
+}
+
+// MARK: - Stats Tab
+
+struct StatsTab: View {
+    @ObservedObject var viewModel: ProgressViewModel
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 24) {
+                // Progress Summary Card
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Your Progress")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    // Grid of stat pills
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        StatPill(
+                            value: "\(viewModel.prs.count)",
+                            label: "Total PRs",
+                            gradient: LinearGradient.primaryGradient
+                        )
+                        StatPill(
+                            value: "\(viewModel.monthlyPRs)",
+                            label: "This Month",
+                            gradient: LinearGradient.accentGradient
+                        )
+                        StatPill(
+                            value: "\(viewModel.currentStreak)",
+                            label: "Day Streak",
+                            gradient: LinearGradient.armsGradient
+                        )
+                        StatPill(
+                            value: "\(viewModel.workoutCount)",
+                            label: "Workouts",
+                            gradient: LinearGradient.backGradient
+                        )
+                    }
+                }
+                .padding(20)
+                .background(AppColors.card)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .shadow(color: AppColors.foreground.opacity(0.05), radius: 8)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                
+                // Trend chart if exercise selected
+                if !viewModel.selectedExercise.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PR Progression")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
+                        
+                        Text(viewModel.selectedExercise)
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        TrendGraphsView(viewModel: viewModel)
+                            .frame(height: 200)
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 8)
+                    .padding(.horizontal, 20)
+                }
+                
+                // Empty state if no PRs
+                if viewModel.prs.isEmpty {
+                    ProgressEmptyState(
+                        icon: "chart.bar.fill",
+                        title: "No Stats Yet",
+                        message: "Start tracking your workouts to see detailed progress statistics and insights!",
+                        primaryAction: nil,
+                        secondaryAction: nil
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 40)
+                }
+            }
+            .padding(.bottom, 100)
+        }
+    }
+}
+
+// MARK: - Progress Empty State
+
+struct ProgressEmptyState: View {
+    let icon: String
+    let title: String
+    let message: String
+    let primaryAction: EmptyStateAction?
+    let secondaryAction: EmptyStateAction?
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Icon with gradient background
+            ZStack {
+                Circle()
+                    .fill(LinearGradient.primaryGradient.opacity(0.2))
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 60))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+            }
+            
+            // Text content
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(AppColors.textPrimary)
+                
+                Text(message)
+                    .font(.system(size: 16))
+                    .foregroundColor(AppColors.mutedForeground)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            // Action buttons
+            if let primary = primaryAction {
+                VStack(spacing: 12) {
+                    Button(action: primary.action) {
+                        Text(primary.title)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryGradientButtonStyle())
+                    .padding(.horizontal, 40)
+                    
+                    if let secondary = secondaryAction {
+                        Button(action: secondary.action) {
+                            Text(secondary.title)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .padding(.horizontal, 40)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct EmptyStateAction {
+    let title: String
+    let action: () -> Void
+}
+
+// MARK: - Button Styles
+
+struct PrimaryGradientButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundColor(AppColors.onPrimary)
+            .padding(.vertical, 14)
+            .background(LinearGradient.primaryGradient)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+            .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.02 : 1.0))
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(AppAnimations.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimations.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .onChange(of: configuration.isPressed) { oldValue, newValue in
+                if newValue {
+                    HapticManager.impact(style: .light)
+                }
+            }
+    }
+}
+
+struct SecondaryButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundColor(AppColors.primary)
+            .padding(.vertical, 14)
+            .background(AppColors.secondary)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .scaleEffect(configuration.isPressed ? 0.97 : (isHovered ? 1.02 : 1.0))
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(AppAnimations.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimations.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .onChange(of: configuration.isPressed) { oldValue, newValue in
+                if newValue {
+                    HapticManager.impact(style: .light)
+                }
+            }
+    }
+}
+
+// MARK: - Legacy Components (kept for compatibility with other views)
 
 // MARK: - Workout Streak Card
 struct WorkoutStreakCard: View {
@@ -944,6 +1350,7 @@ struct ExercisePickerSheet: View {
 #Preview {
     ProgressView(
         viewModel: ProgressViewModel(),
+        themeManager: ThemeManager(),
         onSettings: {}
     )
 }

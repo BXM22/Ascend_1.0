@@ -157,6 +157,54 @@ class ProgressViewModel: ObservableObject {
         selectedExercisePRs.first
     }
     
+    // MARK: - Dashboard Helper Properties
+    
+    /// Get weekly volume (last 7 days)
+    var weeklyVolume: Double {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let weekStart = calendar.date(byAdding: .day, value: -7, to: now) else { return 0 }
+        
+        return Double(workoutHistoryManager.getWeeklyVolume(for: weekStart))
+    }
+    
+    /// Get recent PRs (last 10)
+    func getRecentPRs() -> [PersonalRecord] {
+        return prs.sorted { $0.date > $1.date }.prefix(10).map { $0 }
+    }
+    
+    /// Get top exercise by volume
+    var topExercise: String? {
+        let history = WorkoutHistoryManager.shared
+        var exerciseVolumes: [String: Double] = [:]
+        
+        for workout in history.completedWorkouts {
+            for exercise in workout.exercises {
+                for set in exercise.sets {
+                    let volume = set.weight * Double(set.reps)
+                    exerciseVolumes[exercise.name, default: 0] += volume
+                }
+            }
+        }
+        
+        return exerciseVolumes.max(by: { $0.value < $1.value })?.key
+    }
+    
+    /// Get days since last workout
+    var daysSinceLastWorkout: Int {
+        guard let lastWorkout = workoutDates.max() else { return 999 }
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: lastWorkout, to: Date()).day ?? 999
+        return days
+    }
+    
+    /// Check if today is a rest day
+    var isRestDay: Bool {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return restDays.contains { calendar.isDate($0, inSameDayAs: today) }
+    }
+    
     private var cancellables = Set<AnyCancellable>()
     private let workoutHistoryManager = WorkoutHistoryManager.shared
     
@@ -713,6 +761,119 @@ class ProgressViewModel: ObservableObject {
         }
         
         return data
+    }
+    
+    // MARK: - New Methods for Redesign
+    
+    /// Get PRs for a specific exercise
+    func prsForExercise(_ exercise: String) -> [PersonalRecord] {
+        prs.filter { $0.exercise == exercise }
+            .sorted { $0.date > $1.date }
+    }
+    
+    /// Calculate trend for an exercise
+    func calculateTrend(for exercise: String) -> TrendIndicator {
+        let exercisePRs = prsForExercise(exercise)
+        
+        guard exercisePRs.count >= 2 else {
+            return exercisePRs.isEmpty ? .new : .new
+        }
+        
+        // Get last 3 PRs to calculate trend
+        let recentPRs = Array(exercisePRs.prefix(3))
+        
+        if recentPRs.count < 2 {
+            return .new
+        }
+        
+        let latest = recentPRs[0].weight * Double(recentPRs[0].reps)
+        let previous = recentPRs[1].weight * Double(recentPRs[1].reps)
+        
+        if latest > previous * 1.05 { // 5% improvement
+            return .improving
+        } else if latest < previous * 0.95 { // 5% decline
+            return .declining
+        } else {
+            return .stable
+        }
+    }
+    
+    /// Generate insight based on progress data
+    func generateInsight() -> ProgressInsight? {
+        let calendar = Calendar.current
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let recentPRs = prs.filter { $0.date > weekAgo }
+        
+        // Check for fire streak
+        if recentPRs.count >= 3 {
+            return .onFire(prCount: recentPRs.count)
+        }
+        
+        // Check for consistency
+        if currentStreak >= 5 {
+            return .consistent(streak: currentStreak)
+        }
+        
+        // Check for improvement
+        let monthAgo = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: Date()) ?? Date()
+        
+        let thisMonth = prs.filter { $0.date > monthAgo }
+        let lastMonth = prs.filter { $0.date > twoMonthsAgo && $0.date <= monthAgo }
+        
+        if !thisMonth.isEmpty && !lastMonth.isEmpty {
+            let thisMonthAvg = thisMonth.map { $0.weight * Double($0.reps) }.reduce(0, +) / Double(thisMonth.count)
+            let lastMonthAvg = lastMonth.map { $0.weight * Double($0.reps) }.reduce(0, +) / Double(lastMonth.count)
+            let improvement = ((thisMonthAvg - lastMonthAvg) / lastMonthAvg) * 100
+            
+            if improvement > 5 {
+                return .improving(percentage: improvement)
+            }
+        }
+        
+        // Check for exercises needing attention
+        let twoWeeksAgo = calendar.date(byAdding: .weekOfYear, value: -2, to: Date()) ?? Date()
+        let exerciseLastPRs = Dictionary(grouping: prs, by: { $0.exercise })
+            .mapValues { $0.max(by: { $0.date < $1.date })! }
+        
+        for (exercise, lastPR) in exerciseLastPRs {
+            if lastPR.date < twoWeeksAgo && prsForExercise(exercise).count > 2 {
+                return .needsAttention(exercise: exercise)
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Get top exercises by PR count
+    func topExercises(limit: Int = 3) -> [(exercise: String, prCount: Int)] {
+        let grouped = Dictionary(grouping: prs, by: { $0.exercise })
+        return grouped.map { (exercise: $0.key, prCount: $0.value.count) }
+            .sorted { $0.prCount > $1.prCount }
+            .prefix(limit)
+            .map { $0 }
+    }
+    
+    /// Get recent PRs (last 7 days)
+    func recentPRs(days: Int = 7) -> [PersonalRecord] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        return prs.filter { $0.date > startDate }
+            .sorted { $0.date > $1.date }
+    }
+    
+    /// Get weekly workout count
+    var weeklyWorkouts: Int {
+        let calendar = Calendar.current
+        let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return workoutDates.filter { $0 > weekAgo }.count
+    }
+    
+    /// Get monthly PR count
+    var monthlyPRs: Int {
+        let calendar = Calendar.current
+        let monthAgo = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        return prs.filter { $0.date > monthAgo }.count
     }
 }
 

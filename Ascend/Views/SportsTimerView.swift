@@ -401,7 +401,7 @@ struct SportsTimerView: View {
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 50)
+                    .padding(.bottom, 100) // Extra padding for tab bar
                 }
             }
             .navigationTitle(viewModel.selectedCustomSport?.name ?? viewModel.selectedSport.rawValue)
@@ -721,17 +721,22 @@ struct QuickPresetButton: View {
             VStack(spacing: 4) {
                 Text(title)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textPrimary)
                 Text(subtitle)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.15))
+            .background(AppColors.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: AppColors.foreground.opacity(0.1), radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 

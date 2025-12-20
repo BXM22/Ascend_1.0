@@ -17,18 +17,28 @@ struct WorkoutSplitsSection: View {
                     .foregroundColor(AppColors.textPrimary)
                 
                 Spacer()
-                
-                Button(action: {
-                    showCreateProgram = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.primary)
-                        .frame(width: 36, height: 36)
-                        .background(AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
             }
+            
+            // Add Program Button (full-width at top)
+            Button(action: {
+                showCreateProgram = true
+                HapticManager.impact(style: .medium)
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Create Program")
+                        .font(AppTypography.bodyBold)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(LinearGradient.primaryGradient)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
+            .padding(.top, AppSpacing.sm)
+            .accessibilityLabel("Create new workout program")
             
             // Programs List
             let splitPrograms = programViewModel.programs.filter { $0.category == .split }

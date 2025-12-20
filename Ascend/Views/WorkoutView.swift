@@ -8,6 +8,264 @@
 import SwiftUI
 import HealthKit
 
+// MARK: - Redesigned Workout View
+struct WorkoutView: View {
+    @ObservedObject var viewModel: WorkoutViewModel
+    @State private var showFinishConfirmation = false
+    @State private var showHelpSheet = false
+    @State private var showCancelConfirmation = false
+    @State private var autoAdvanceToggle: Bool = false
+    
+    private var completedExercises: Int {
+        guard let workout = viewModel.currentWorkout else { return 0 }
+        return workout.exercises.filter { $0.sets.count >= $0.targetSets }.count
+    }
+    
+    private var totalExercises: Int {
+        viewModel.currentWorkout?.exercises.count ?? 0
+    }
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    // Redesigned Header
+                    RedesignedWorkoutHeader(
+                        workoutName: viewModel.currentWorkout?.name ?? "Workout",
+                        totalVolume: viewModel.totalWorkoutVolume,
+                        elapsedTime: TimeInterval(viewModel.elapsedTime),
+                        timerPaused: viewModel.isTimerPausedDuringRest,
+                        autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
+                        completedExercises: completedExercises,
+                        totalExercises: totalExercises,
+                        onTogglePause: {
+                            viewModel.pauseWorkout()
+                        },
+                        onFinish: {
+                            showFinishConfirmation = true
+                        },
+                        onSettings: {
+                            viewModel.showSettingsSheet = true
+                        },
+                        onHelp: {
+                            showHelpSheet = true
+                        },
+                        onCancel: {
+                            showCancelConfirmation = true
+                        },
+                        autoAdvanceToggle: $autoAdvanceToggle
+                    )
+                    .onChange(of: autoAdvanceToggle) { _, _ in
+                        viewModel.toggleAutoAdvance()
+                    }
+                    .onAppear {
+                        autoAdvanceToggle = viewModel.autoAdvanceEnabled
+                    }
+                    .padding(.top, 8)
+                    
+                    // Rest Timer Banner (when active)
+                    if viewModel.restTimerActive {
+                        EnhancedRestTimerBanner(
+                            timeRemaining: max(0, viewModel.restTimeRemaining),
+                            totalDuration: max(1, viewModel.restTimerTotalDuration),
+                            onSkip: {
+                                viewModel.quickSkipRest()
+                            },
+                            onAddTime: {
+                                viewModel.addTimeToRest(30)
+                            },
+                            onSubtractTime: {
+                                viewModel.subtractTimeFromRest(30)
+                            }
+                        )
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .id("rest-timer-\(viewModel.restTimeRemaining)")
+                    }
+                    
+                    // PR Celebration Banner (when PR achieved)
+                    if viewModel.showPRBadge && !viewModel.prMessage.isEmpty {
+                        PRCelebrationBanner(
+                            exercise: viewModel.currentExercise?.name ?? "",
+                            prMessage: viewModel.prMessage,
+                            onDismiss: {
+                                viewModel.showPRBadge = false
+                            }
+                        )
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .id("pr-banner-\(viewModel.prMessage)")
+                    }
+                    
+                    // Exercise Navigation (only if workout has exercises)
+                    if let workout = viewModel.currentWorkout, !workout.exercises.isEmpty {
+                        ExerciseNavigationBar(
+                            exercises: workout.exercises,
+                            currentIndex: $viewModel.currentExerciseIndex,
+                            onExerciseSelect: { index in
+                                viewModel.currentExerciseIndex = index
+                                if let exercise = viewModel.currentExercise {
+                                    viewModel.ensureSectionExpanded(for: exercise)
+                                    viewModel.syncDropsetStateFromCurrentExercise()
+                                    
+                                    let exerciseId = "exercise-\(exercise.id)"
+                                    withAnimation(.smooth) {
+                                        proxy.scrollTo(exerciseId, anchor: .top)
+                                    }
+                                }
+                            }
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        
+                        // Current Exercise Card
+                        if let exercise = viewModel.currentExercise {
+                            exerciseCardView(for: exercise)
+                                .id("exercise-\(exercise.id)")
+                                .padding(.top, 8)
+                        }
+                        
+                        // Add Exercise Button
+                        AddExerciseButton {
+                            viewModel.showAddExerciseSheet = true
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                    } else {
+                        // Empty state - no exercises yet
+                        VStack(spacing: 16) {
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 48))
+                                .foregroundStyle(LinearGradient.primaryGradient)
+                            
+                            Text("No Exercises Yet")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(AppColors.textPrimary)
+                            
+                            Text("Add your first exercise to start your workout")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.mutedForeground)
+                                .multilineTextAlignment(.center)
+                            
+                            Button(action: {
+                                viewModel.showAddExerciseSheet = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Add Exercise")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(LinearGradient.primaryGradient)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                        .padding(.top, 60)
+                        .padding(.horizontal, 40)
+                    }
+                    
+                    Spacer()
+                        .frame(height: 100)
+                }
+            }
+            .onChange(of: viewModel.readyForNextSet) { _, _ in
+                if let exercise = viewModel.currentExercise {
+                    viewModel.ensureSectionExpanded(for: exercise)
+                    let exerciseId = "exercise-\(exercise.id)"
+                    withAnimation(.smooth) {
+                        proxy.scrollTo(exerciseId, anchor: .top)
+                    }
+                }
+            }
+            .onAppear {
+                if let exercise = viewModel.currentExercise {
+                    viewModel.ensureSectionExpanded(for: exercise)
+                }
+            }
+        }
+        .background(AppColors.background)
+        .id(AppColors.themeID)
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .alert("Finish Workout?", isPresented: $showFinishConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Finish", role: .destructive) {
+                viewModel.finishWorkout()
+            }
+        } message: {
+            Text("Are you sure you want to finish this workout? This action cannot be undone.")
+        }
+        .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
+            Button("Keep Going", role: .cancel) { }
+            Button("Cancel Workout", role: .destructive) {
+                viewModel.cancelWorkout()
+            }
+        } message: {
+            Text("Are you sure you want to cancel this workout? All progress will be lost.")
+        }
+        .sheet(isPresented: $viewModel.showAddExerciseSheet) {
+            AddExerciseView(
+                onAdd: { name, sets, type, holdDuration in
+                    let duration: Int? = (type == .hold) ? holdDuration : nil
+                    viewModel.addExercise(name: name, targetSets: sets, type: type, holdDuration: duration)
+                    viewModel.showAddExerciseSheet = false
+                },
+                onCancel: {
+                    viewModel.showAddExerciseSheet = false
+                }
+            )
+        }
+        .sheet(isPresented: $viewModel.showExerciseHistory) {
+            if let exerciseName = viewModel.currentExercise?.name,
+               let progressViewModel = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exerciseName, progressViewModel: progressViewModel)
+            }
+        }
+        .sheet(isPresented: $viewModel.showSettingsSheet) {
+            if let progressViewModel = viewModel.progressViewModel,
+               let templatesViewModel = viewModel.templatesViewModel,
+               let programViewModel = viewModel.programViewModel,
+               let themeManager = viewModel.themeManager {
+                SettingsView(
+                    settingsManager: viewModel.settingsManager,
+                    progressViewModel: progressViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    themeManager: themeManager
+                )
+            }
+        }
+        .sheet(isPresented: $showHelpSheet) {
+            PageFeaturesView(pageType: .workout)
+        }
+    }
+    
+    @ViewBuilder
+    private func exerciseCardView(for exercise: Exercise) -> some View {
+        let sectionType = viewModel.getSectionType(for: exercise)
+        
+        if sectionType == .stretch || viewModel.isCardioExercise(exercise) {
+            // For stretch/cardio, use legacy card temporarily
+            Text("Stretch/Cardio card - Legacy implementation")
+                .padding()
+        } else if viewModel.isCalisthenicsExercise(exercise) {
+            // For calisthenics, use legacy card temporarily
+            Text("Calisthenics card - Legacy implementation")
+                .padding()
+        } else {
+            // Weighted exercise - use new simplified card
+            SimplifiedWeightedExerciseCard(
+                viewModel: viewModel,
+                exercise: exercise
+            )
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Legacy Components (Kept for compatibility with existing cards)
+
 // Segments for the horizontal master list at the top of the workout screen
 private enum WorkoutExerciseSegment: CaseIterable {
     case warmup
@@ -31,7 +289,8 @@ private enum WorkoutExerciseSegment: CaseIterable {
     }
 }
 
-struct WorkoutView: View {
+// MARK: - Legacy WorkoutView (for reference - can be removed after full migration)
+struct LegacyWorkoutView: View {
     @ObservedObject var viewModel: WorkoutViewModel
     @State private var weight: String = "185"
     @State private var reps: String = "8"
@@ -616,14 +875,10 @@ struct WorkoutView: View {
                     viewModel.showAddExerciseSheet = false
                 }
             )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showExerciseHistory) {
             if let exerciseName = selectedExerciseForHistory ?? viewModel.currentExercise?.name {
                 ExerciseHistoryView(exerciseName: exerciseName, progressViewModel: viewModel.progressViewModel)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
             }
         }
         .sheet(isPresented: $viewModel.showSettingsSheet) {
@@ -2872,6 +3127,52 @@ struct SettingsView: View {
                     
                     // Apple Health Section
                     AppleHealthSettingsSection()
+                    
+                    // UI Color Customization Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("App Colors")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(AppColors.foreground)
+                                
+                                Text("Customize colors throughout the app")
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundColor(AppColors.mutedForeground)
+                            }
+                            
+                            Spacer()
+                            
+                            if UIColorCustomizationManager.shared.hasCustomizations {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(AppColors.primary)
+                            }
+                        }
+                        
+                        NavigationLink(destination: UIColorCustomizationView(settingsManager: settingsManager)) {
+                            HStack {
+                                Image(systemName: "paintpalette.fill")
+                                    .font(.system(size: 20))
+                                Text("Customize UI Colors")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(AppColors.mutedForeground)
+                            }
+                            .foregroundColor(AppColors.foreground)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 16)
+                            .background(AppColors.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding(20)
+                    .background(AppColors.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
                     
                     // Reset Data Section
                     VStack(alignment: .leading, spacing: 16) {

@@ -2127,6 +2127,38 @@ class WorkoutViewModel: ObservableObject {
         return isNewPR
     }
     
+    // MARK: - Helper Methods for Redesigned UI
+    
+    /// Get weight and rep suggestion for an exercise based on history
+    func getWeightSuggestion(for exercise: Exercise) -> (weight: Double, reps: Int)? {
+        guard let progressVM = progressViewModel else { return nil }
+        
+        // Get recent PRs for this exercise
+        let prs = progressVM.prs.filter { $0.exercise == exercise.name }
+        guard !prs.isEmpty else { return nil }
+        
+        // Get the most recent PR
+        if let recent = prs.sorted(by: { $0.date > $1.date }).first {
+            return (weight: recent.weight, reps: recent.reps)
+        }
+        
+        return nil
+    }
+    
+    /// Cancel the current workout (discards all progress)
+    func cancelWorkout() {
+        currentWorkout = nil
+        currentExerciseIndex = 0
+        elapsedTime = 0
+        restTimerActive = false
+        showPRBadge = false
+        prMessage = ""
+        timer?.invalidate()
+        restTimer?.invalidate()
+        workoutStartTime = nil
+        Logger.info("Workout canceled by user", category: .general)
+    }
+    
     deinit {
         timer?.invalidate()
         restTimer?.invalidate()

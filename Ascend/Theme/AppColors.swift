@@ -8,16 +8,38 @@ import UIKit
 class ColorThemeProvider: ObservableObject {
     @Published var themeID = UUID()
     
-    static let shared = ColorThemeProvider()
+    // Cache the custom theme to avoid repeated UserDefaults reads
+    @Published private(set) var cachedTheme: ColorTheme?
+    
+    static let shared: ColorThemeProvider = {
+        // Initialize provider - init() will automatically load the theme
+        let provider = ColorThemeProvider()
+        return provider
+    }()
     
     private init() {
+        // Load theme immediately
+        loadTheme()
+        
         // Listen for theme changes
         NotificationCenter.default.addObserver(
             forName: AppConstants.Notification.colorThemeDidChange,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.themeID = UUID()
+            DispatchQueue.main.async {
+                self?.loadTheme()
+                self?.themeID = UUID()
+            }
+        }
+    }
+    
+    private func loadTheme() {
+        if let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.customColorTheme),
+           let theme = try? JSONDecoder().decode(ColorTheme.self, from: data) {
+            cachedTheme = theme
+        } else {
+            cachedTheme = nil
         }
     }
 }
@@ -33,11 +55,8 @@ struct AppColors {
     // MARK: - Custom Theme Support
     
     private static var customTheme: ColorTheme? {
-        if let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.customColorTheme),
-           let theme = try? JSONDecoder().decode(ColorTheme.self, from: data) {
-            return theme
-        }
-        return nil
+        // Use cached theme from ColorThemeProvider for faster access
+        return ColorThemeProvider.shared.cachedTheme
     }
     
     // Theme ID to force view updates
@@ -54,13 +73,27 @@ struct AppColors {
         return Color(hex: theme.colors[index])
     }
     
+    // Helper to get custom color if it exists
+    private static func getCustomColor(for key: String) -> Color? {
+        if let hex = UIColorCustomizationManager.shared.getCustomColor(for: UIColorCustomization.ColorKey(rawValue: key) ?? .background) {
+            return Color(hex: hex)
+        }
+        return nil
+    }
+    
     // Helper to get color with light/dark variants
     private static func adaptiveColor(
         lightIndex: Int? = nil,
         darkIndex: Int? = nil,
         defaultLight: Color,
-        defaultDark: Color
+        defaultDark: Color,
+        customKey: String? = nil
     ) -> Color {
+        // Check for custom color first
+        if let key = customKey, let customColor = getCustomColor(for: key) {
+            return customColor
+        }
+        
         guard let theme = customTheme else {
             return Color(light: defaultLight, dark: defaultDark)
         }
@@ -83,13 +116,14 @@ struct AppColors {
         return Color(light: lightColor, dark: darkColor)
     }
     
-    // Semantic Colors - Now with dark mode support and custom theme support
+    // Semantic Colors - Now with dark mode support, custom theme support, and custom color overrides
     static var background: Color {
         adaptiveColor(
             lightIndex: 4, // Use last color (usually lightest) for light mode
             darkIndex: 0,  // Use first color (usually darkest) for dark mode
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "000000") // True black for dark mode
+            defaultDark: Color(hex: "000000"), // True black for dark mode
+            customKey: "background"
         )
     }
     
@@ -98,7 +132,8 @@ struct AppColors {
             lightIndex: 0, // Dark text on light background
             darkIndex: 4,  // Light text on dark background
             defaultLight: inkBlack,
-            defaultDark: Color(hex: "ffffff") // White text for dark mode
+            defaultDark: Color(hex: "ffffff"), // White text for dark mode
+            customKey: "foreground"
         )
     }
     
@@ -107,7 +142,8 @@ struct AppColors {
             lightIndex: 4, // Light card in light mode
             darkIndex: 1,  // Second color for card in dark mode
             defaultLight: .white,
-            defaultDark: Color(hex: "1c1c1e") // iOS system dark gray for cards
+            defaultDark: Color(hex: "1c1c1e"), // iOS system dark gray for cards
+            customKey: "card"
         )
     }
     
@@ -116,7 +152,8 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 2,
             defaultLight: prussianBlue,
-            defaultDark: Color(hex: "5a9eff") // Bright blue for dark mode - ensures visibility
+            defaultDark: Color(hex: "5a9eff"), // Bright blue for dark mode - ensures visibility
+            customKey: "primary"
         )
     }
     
@@ -125,7 +162,8 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1f1f1f") // Dark gray for secondary elements
+            defaultDark: Color(hex: "1f1f1f"), // Dark gray for secondary elements
+            customKey: "secondary"
         )
     }
     
@@ -134,7 +172,8 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f0f0f0"),
-            defaultDark: Color(hex: "2c2c2e") // Slightly lighter gray for muted elements
+            defaultDark: Color(hex: "2c2c2e"), // Slightly lighter gray for muted elements
+            customKey: "muted"
         )
     }
     
@@ -143,7 +182,8 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "c7c7cc") // Brighter gray for secondary text in dark mode
+            defaultDark: Color(hex: "c7c7cc"), // Brighter gray for secondary text in dark mode
+            customKey: "mutedForeground"
         )
     }
     
@@ -152,7 +192,8 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 2,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "3a3a3c") // Medium gray for borders
+            defaultDark: Color(hex: "3a3a3c"), // Medium gray for borders
+            customKey: "border"
         )
     }
     
@@ -161,7 +202,8 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 1,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1c1c1e") // Dark gray for input fields
+            defaultDark: Color(hex: "1c1c1e"), // Dark gray for input fields
+            customKey: "input"
         )
     }
     
@@ -170,7 +212,8 @@ struct AppColors {
             lightIndex: 3,
             darkIndex: 3,
             defaultLight: duskBlue,
-            defaultDark: Color(hex: "7ab8ff") // Lighter blue for dark mode - ensures visibility
+            defaultDark: Color(hex: "7ab8ff"), // Lighter blue for dark mode - ensures visibility
+            customKey: "accent"
         )
     }
     
@@ -179,7 +222,8 @@ struct AppColors {
             lightIndex: 0,
             darkIndex: 4,
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "ffffff") // White for dark mode - ensures visibility
+            defaultDark: Color(hex: "ffffff"), // White for dark mode - ensures visibility
+            customKey: "accentForeground"
         )
     }
     
@@ -189,22 +233,34 @@ struct AppColors {
             lightIndex: 4,
             darkIndex: 4,
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "ffffff") // White for dark mode - ensures visibility on dark gradients
+            defaultDark: Color(hex: "ffffff"), // White for dark mode - ensures visibility on dark gradients
+            customKey: "onPrimary"
         )
     }
     
-    static let destructive = Color(hex: "dc2626")
+    static var destructive: Color {
+        if let custom = getCustomColor(for: "destructive") {
+            return custom
+        }
+        return Color(hex: "dc2626")
+    }
     
     static var success: Color {
         adaptiveColor(
             lightIndex: 3,
             darkIndex: 3,
             defaultLight: duskBlue,
-            defaultDark: Color(hex: "34c759") // iOS green for success in dark mode
+            defaultDark: Color(hex: "34c759"), // iOS green for success in dark mode
+            customKey: "success"
         )
     }
     
-    static let warning = Color(hex: "d97706")
+    static var warning: Color {
+        if let custom = getCustomColor(for: "warning") {
+            return custom
+        }
+        return Color(hex: "d97706")
+    }
     
     // Design system aliases for DashboardView compatibility
     static var textPrimary: Color { foreground }
@@ -216,7 +272,8 @@ struct AppColors {
             lightIndex: 1,
             darkIndex: 3,
             defaultLight: prussianBlue,
-            defaultDark: Color(hex: "5a9eff") // Bright blue gradient start for dark mode
+            defaultDark: Color(hex: "5a9eff"), // Bright blue gradient start for dark mode
+            customKey: "primaryGradientStart"
         )
     }
     
@@ -225,7 +282,8 @@ struct AppColors {
             lightIndex: 2,
             darkIndex: 3,
             defaultLight: duskBlue,
-            defaultDark: Color(hex: "7ab8ff") // Lighter blue gradient end for dark mode
+            defaultDark: Color(hex: "7ab8ff"), // Lighter blue gradient end for dark mode
+            customKey: "primaryGradientEnd"
         )
     }
     
@@ -298,6 +356,140 @@ struct AppColors {
         } else {
             // Default to primary gradient
             return LinearGradient.primaryGradient
+        }
+    }
+    
+    // Template color palette - restrained colors that align with app design
+    static let templateColorPalette: [(name: String, hex: String)] = [
+        ("Purple", "9333ea"),
+        ("Pink", "ec4899"),
+        ("Blue", "2563eb"),
+        ("Cyan", "06b6d4"),
+        ("Green", "16a34a"),
+        ("Emerald", "10b981"),
+        ("Orange", "ea580c"),
+        ("Amber", "f59e0b"),
+        ("Red", "dc2626"),
+        ("Rose", "f43f5e"),
+        ("Teal", "0891b2"),
+        ("Sky", "0ea5e9"),
+        ("Primary", "415a77"),
+        ("Dusty Denim", "778da9")
+    ]
+    
+    // MARK: - Color Grid Generation
+    
+    /// Generate a color grid organized by hue and saturation
+    /// - Parameters:
+    ///   - hueSteps: Number of hue steps (default 12 for full spectrum)
+    ///   - saturationSteps: Number of saturation levels (default 5)
+    ///   - lightness: Fixed lightness value 0.0-1.0 (default 0.65 for vibrant colors)
+    /// - Returns: Array of hex color strings organized by hue rows
+    static func generateColorGrid(hueSteps: Int = 12, saturationSteps: Int = 5, lightness: Double = 0.65) -> [[String]] {
+        var grid: [[String]] = []
+        
+        for hueIndex in 0..<hueSteps {
+            var row: [String] = []
+            let hue = Double(hueIndex) * 360.0 / Double(hueSteps)
+            
+            for satIndex in 0..<saturationSteps {
+                // Saturation from 0.3 to 1.0 for vibrant colors
+                let saturation = 0.3 + (Double(satIndex) * 0.7 / Double(saturationSteps - 1))
+                
+                let hex = hslToHex(h: hue, s: saturation, l: lightness)
+                row.append(hex)
+            }
+            
+            grid.append(row)
+        }
+        
+        return grid
+    }
+    
+    /// Convert HSL to hex color string
+    private static func hslToHex(h: Double, s: Double, l: Double) -> String {
+        let c = (1 - abs(2 * l - 1)) * s
+        let x = c * (1 - abs((h / 60).truncatingRemainder(dividingBy: 2) - 1))
+        let m = l - c / 2
+        
+        var r: Double = 0
+        var g: Double = 0
+        var b: Double = 0
+        
+        if h < 60 {
+            r = c
+            g = x
+            b = 0
+        } else if h < 120 {
+            r = x
+            g = c
+            b = 0
+        } else if h < 180 {
+            r = 0
+            g = c
+            b = x
+        } else if h < 240 {
+            r = 0
+            g = x
+            b = c
+        } else if h < 300 {
+            r = x
+            g = 0
+            b = c
+        } else {
+            r = c
+            g = 0
+            b = x
+        }
+        
+        let red = Int((r + m) * 255)
+        let green = Int((g + m) * 255)
+        let blue = Int((b + m) * 255)
+        
+        return String(format: "%02X%02X%02X", red, green, blue)
+    }
+    
+    // Helper to get template gradient - uses custom color if available, otherwise falls back to muscle group
+    static func templateGradient(for template: WorkoutTemplate) -> LinearGradient {
+        if let colorHex = template.colorHex {
+            let color = Color(hex: colorHex)
+            // Create a subtle gradient from the color
+            return LinearGradient(
+                colors: [color, color.opacity(0.7)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            // Fall back to muscle group detection
+            let muscleGroup = template.exercises.first?.name ?? "General"
+            return categoryGradient(for: muscleGroup)
+        }
+    }
+    
+    // Helper to get template color - returns the base color for the template
+    static func templateColor(for template: WorkoutTemplate) -> Color {
+        if let colorHex = template.colorHex {
+            return Color(hex: colorHex)
+        } else {
+            // Fall back to muscle group detection - use start color of gradient
+            let muscleGroup = template.exercises.first?.name ?? "General"
+            let lowercased = muscleGroup.lowercased()
+            
+            if lowercased.contains("chest") || lowercased.contains("push") || lowercased.contains("shoulder") {
+                return chestGradientStart
+            } else if lowercased.contains("back") || lowercased.contains("pull") || lowercased.contains("lat") || lowercased.contains("row") {
+                return backGradientStart
+            } else if lowercased.contains("leg") || lowercased.contains("quad") || lowercased.contains("hamstring") || lowercased.contains("calf") || lowercased.contains("glute") || lowercased.contains("squat") {
+                return legsGradientStart
+            } else if lowercased.contains("arm") || lowercased.contains("bicep") || lowercased.contains("tricep") || lowercased.contains("curl") {
+                return armsGradientStart
+            } else if lowercased.contains("core") || lowercased.contains("ab") || lowercased.contains("plank") {
+                return coreGradientStart
+            } else if lowercased.contains("cardio") || lowercased.contains("run") || lowercased.contains("conditioning") {
+                return cardioGradientStart
+            } else {
+                return primaryGradientStart
+            }
         }
     }
 }

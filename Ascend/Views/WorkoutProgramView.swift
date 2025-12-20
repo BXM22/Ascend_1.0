@@ -12,11 +12,12 @@ struct WorkoutProgramView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: AppSpacing.lg) {
+            LazyVStack(spacing: AppSpacing.lg) {
                 // Program Header
                 ProgramHeader(program: program)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.lg)
+                    .id("program-header-\(program.name)")
                 
                 // Day Selector
                 DaySelector(
@@ -24,6 +25,7 @@ struct WorkoutProgramView: View {
                     selectedIndex: $selectedDayIndex
                 )
                 .padding(.horizontal, AppSpacing.lg)
+                .id("day-selector-\(selectedDayIndex)")
                 
                 // Selected Day Details
                 DayDetailsView(
@@ -34,11 +36,17 @@ struct WorkoutProgramView: View {
                 )
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, 100)
+                .id("day-details-\(selectedDay.id)")
             }
         }
         .background(AppColors.background)
         .navigationTitle(program.name)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Cache program for faster subsequent loads
+            CardDetailCacheManager.shared.cacheProgram(program)
+        }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
     
     private func startWorkoutForDay(_ day: WorkoutDay) {
@@ -188,10 +196,11 @@ struct DayDetailsView: View {
                 
             }
             
-            // Exercises List
+            // Exercises List - Use LazyVStack for better performance
             VStack(alignment: .leading, spacing: AppSpacing.md) {
                 ForEach(day.exercises) { exercise in
                     ProgramExerciseRow(exercise: exercise)
+                        .id("exercise-\(exercise.id)")
                 }
             }
             

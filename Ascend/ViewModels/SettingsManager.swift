@@ -72,13 +72,49 @@ class SettingsManager: ObservableObject {
             return .failure(.themeImportError("Theme must contain at least 3 colors"))
         }
         
+        // Sort colors by brightness (darkest to lightest) for consistent UI mapping
+        let sortedColors = ColorTheme.sortColorsByBrightness(colors)
+        
         let theme = ColorTheme(
             name: "Custom Theme",
-            colors: colors
+            colors: sortedColors
         )
         
         customTheme = theme
         return .success(theme)
+    }
+    
+    func importAndSaveTheme(from urlString: String, name: String) -> AppResult<ColorTheme> {
+        guard !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .failure(.themeImportError("URL cannot be empty"))
+        }
+        
+        guard let colors = CoolorsURLParser.parse(urlString: urlString) else {
+            return .failure(.themeImportError("Invalid Coolors.co URL format"))
+        }
+        
+        guard colors.count >= 3 else {
+            return .failure(.themeImportError("Theme must contain at least 3 colors"))
+        }
+        
+        // Sort colors by brightness (darkest to lightest) for consistent UI mapping
+        let sortedColors = ColorTheme.sortColorsByBrightness(colors)
+        
+        let theme = ColorTheme(
+            name: name.isEmpty ? "Imported Theme" : name,
+            colors: sortedColors
+        )
+        
+        // Save to saved themes
+        SavedThemeManager.shared.addTheme(theme)
+        
+        // Also set as active theme
+        customTheme = theme
+        return .success(theme)
+    }
+    
+    func applyTheme(_ theme: ColorTheme) {
+        customTheme = theme
     }
     
     func resetToDefaultTheme() {

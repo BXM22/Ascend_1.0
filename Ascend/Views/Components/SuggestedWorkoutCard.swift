@@ -183,18 +183,18 @@ struct SuggestedWorkoutCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(title)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.mutedForeground)
+                        .foregroundColor(AppColors.foreground.opacity(0.7))
                     
                     Text(name)
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(AppColors.foreground)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
                     
                     if let reasoning = personalizedReasoning {
                         Text(reasoning)
                             .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(AppColors.mutedForeground)
+                            .foregroundColor(AppColors.foreground.opacity(0.7))
                             .lineLimit(2)
                             .padding(.top, 4)
                     }
@@ -202,11 +202,11 @@ struct SuggestedWorkoutCard: View {
                     HStack(spacing: 8) {
                         Text("Start Session")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(AppColors.textPrimary)
+                            .foregroundColor(AppColors.foreground)
                         
                         Image(systemName: "arrow.right")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(AppColors.textPrimary)
+                            .foregroundColor(AppColors.foreground)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)

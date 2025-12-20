@@ -111,6 +111,7 @@ struct WorkoutTemplate: Identifiable, Codable {
     let estimatedDuration: Int
     var intensity: WorkoutIntensity? // Optional intensity level
     var isDefault: Bool // True for default templates that shouldn't be deleted
+    var colorHex: String? // Optional custom color for the template (hex string)
     
     // Legacy initializer for backward compatibility
     init(id: UUID = UUID(), name: String, exercises: [String], estimatedDuration: Int) {
@@ -119,18 +120,20 @@ struct WorkoutTemplate: Identifiable, Codable {
         self.estimatedDuration = estimatedDuration
         self.intensity = nil
         self.isDefault = false
+        self.colorHex = nil
         // Convert old format to new format
         self.exercises = exercises.map { TemplateExercise(name: $0) }
     }
     
     // New initializer with TemplateExercise array
-    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil, isDefault: Bool = false) {
+    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil, isDefault: Bool = false, colorHex: String? = nil) {
         self.id = id
         self.name = name
         self.exercises = exercises
         self.estimatedDuration = estimatedDuration
         self.intensity = intensity
         self.isDefault = isDefault
+        self.colorHex = colorHex
     }
 }
 

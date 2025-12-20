@@ -1,8 +1,17 @@
 //
 //  TemplatesView.swift
-//  WorkoutTracker
+//  Ascend
 //
-//  Created on 2024
+//  Redesigned Templates View with:
+//  - Streamlined header with consolidated buttons
+//  - Search with filter integration
+//  - Segmented content organization (Programs/Skills/Templates)
+//  - Swipe actions for delete/duplicate
+//  - Tap-to-preview with medium detent sheet
+//  - Multi-select mode for bulk actions
+//  - Enhanced empty states with CTAs
+//  - Improved accessibility
+//  - Performance optimizations
 //
 
 import SwiftUI
@@ -11,15 +20,31 @@ struct TemplatesView: View {
     @ObservedObject var viewModel: TemplatesViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var themeManager: ThemeManager
     let onStartTemplate: () -> Void
     let onSettings: () -> Void
+    
+    // State
     @State private var showGenerateSheet = false
     @State private var showCalisthenicProgression = false
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
     @State private var debounceTask: Task<Void, Never>?
     @State private var sortOption: SortOption = .name
-    @State private var showSortMenu = false
+    @State private var showFilterSheet = false
+    @State private var filters = TemplateFilters()
+    @State private var selectedSegment: ContentSegment = .templates
+    @State private var showDetailSheet = false
+    @State private var selectedTemplate: WorkoutTemplate?
+    @State private var isMultiSelectMode = false
+    @State private var selectedTemplates: Set<UUID> = []
+    @State private var showGrouped = false
+    
+    enum ContentSegment: String, CaseIterable {
+        case programs = "Programs"
+        case skills = "Skills"
+        case templates = "Templates"
+    }
     
     enum SortOption: String, CaseIterable {
         case name = "Name"
@@ -48,45 +73,80 @@ struct TemplatesView: View {
     private var filteredTemplates: [WorkoutTemplate] {
         let filtered = viewModel.templates.filter { template in
             if template.name.contains("Progression") { return false }
-            if debouncedSearchText.isEmpty { return true }
-            return template.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
-                   template.exercises.contains { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }
+            
+            // Apply search filter
+            if !debouncedSearchText.isEmpty {
+                let matchesSearch = template.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
+                       template.exercises.contains { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }
+                if !matchesSearch { return false }
+            }
+            
+            // Apply custom filters
+            if filters.isActive {
+                return filters.matches(template)
+            }
+            
+            return true
         }
         return sortOption.sort(filtered)
+    }
+    
+    private var groupedTemplates: [String: [WorkoutTemplate]] {
+        Dictionary(grouping: filteredTemplates) { template in
+            detectMuscleGroup(template.exercises.first?.name ?? "General")
+        }
+    }
+    
+    private func detectMuscleGroup(_ exerciseName: String) -> String {
+        let name = exerciseName.lowercased()
+        if name.contains("chest") || name.contains("bench") || name.contains("press") { return "Chest" }
+        if name.contains("back") || name.contains("row") || name.contains("pull") { return "Back" }
+        if name.contains("leg") || name.contains("squat") || name.contains("deadlift") { return "Legs" }
+        if name.contains("bicep") || name.contains("tricep") || name.contains("arm") { return "Arms" }
+        if name.contains("core") || name.contains("ab") || name.contains("plank") { return "Core" }
+        if name.contains("cardio") || name.contains("run") { return "Cardio" }
+        return "General"
     }
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                // Header
-                TemplatesHeader(
-                    onCreate: {
-                        // Removed direct create button from header
-                    },
+                // Streamlined Header
+                StreamlinedTemplatesHeader(
+                    isMultiSelectMode: $isMultiSelectMode,
+                    themeManager: themeManager,
+                    selectedCount: selectedTemplates.count,
                     onGenerate: {
                         showGenerateSheet = true
                     },
-                    onSettings: {
+                    onSettings: onSettings,
+                    onGenerationSettings: {
                         viewModel.showGenerationSettings = true
                     },
-                    onMainSettings: onSettings
+                    onDeleteSelected: {
+                        deleteSelectedTemplates()
+                    },
+                    onCancelMultiSelect: {
+                        isMultiSelectMode = false
+                        selectedTemplates.removeAll()
+                    }
                 )
                 
-                // Search Bar with Sort
+                // Search Bar with Filter Button
                 VStack(spacing: 12) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppColors.mutedForeground)
+                            .accessibilityHidden(true)
+                        
                         TextField("Search templates...", text: $searchText)
                             .font(.system(size: 16))
                             .foregroundColor(AppColors.foreground)
+                            .accessibilityLabel("Search templates")
                             .onChange(of: searchText) { _, newValue in
-                                // Cancel previous debounce task
                                 debounceTask?.cancel()
-                                
-                                // Debounce the search
                                 debounceTask = Task { @MainActor in
-                                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                                    try? await Task.sleep(nanoseconds: 300_000_000)
                                     if !Task.isCancelled {
                                         debouncedSearchText = newValue
                                     }
@@ -97,188 +157,298 @@ struct TemplatesView: View {
                             Button(action: {
                                 searchText = ""
                                 debouncedSearchText = ""
+                                HapticManager.selection()
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(AppColors.mutedForeground)
                             }
+                            .accessibilityLabel("Clear search")
                         }
+                        
+                        // Filter Button
+                        Button(action: {
+                            showFilterSheet = true
+                            HapticManager.impact(style: .light)
+                        }) {
+                            ZStack {
+                                Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(filters.isActive ? AppColors.primary : AppColors.mutedForeground)
+                                
+                                if filters.isActive {
+                                    Circle()
+                                        .fill(AppColors.destructive)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 8, y: -8)
+                                }
+                            }
+                        }
+                        .accessibilityLabel(filters.isActive ? "Filters active" : "Filter templates")
+                        .accessibilityHint("Tap to \(filters.isActive ? "modify" : "add") filters")
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(AppColors.input)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     
+                    // Segmented Control
+                    Picker("Content", selection: $selectedSegment) {
+                        ForEach(ContentSegment.allCases, id: \.self) { segment in
+                            Text(segment.rawValue).tag(segment)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .accessibilityLabel("Select content type")
+                    
                     // Sort and Stats Row
                     HStack {
                         // Template count
-                        Text("\(filteredTemplates.count) template\(filteredTemplates.count == 1 ? "" : "s")")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+                        if selectedSegment == .templates {
+                            Text("\(filteredTemplates.count) template\(filteredTemplates.count == 1 ? "" : "s")")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                                .accessibilityLabel("\(filteredTemplates.count) templates found")
+                        }
                         
                         Spacer()
                         
+                        // Group toggle (templates view only)
+                        if selectedSegment == .templates && !filteredTemplates.isEmpty {
+                            Button(action: {
+                                showGrouped.toggle()
+                                HapticManager.selection()
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: showGrouped ? "rectangle.grid.1x2.fill" : "square.grid.2x2")
+                                        .font(.system(size: 12))
+                                    Text(showGrouped ? "Grouped" : "List")
+                                        .font(.system(size: 13, weight: .medium))
+                                }
+                                .foregroundColor(AppColors.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppColors.primary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .accessibilityLabel(showGrouped ? "Switch to list view" : "Switch to grouped view")
+                        }
+                        
                         // Sort menu
-                        Menu {
-                            ForEach(SortOption.allCases, id: \.self) { option in
-                                Button(action: {
-                                    sortOption = option
-                                }) {
-                                    HStack {
-                                        Text(option.rawValue)
-                                        if sortOption == option {
-                                            Image(systemName: "checkmark")
+                        if selectedSegment == .templates {
+                            Menu {
+                                ForEach(SortOption.allCases, id: \.self) { option in
+                                    Button(action: {
+                                        sortOption = option
+                                        HapticManager.selection()
+                                    }) {
+                                        HStack {
+                                            Text(option.rawValue)
+                                            if sortOption == option {
+                                                Image(systemName: "checkmark")
+                                            }
                                         }
                                     }
                                 }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .font(.system(size: 12))
+                                    Text("Sort: \(sortOption.rawValue)")
+                                        .font(.system(size: 13, weight: .medium))
+                                }
+                                .foregroundColor(AppColors.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppColors.primary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.up.arrow.down")
-                                    .font(.system(size: 12))
-                                Text("Sort: \(sortOption.rawValue)")
-                                    .font(.system(size: 13, weight: .medium))
-                            }
-                            .foregroundColor(AppColors.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(AppColors.primary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .accessibilityLabel("Sort by \(sortOption.rawValue)")
                         }
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.top, AppSpacing.md)
                 
+                // Segmented Content
                 VStack(spacing: AppSpacing.lg) {
-                    // Workout Programs Section
-                    WorkoutSplitsSection(
-                        programViewModel: programViewModel,
-                        templatesViewModel: viewModel,
-                        workoutViewModel: workoutViewModel,
-                        onStartWorkout: onStartTemplate
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, AppSpacing.lg)
-                    
-                    // Calisthenics Skills Section
-                    CalisthenicsSkillsSection(
-                        workoutViewModel: workoutViewModel,
-                        templatesViewModel: viewModel,
-                        onStart: onStartTemplate
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    
-                    // Regular Templates Section
-                    VStack(alignment: .leading, spacing: AppSpacing.md) {
-                        HStack {
-                            Text("Workout Templates")
-                                .font(AppTypography.heading2)
-                                .foregroundColor(AppColors.textPrimary)
-                            
-                            Spacer()
-                            
-                            // Quick stats
-                            if !viewModel.templates.isEmpty {
-                                Text("\(viewModel.templates.count) total")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(AppColors.mutedForeground)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(AppColors.secondary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
-                        }
+                    if selectedSegment == .programs {
+                        // Workout Programs Section
+                        WorkoutSplitsSection(
+                            programViewModel: programViewModel,
+                            templatesViewModel: viewModel,
+                            workoutViewModel: workoutViewModel,
+                            onStartWorkout: onStartTemplate
+                        )
                         .padding(.horizontal, AppSpacing.lg)
-                        
-                        // Stacked action buttons under header
-                        VStack(spacing: 10) {
-                            Button(action: {
-                                viewModel.createTemplate()
-                            }) {
-                                Text("Add Template")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(AppColors.alabasterGrey)
+                        .padding(.top, AppSpacing.lg)
+                        .transition(.opacity)
+                    } else if selectedSegment == .skills {
+                        // Calisthenics Skills Section
+                        CalisthenicsSkillsSection(
+                            workoutViewModel: workoutViewModel,
+                            templatesViewModel: viewModel,
+                            onStart: onStartTemplate
+                        )
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.lg)
+                        .transition(.opacity)
+                    } else {
+                        // Regular Templates Section
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            HStack {
+                                Text("Workout Templates")
+                                    .font(AppTypography.heading2)
+                                    .foregroundColor(AppColors.textPrimary)
+                                
+                                Spacer()
+                                
+                                // Multi-select toggle
+                                if !filteredTemplates.isEmpty && !isMultiSelectMode {
+                                    Button(action: {
+                                        isMultiSelectMode = true
+                                        HapticManager.impact(style: .light)
+                                    }) {
+                                        Text("Select")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(AppColors.primary)
+                                    }
+                                    .accessibilityLabel("Select multiple templates")
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.lg)
+                            
+                            // Add Template Button (full-width at top)
+                            if !isMultiSelectMode {
+                                Button(action: {
+                                    viewModel.createTemplate()
+                                    HapticManager.impact(style: .medium)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 18))
+                                        Text("Create Template")
+                                            .font(AppTypography.bodyBold)
+                                    }
+                                    .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                                     .background(LinearGradient.primaryGradient)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.top, AppSpacing.sm)
+                                .accessibilityLabel("Create new template")
                             }
                             
-                            Button(action: {
-                                showCalisthenicProgression = true
-                            }) {
-                                Text("Add Calisthenic Skill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(AppColors.alabasterGrey)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(LinearGradient(colors: [AppColors.backGradientStart, AppColors.backGradientEnd], startPoint: .leading, endPoint: .trailing))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.lg)
-                        
-                        if filteredTemplates.isEmpty {
-                            // Empty state
-                            VStack(spacing: 16) {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(AppColors.mutedForeground.opacity(0.5))
-                                
-                                Text(debouncedSearchText.isEmpty ? "No Templates Yet" : "No Templates Found")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(AppColors.textPrimary)
-                                
-                                Text(debouncedSearchText.isEmpty ? 
-                                     "Create your first workout template to get started" :
-                                     "Try adjusting your search or create a new template")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(AppColors.mutedForeground)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 40)
-                                
-                                if !debouncedSearchText.isEmpty {
-                                    Button(action: {
+                            if filteredTemplates.isEmpty {
+                                // Enhanced Empty State
+                                EnhancedEmptyState(
+                                    hasSearchText: !debouncedSearchText.isEmpty,
+                                    hasFilters: filters.isActive,
+                                    onClearSearch: {
                                         searchText = ""
                                         debouncedSearchText = ""
-                                    }) {
-                                        Text("Clear Search")
-                                            .font(.system(size: 14, weight: .medium))
-                                            .foregroundColor(AppColors.primary)
-                                            .padding(.horizontal, 20)
-                                            .padding(.vertical, 8)
-                                            .background(AppColors.primary.opacity(0.1))
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 60)
-                        } else {
-                            ForEach(filteredTemplates, id: \.id) { template in
-                                TemplateCard(
-                                    template: template,
-                                    onStart: {
-                                        viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                                        onStartTemplate()
+                                        HapticManager.selection()
                                     },
-                                    onEdit: {
-                                        viewModel.editTemplate(template)
+                                    onClearFilters: {
+                                        filters = TemplateFilters()
+                                        HapticManager.selection()
                                     },
-                                    onDelete: template.isDefault ? nil : {
-                                        viewModel.deleteTemplate(template)
+                                    onCreateTemplate: {
+                                        viewModel.createTemplate()
+                                        HapticManager.impact(style: .medium)
                                     },
-                                    onDuplicate: {
-                                        duplicateTemplate(template)
+                                    onGenerateWorkout: {
+                                        showGenerateSheet = true
+                                        HapticManager.impact(style: .medium)
                                     }
                                 )
                                 .padding(.horizontal, AppSpacing.lg)
+                                .padding(.vertical, 60)
+                            } else {
+                                if showGrouped {
+                                    // Grouped View
+                                    ForEach(groupedTemplates.keys.sorted(), id: \.self) { group in
+                                        GroupedTemplateSection(
+                                            groupName: group,
+                                            templates: groupedTemplates[group] ?? [],
+                                            isMultiSelectMode: isMultiSelectMode,
+                                            selectedTemplates: $selectedTemplates,
+                                            onTapTemplate: { template in
+                                                if isMultiSelectMode {
+                                                    toggleSelection(template)
+                                                } else {
+                                                    selectedTemplate = template
+                                                    showDetailSheet = true
+                                                }
+                                            },
+                                            onStartTemplate: { template in
+                                                viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                                                onStartTemplate()
+                                            },
+                                            onDeleteTemplate: { template in
+                                                viewModel.deleteTemplate(template)
+                                            },
+                                            onDuplicateTemplate: { template in
+                                                duplicateTemplate(template)
+                                            }
+                                        )
+                                        .padding(.horizontal, AppSpacing.lg)
+                                    }
+                                } else {
+                                    // List View with Swipe Actions
+                                    ForEach(filteredTemplates, id: \.id) { template in
+                                        RedesignedTemplateCard(
+                                            template: template,
+                                            isMultiSelectMode: isMultiSelectMode,
+                                            isSelected: selectedTemplates.contains(template.id),
+                                            onTap: {
+                                                if isMultiSelectMode {
+                                                    toggleSelection(template)
+                                                } else {
+                                                    selectedTemplate = template
+                                                    showDetailSheet = true
+                                                    HapticManager.impact(style: .light)
+                                                }
+                                            },
+                                            onStart: {
+                                                viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                                                onStartTemplate()
+                                            }
+                                        )
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            if !template.isDefault {
+                                                Button(role: .destructive) {
+                                                    viewModel.deleteTemplate(template)
+                                                    HapticManager.success()
+                                                } label: {
+                                                    Label("Delete", systemImage: "trash")
+                                                }
+                                                .accessibilityLabel("Delete \(template.name)")
+                                            }
+                                        }
+                                        .swipeActions(edge: .leading) {
+                                            Button {
+                                                duplicateTemplate(template)
+                                                HapticManager.impact(style: .medium)
+                                            } label: {
+                                                Label("Duplicate", systemImage: "doc.on.doc")
+                                            }
+                                            .tint(AppColors.accent)
+                                            .accessibilityLabel("Duplicate \(template.name)")
+                                        }
+                                        .padding(.horizontal, AppSpacing.lg)
+                                    }
+                                }
                             }
                         }
+                        .padding(.bottom, 20)
+                        .transition(.opacity)
                     }
-                    .padding(.bottom, 100)
                 }
             }
+            .padding(.bottom, 100)
         }
         .background(AppColors.background)
         .id(AppColors.themeID)
@@ -324,6 +494,37 @@ struct TemplatesView: View {
         .sheet(isPresented: $showCalisthenicProgression) {
             CreateCustomSkillView(skillManager: CalisthenicsSkillManager.shared)
         }
+        .sheet(isPresented: $showFilterSheet) {
+            TemplateFilterSheet(filters: $filters)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showDetailSheet) {
+            if let template = selectedTemplate {
+                TemplateDetailView(
+                    template: template,
+                    onStart: {
+                        viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                        onStartTemplate()
+                    },
+                    onEdit: {
+                        viewModel.editTemplate(template)
+                    },
+                    onDuplicate: {
+                        duplicateTemplate(template)
+                    },
+                    onDelete: template.isDefault ? nil : {
+                        viewModel.deleteTemplate(template)
+                        // Invalidate cache when template is deleted
+                        CardDetailCacheManager.shared.invalidateTemplateCache(template.id)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: selectedSegment)
+        .animation(.easeInOut(duration: 0.3), value: showGrouped)
     }
     
     // MARK: - Helper Functions
@@ -334,461 +535,410 @@ struct TemplatesView: View {
             exercises: template.exercises,
             estimatedDuration: template.estimatedDuration,
             intensity: template.intensity,
-            isDefault: false
+            isDefault: false,
+            colorHex: template.colorHex
         )
         viewModel.saveTemplate(duplicated)
         HapticManager.impact(style: .light)
     }
+    
+    private func toggleSelection(_ template: WorkoutTemplate) {
+        if selectedTemplates.contains(template.id) {
+            selectedTemplates.remove(template.id)
+        } else {
+            selectedTemplates.insert(template.id)
+        }
+        HapticManager.selection()
+    }
+    
+    private func deleteSelectedTemplates() {
+        for templateId in selectedTemplates {
+            if let template = viewModel.templates.first(where: { $0.id == templateId }) {
+                if !template.isDefault {
+                    viewModel.deleteTemplate(template)
+                }
+            }
+        }
+        selectedTemplates.removeAll()
+        isMultiSelectMode = false
+        HapticManager.success()
+    }
 }
 
-struct TemplatesHeader: View {
-    let onCreate: () -> Void
+// MARK: - Supporting Components
+
+struct StreamlinedTemplatesHeader: View {
+    @Binding var isMultiSelectMode: Bool
+    @ObservedObject var themeManager: ThemeManager
+    let selectedCount: Int
     let onGenerate: () -> Void
-    let onSettings: () -> Void // Generation settings
-    let onMainSettings: () -> Void // Main app settings
+    let onSettings: () -> Void
+    let onGenerationSettings: () -> Void
+    let onDeleteSelected: () -> Void
+    let onCancelMultiSelect: () -> Void
     
     var body: some View {
         HStack {
-            Text("Templates")
-                .font(AppTypography.largeTitleBold)
-                .foregroundStyle(LinearGradient.primaryGradient)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            
-            Spacer()
-            
-            HStack(spacing: 12) {
-                HelpButton(pageType: .templates)
+            if isMultiSelectMode {
+                Button("Cancel", action: onCancelMultiSelect)
+                    .foregroundColor(AppColors.primary)
                 
-                // Main Settings Button
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onMainSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .accessibilityLabel("Settings")
+                Spacer()
                 
-                // Generation Settings Button
-                Button(action: onSettings) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .accessibilityLabel("Generation Settings")
+                Text("\(selectedCount) selected")
+                    .font(AppTypography.bodyBold)
+                    .foregroundColor(AppColors.textPrimary)
                 
-                Button(action: onGenerate) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.primary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+                Spacer()
                 
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-    }
-}
-
-struct TemplateCard: View {
-    let template: WorkoutTemplate
-    let onStart: () -> Void
-    let onEdit: () -> Void
-    let onDelete: (() -> Void)?
-    let onDuplicate: (() -> Void)?
-    @State private var isHovered = false
-    @State private var showDeleteConfirmation = false
-    
-    // Determine muscle group from first exercise
-    private var muscleGroup: String {
-        template.exercises.first?.name ?? "General"
-    }
-    
-    private var gradient: LinearGradient {
-        AppColors.categoryGradient(for: muscleGroup)
-    }
-    
-    var body: some View {
-        GradientBorderedCard(gradient: gradient) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Template Header with icon
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(gradient.opacity(0.2))
-                            .frame(width: 50, height: 50)
-                        
-                        Image(systemName: "dumbbell.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(gradient)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(template.name)
-                            .font(AppTypography.heading3)
-                            .foregroundColor(AppColors.foreground)
-                        
-                        HStack(spacing: 8) {
-                            Text("\(template.exercises.count) exercises")
-                                .font(AppTypography.body)
-                                .foregroundColor(AppColors.mutedForeground)
-                            
-                            if template.estimatedDuration > 0 {
-                                Text("• \(template.estimatedDuration) min")
-                                    .font(AppTypography.body)
-                                    .foregroundColor(AppColors.mutedForeground)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 8) {
-                        // Action buttons menu
-                        Menu {
-                            if let onDuplicate = onDuplicate {
-                                Button(action: onDuplicate) {
-                                    Label("Duplicate", systemImage: "doc.on.doc")
-                                }
-                            }
-                            
-                            if onDelete != nil {
-                                Divider()
-                                Button(role: .destructive, action: {
-                                    showDeleteConfirmation = true
-                                }) {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                                .frame(width: 32, height: 32)
-                                .background(AppColors.secondary)
-                                .clipShape(Circle())
-                        }
-                        
-                        // Intensity badge
-                        if let intensity = template.intensity {
-                            Text(intensity.rawValue)
-                                .font(AppTypography.captionMedium)
-                                .foregroundStyle(gradient)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(gradient.opacity(0.15))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                    }
+                Button(action: onDeleteSelected) {
+                    Image(systemName: "trash")
+                        .foregroundColor(selectedCount > 0 ? AppColors.destructive : AppColors.mutedForeground)
                 }
-                
-                // Action Buttons
-                HStack(spacing: 12) {
-                    Button(action: onStart) {
-                        Text("Start")
-                            .font(AppTypography.bodyBold)
-                            .foregroundColor(AppColors.alabasterGrey)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(gradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .shadow(color: AppColors.foreground.opacity(0.15), radius: 8, x: 0, y: 4)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    
-                    Button(action: onEdit) {
-                        Text("Edit")
-                            .font(AppTypography.bodyMedium)
-                            .foregroundColor(AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
-            }
-            .padding(AppSpacing.md)
-        }
-        .alert("Delete Template?", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                onDelete?()
-            }
-        } message: {
-            Text("Are you sure you want to delete \"\(template.name)\"? This action cannot be undone.")
-        }
-    }
-}
-
-// MARK: - Calisthenic Progression Sheet
-struct CalisthenicProgressionSheet: View {
-    let skills: [CalisthenicsSkill]
-    
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(skills) { skill in
-                    Section {
-                        Text("Goal: \(skill.description)")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.mutedForeground)
-                            .padding(.bottom, 4)
-                        
-                        Text("Levels: \(skill.progressionLevels.count)")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding(.bottom, 6)
-                        
-                        ForEach(skill.progressionLevels) { level in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Level \(level.level): \(level.name)")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(AppColors.textPrimary)
-                                
-                                Text(level.description)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(AppColors.mutedForeground)
-                                
-                                if let hold = level.targetHoldDuration {
-                                    Text("Target: \(hold) sec hold")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(AppColors.foreground)
-                                } else if let reps = level.targetReps {
-                                    Text("Target: \(reps) reps")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(AppColors.foreground)
-                                } else {
-                                    Text("Target: reps or hold time")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(AppColors.foreground)
-                                }
-                            }
-                            .padding(.vertical, 6)
-                        }
-                    } header: {
-                        Text(skill.name)
-                            .font(.headline)
-                    }
-                }
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Skill Progressions")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
-
-// MARK: - Add Exercise View
-struct AddExerciseView: View {
-    @State private var exerciseName: String = ""
-    @State private var targetSets: Int = 4
-    // Local mode used to drive the UI. This maps down to ExerciseType for the model layer.
-    private enum ExerciseMode {
-        case weights      // Barbell/dumbbell style weight + reps
-        case calisthenics // Bodyweight calisthenics: reps + optional additional weight
-        case timeBased    // Time-based (cardio / stretching)
-    }
-    @State private var mode: ExerciseMode = .weights
-    @State private var holdDuration: Int = 30
-    @State private var showAddCustomExercise = false
-    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
-    let onAdd: (String, Int, ExerciseType, Int) -> Void
-    let onCancel: () -> Void
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Exercise Name")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColors.mutedForeground)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                showAddCustomExercise = true
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 14))
-                                    Text("Create Custom")
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
-                                .foregroundColor(AppColors.primary)
-                            }
-                        }
-                        
-                        ExerciseAutocompleteField(
-                            text: $exerciseName,
-                            placeholder: "e.g., Bench Press"
-                        )
-                    }
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Exercise Type")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    HStack(spacing: 12) {
-                        // Weights
-                        Button(action: { mode = .weights }) {
-                            HStack {
-                                Image(systemName: "dumbbell.fill")
-                                Text("Weights")
-                            }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(mode == .weights ? AppColors.alabasterGrey : AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(mode == .weights ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        
-                        // Calisthenics (reps + additional weight)
-                        Button(action: { mode = .calisthenics }) {
-                            HStack {
-                                Image(systemName: "figure.strengthtraining.traditional")
-                                Text("Calisthenics")
-                            }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(mode == .calisthenics ? AppColors.alabasterGrey : AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(mode == .calisthenics ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        
-                        // Time-based (cardio / stretch)
-                        Button(action: { mode = .timeBased }) {
-                            HStack {
-                                Image(systemName: "timer")
-                                Text("Time")
-                            }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(mode == .timeBased ? AppColors.alabasterGrey : AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(mode == .timeBased ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                }
-                
-                if mode == .timeBased {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Target Hold Duration (seconds)")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        Stepper(value: $holdDuration, in: 5...300, step: 5) {
-                            Text("\(holdDuration) seconds")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(AppColors.foreground)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(AppColors.input)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Target Sets")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    Stepper(value: $targetSets, in: 1...10) {
-                        Text("\(targetSets) sets")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(AppColors.foreground)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(AppColors.input)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border, lineWidth: 2)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
+                .disabled(selectedCount == 0)
+            } else {
+                Text("Templates")
+                    .font(AppTypography.largeTitleBold)
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 
                 Spacer()
                 
                 HStack(spacing: 12) {
-                    Button(action: onCancel) {
-                        Text("Cancel")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+                    HelpButton(pageType: .templates)
+                    
+                    // Theme Toggle
+                    HeaderThemeToggle(themeManager: themeManager)
+                    
+                    // Settings Menu
+                    Menu {
+                        Button(action: onSettings) {
+                            Label("App Settings", systemImage: "gearshape")
+                        }
+                        Button(action: onGenerationSettings) {
+                            Label("Generation Settings", systemImage: "slider.horizontal.3")
+                        }
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.textPrimary)
+                            .frame(width: 40, height: 40)
+                            .background(AppColors.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .accessibilityLabel("Settings")
+                    
+                    Button(action: onGenerate) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppColors.primary)
+                            .frame(width: 40, height: 40)
                             .background(AppColors.secondary)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.border, lineWidth: 2)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .accessibilityLabel("Generate workout")
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .animation(.easeInOut(duration: 0.2), value: isMultiSelectMode)
+    }
+}
+
+struct RedesignedTemplateCard: View {
+    let template: WorkoutTemplate
+    let isMultiSelectMode: Bool
+    let isSelected: Bool
+    let onTap: () -> Void
+    let onStart: () -> Void
+    
+    private var gradient: LinearGradient {
+        AppColors.templateGradient(for: template)
+    }
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: AppSpacing.md) {
+                // Selection indicator
+                if isMultiSelectMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 24))
+                        .foregroundColor(isSelected ? AppColors.primary : AppColors.mutedForeground)
+                        .accessibilityHidden(true)
+                }
+                
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(gradient.opacity(0.2))
+                        .frame(width: 50, height: 50)
+                    
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(gradient)
+                }
+                
+                // Template Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(template.name)
+                        .font(AppTypography.heading3)
+                        .foregroundColor(AppColors.foreground)
+                        .lineLimit(1)
+                        .accessibilityLabel(template.name)
+                    
+                    HStack(spacing: 8) {
+                        Label("\(template.exercises.count)", systemImage: "figure.mixed.cardio")
+                            .font(AppTypography.caption)
+                        
+                        if template.estimatedDuration > 0 {
+                            Text("•")
+                            Label("\(template.estimatedDuration) min", systemImage: "clock")
+                                .font(AppTypography.caption)
+                        }
+                        
+                        if let intensity = template.intensity {
+                            Text("•")
+                            Text(intensity.rawValue)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(gradient)
+                        }
+                    }
+                    .foregroundColor(AppColors.mutedForeground)
+                }
+                
+                Spacer()
+                
+                // Quick Start button (not in multi-select)
+                if !isMultiSelectMode {
+                    Button(action: onStart) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(gradient)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Start \(template.name)")
+                }
+            }
+            .padding(AppSpacing.md)
+            .background(AppColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? AppColors.primary : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct EnhancedEmptyState: View {
+    let hasSearchText: Bool
+    let hasFilters: Bool
+    let onClearSearch: () -> Void
+    let onClearFilters: () -> Void
+    let onCreateTemplate: () -> Void
+    let onGenerateWorkout: () -> Void
+    
+    var body: some View {
+        VStack(spacing: AppSpacing.lg) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(AppColors.primary.opacity(0.1))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: hasSearchText ? "magnifyingglass" : "doc.text")
+                    .font(.system(size: 48))
+                    .foregroundColor(AppColors.primary.opacity(0.6))
+            }
+            
+            // Title & Message
+            VStack(spacing: 8) {
+                Text(hasSearchText ? "No Templates Found" : "No Templates Yet")
+                    .font(AppTypography.heading2)
+                    .foregroundColor(AppColors.textPrimary)
+                
+                Text(hasSearchText || hasFilters ?
+                     "Try adjusting your search or filters" :
+                     "Create your first workout template or generate one with AI")
+                    .font(AppTypography.body)
+                    .foregroundColor(AppColors.mutedForeground)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            // Actions
+            VStack(spacing: 12) {
+                if hasSearchText {
+                    Button(action: onClearSearch) {
+                        HStack {
+                            Image(systemName: "xmark.circle")
+                            Text("Clear Search")
+                        }
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(AppColors.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                
+                if hasFilters {
+                    Button(action: onClearFilters) {
+                        HStack {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                            Text("Clear Filters")
+                        }
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(AppColors.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                
+                if !hasSearchText && !hasFilters {
+                    Button(action: onCreateTemplate) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Create Template")
+                        }
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(LinearGradient.primaryGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     
-                    Button(action: {
-                        if !exerciseName.isEmpty {
-                            let type: ExerciseType = (mode == .timeBased) ? .hold : .weightReps
-                            onAdd(exerciseName, targetSets, type, holdDuration)
+                    Button(action: onGenerateWorkout) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                            Text("Generate with AI")
                         }
-                    }) {
-                        Text("Add Exercise")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(AppColors.alabasterGrey)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(LinearGradient.primaryGradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .disabled(exerciseName.isEmpty)
-                    .opacity(exerciseName.isEmpty ? 0.6 : 1.0)
                 }
-                }
-                .padding(24)
             }
-            .background(AppColors.background)
-            .navigationTitle("Add Exercise")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showAddCustomExercise) {
-                AddCustomExerciseView { exercise in
-                    exerciseDataManager.addCustomExercise(exercise)
-                    // Pre-fill the exercise name if it was already typed
-                    if exerciseName.isEmpty {
-                        exerciseName = exercise.name
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct FloatingAddButton: View {
+    let onCreateTemplate: () -> Void
+    
+    var body: some View {
+        Button(action: onCreateTemplate) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 60, height: 60)
+                .background(LinearGradient.primaryGradient)
+                .clipShape(Circle())
+                .shadow(color: AppColors.primary.opacity(0.4), radius: 12, x: 0, y: 6)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel("Create new template")
+    }
+}
+
+struct GroupedTemplateSection: View {
+    let groupName: String
+    let templates: [WorkoutTemplate]
+    let isMultiSelectMode: Bool
+    @Binding var selectedTemplates: Set<UUID>
+    let onTapTemplate: (WorkoutTemplate) -> Void
+    let onStartTemplate: (WorkoutTemplate) -> Void
+    let onDeleteTemplate: (WorkoutTemplate) -> Void
+    let onDuplicateTemplate: (WorkoutTemplate) -> Void
+    
+    @State private var isExpanded = true
+    
+    // Note: Grouped sections use group-based gradients, individual templates use their own colors
+    var gradient: LinearGradient {
+        AppColors.categoryGradient(for: groupName)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            // Group Header
+            Button(action: {
+                isExpanded.toggle()
+                HapticManager.selection()
+            }) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(gradient)
+                            .frame(width: 12, height: 12)
+                        
+                        Text(groupName)
+                            .font(AppTypography.heading3)
+                            .foregroundColor(AppColors.textPrimary)
+                        
+                        Text("(\(templates.count))")
+                            .font(AppTypography.caption)
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Templates in Group
+            if isExpanded {
+                ForEach(templates, id: \.id) { template in
+                    RedesignedTemplateCard(
+                        template: template,
+                        isMultiSelectMode: isMultiSelectMode,
+                        isSelected: selectedTemplates.contains(template.id),
+                        onTap: { onTapTemplate(template) },
+                        onStart: { onStartTemplate(template) }
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if !template.isDefault {
+                            Button(role: .destructive) {
+                                onDeleteTemplate(template)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            onDuplicateTemplate(template)
+                        } label: {
+                            Label("Duplicate", systemImage: "doc.on.doc")
+                        }
+                        .tint(AppColors.accent)
                     }
                 }
             }
         }
     }
 }
-
-// MARK: - Template Edit View
 struct TemplateEditView: View {
     @State private var templateName: String
     @State private var exercises: [TemplateExercise]
     @State private var intensity: WorkoutIntensity?
+    @State private var templateColorHex: String?
     @State private var newExerciseName: String = ""
     @State private var newExerciseSets: Int = 3
     @State private var newExerciseReps: String = "8-10"
@@ -810,10 +960,12 @@ struct TemplateEditView: View {
             _templateName = State(initialValue: template.name)
             _exercises = State(initialValue: template.exercises)
             _intensity = State(initialValue: template.intensity)
+            _templateColorHex = State(initialValue: template.colorHex)
         } else {
             _templateName = State(initialValue: "")
             _exercises = State(initialValue: [])
             _intensity = State(initialValue: nil)
+            _templateColorHex = State(initialValue: nil)
         }
         self.onSave = onSave
         self.onCancel = onCancel
@@ -861,6 +1013,9 @@ struct TemplateEditView: View {
                         .background(AppColors.input)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    
+                    // Template Color Selection
+                    TemplateColorPicker(selectedColorHex: $templateColorHex)
                     
                     // Exercises List
                     VStack(alignment: .leading, spacing: 12) {
@@ -1088,7 +1243,8 @@ struct TemplateEditView: View {
                                 name: templateName,
                                 exercises: exercises,
                                 estimatedDuration: original.estimatedDuration,
-                                intensity: intensity
+                                intensity: intensity,
+                                colorHex: templateColorHex
                             )
                         } else {
                             // New template gets new ID, use default estimatedDuration
@@ -1096,7 +1252,8 @@ struct TemplateEditView: View {
                                 name: templateName,
                                 exercises: exercises,
                                 estimatedDuration: 60,
-                                intensity: intensity
+                                intensity: intensity,
+                                colorHex: templateColorHex
                             )
                         }
                         onSave(template)
@@ -1108,12 +1265,195 @@ struct TemplateEditView: View {
     }
 }
 
-#Preview {
-    TemplatesView(
-        viewModel: TemplatesViewModel(),
-        workoutViewModel: WorkoutViewModel(settingsManager: SettingsManager()),
-        programViewModel: WorkoutProgramViewModel(),
-        onStartTemplate: {},
-        onSettings: {}
-    )
+struct AddExerciseView: View {
+    @State private var exerciseName: String = ""
+    @State private var targetSets: Int = 4
+    // Local mode used to drive the UI. This maps down to ExerciseType for the model layer.
+    private enum ExerciseMode {
+        case weights      // Barbell/dumbbell style weight + reps
+        case calisthenics // Bodyweight calisthenics: reps + optional additional weight
+        case timeBased    // Time-based (cardio / stretching)
+    }
+    @State private var mode: ExerciseMode = .weights
+    @State private var holdDuration: Int = 30
+    @State private var showAddCustomExercise = false
+    @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
+    let onAdd: (String, Int, ExerciseType, Int) -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Exercise Name")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                showAddCustomExercise = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 14))
+                                    Text("Create Custom")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundColor(AppColors.primary)
+                            }
+                        }
+                        
+                        ExerciseAutocompleteField(
+                            text: $exerciseName,
+                            placeholder: "e.g., Bench Press"
+                        )
+                    }
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Exercise Type")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    HStack(spacing: 12) {
+                        // Weights
+                        Button(action: { mode = .weights }) {
+                            HStack {
+                                Image(systemName: "dumbbell.fill")
+                                Text("Weights")
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .weights ? AppColors.alabasterGrey : AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(mode == .weights ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        
+                        // Calisthenics (reps + additional weight)
+                        Button(action: { mode = .calisthenics }) {
+                            HStack {
+                                Image(systemName: "figure.strengthtraining.traditional")
+                                Text("Calisthenics")
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .calisthenics ? AppColors.alabasterGrey : AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(mode == .calisthenics ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        
+                        // Time-based (cardio / stretch)
+                        Button(action: { mode = .timeBased }) {
+                            HStack {
+                                Image(systemName: "timer")
+                                Text("Time")
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(mode == .timeBased ? AppColors.alabasterGrey : AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(mode == .timeBased ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+                
+                if mode == .timeBased {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Target Hold Duration (seconds)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Stepper(value: $holdDuration, in: 5...300, step: 5) {
+                            Text("\(holdDuration) seconds")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(AppColors.foreground)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(AppColors.input)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(AppColors.border, lineWidth: 2)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Target Sets")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    Stepper(value: $targetSets, in: 1...10) {
+                        Text("\(targetSets) sets")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(AppColors.foreground)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(AppColors.input)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(AppColors.border, lineWidth: 2)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 12) {
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppColors.foreground)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(AppColors.secondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(AppColors.border, lineWidth: 2)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    
+                    Button(action: {
+                        if !exerciseName.isEmpty {
+                            let type: ExerciseType = (mode == .timeBased) ? .hold : .weightReps
+                            onAdd(exerciseName, targetSets, type, holdDuration)
+                        }
+                    }) {
+                        Text("Add Exercise")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(AppColors.alabasterGrey)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(LinearGradient.primaryGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
+                    }
+                    .disabled(exerciseName.isEmpty)
+                    .opacity(exerciseName.isEmpty ? 0.6 : 1.0)
+                }
+                }
+                .padding(24)
+            }
+            .background(AppColors.background)
+            .navigationTitle("Add Exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showAddCustomExercise) {
+                AddCustomExerciseView { exercise in
+                    exerciseDataManager.addCustomExercise(exercise)
+                    // Pre-fill the exercise name if it was already typed
+                    if exerciseName.isEmpty {
+                        exerciseName = exercise.name
+                    }
+                }
+            }
+        }
+    }
 }

@@ -1,23 +1,27 @@
 import SwiftUI
 
+// MARK: - Redesigned Dashboard View
+/// Streamlined dashboard with improved information hierarchy and progressive disclosure
+/// Created: December 18, 2025
 struct DashboardView: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var themeManager: ThemeManager
+    @EnvironmentObject var colorThemeProvider: ColorThemeProvider
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
     let onNavigateToProgress: (() -> Void)?
-    @State private var showGenerateTypeDialog = false
+    
     @State private var showWorkoutHistory = false
-    @State private var showPRHistory = false
-    @State private var showSportsTimer = false
     
     init(
         progressViewModel: ProgressViewModel,
         workoutViewModel: WorkoutViewModel,
         templatesViewModel: TemplatesViewModel,
         programViewModel: WorkoutProgramViewModel,
+        themeManager: ThemeManager,
         onStartWorkout: @escaping () -> Void,
         onSettings: @escaping () -> Void,
         onNavigateToProgress: (() -> Void)? = nil
@@ -26,257 +30,326 @@ struct DashboardView: View {
         self.workoutViewModel = workoutViewModel
         self.templatesViewModel = templatesViewModel
         self.programViewModel = programViewModel
+        self.themeManager = themeManager
         self.onStartWorkout = onStartWorkout
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
     }
     
-    private enum GeneratedDayType {
-        case custom, push, pull, legs, fullBody
-    }
-    
-    private func generateAndStartWorkout(for type: GeneratedDayType) {
-        let template: WorkoutTemplate
-        switch type {
-        case .custom:
-            template = templatesViewModel.generateWorkout()
-        case .push:
-            template = templatesViewModel.generatePushWorkout()
-        case .pull:
-            template = templatesViewModel.generatePullWorkout()
-        case .legs:
-            template = templatesViewModel.generateLegWorkout()
-        case .fullBody:
-            template = templatesViewModel.generateFullBodyWorkout()
-        }
-        
-        workoutViewModel.startWorkoutFromTemplate(template)
-        onStartWorkout()
-    }
-    
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // Hero Section with Greeting and Quick Stats
-                    HeroSection(
-                        progressViewModel: progressViewModel,
-                        onGenerateWorkout: {
-                            showGenerateTypeDialog = true
-                        }
-                    )
-                    .padding(.top, 60) // Add top padding to account for buttons
-                    
-                    // Header with Title
-                    YourActivityHeader()
-                    
-                    VStack(spacing: 20) {
-                    // Weekly Calendar (with program indicator if active)
-                    WeeklyCalendarWidget(
-                        progressViewModel: progressViewModel,
-                        programViewModel: programViewModel
-                    )
-                    
-                    // Workout Pattern Insight Card
-                    WorkoutPatternInsightCard(progressViewModel: progressViewModel)
-                    
-                    // Recovery Suggestion Card
-                    RecoverySuggestionCard()
-                    
-                    // Next Workout Day Card (only shows when program is active)
-                    if programViewModel.activeProgram != nil {
-                        NextWorkoutDayCard(
-                            programViewModel: programViewModel,
-                            templatesViewModel: templatesViewModel,
-                            workoutViewModel: workoutViewModel,
-                            onStartWorkout: onStartWorkout
-                        )
+        ScrollView {
+            LazyVStack(spacing: 20) {
+                // Header scrolls with content
+                DashboardHeader(
+                    progressViewModel: progressViewModel,
+                    programViewModel: programViewModel,
+                    themeManager: themeManager,
+                    onSettings: onSettings,
+                    onShowHistory: {
+                        showWorkoutHistory = true
                     }
-                    
-                    // Personalized Recommendations Card (only show if sufficient history)
-                    PersonalizedRecommendationsCard()
-                    
-                    // Suggested Workout Card (only show if no active program)
-                    if programViewModel.activeProgram == nil {
-                        SuggestedWorkoutCard(
-                            workoutViewModel: workoutViewModel,
-                            templatesViewModel: templatesViewModel,
-                            programViewModel: programViewModel,
-                            onStartWorkout: onStartWorkout
-                        )
-                    }
-                    
-                    // Sports Timer Card (prominent placement)
-                    SportsTimerCard(onOpen: {
-                        showSportsTimer = true
-                    })
-                    
-                    // Stat Cards (Recent PRs + Top Exercise)
-                    HStack(alignment: .top, spacing: 12) {
-                        RecentPRsStatCard(
-                            progressViewModel: progressViewModel,
-                            onTap: {
-                                HapticManager.impact(style: .light)
-                                showPRHistory = true
-                            }
-                        )
-                        TopExerciseStatCard(
-                            progressViewModel: progressViewModel,
-                            onTap: { exerciseName in
-                                if let onNavigate = onNavigateToProgress {
-                                    HapticManager.impact(style: .light)
-                                    progressViewModel.selectedExercise = exerciseName
-                                    onNavigate()
-                                }
-                            }
-                        )
-                    }
-                    
-                    // Rest Day Button
-                    RestDayButton(progressViewModel: progressViewModel)
-                    
-                    // Muscle Group Chart
-                    MuscleGroupChart(progressViewModel: progressViewModel)
-                        .drawingGroup() // Optimize chart rendering
-                        .padding(.bottom, 100)
-                    }
+                )
+                .id(colorThemeProvider.themeID)
+                .padding(.horizontal, 0)
+                
+                // 1. Streak and Workout Count Card
+                StreakWorkoutCard(progressViewModel: progressViewModel)
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                }
-            }
-            .onAppear {
-                // Ensure data is loaded when dashboard appears
-                progressViewModel.updateVolumeAndCount()
-                // Force refresh of workout dates from history
-                let historyManager = WorkoutHistoryManager.shared
-                let calendar = Calendar.current
-                let workoutDatesFromHistory = historyManager.completedWorkouts.map { workout in
-                    calendar.startOfDay(for: workout.startDate)
-                }
-                let existingDates = Set(progressViewModel.workoutDates.map { calendar.startOfDay(for: $0) })
-                let newDates = workoutDatesFromHistory.filter { !existingDates.contains($0) }
-                for date in newDates {
-                    progressViewModel.addWorkoutDate(date)
-                }
-            }
-            
-            // Top Right Buttons (Info, History, Settings)
-            HStack(spacing: 12) {
-                HelpButton(pageType: .dashboard)
                 
-                // Workout History Button
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    showWorkoutHistory = true
-                }) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(AppColors.card)
-                            .frame(width: 44, height: 44)
-                        
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 20))
-                            .foregroundColor(AppColors.foreground)
-                    }
+                // 3. Active Program Day Card (if program is active)
+                if programViewModel.activeProgram != nil {
+                    ActiveProgramDayCard(
+                        programViewModel: programViewModel,
+                        templatesViewModel: templatesViewModel,
+                        workoutViewModel: workoutViewModel,
+                        onStartWorkout: onStartWorkout
+                    )
+                    .padding(.horizontal, 20)
                 }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Workout History")
                 
-                SettingsButton(onSettings: onSettings)
+                // 4. Suggested Workout Card (only show if no active program)
+                if programViewModel.activeProgram == nil {
+                    SuggestedWorkoutCard(
+                        workoutViewModel: workoutViewModel,
+                        templatesViewModel: templatesViewModel,
+                        programViewModel: programViewModel,
+                        onStartWorkout: onStartWorkout
+                    )
+                    .padding(.horizontal, 20)
+                }
+                
+                // 5. Quick Actions (with generate workout)
+                QuickActionsSection(
+                    progressViewModel: progressViewModel,
+                    workoutViewModel: workoutViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    onStartWorkout: onStartWorkout
+                )
+                
+                // 6. Activity Section (with collapsible insights)
+                ActivitySection(
+                    progressViewModel: progressViewModel,
+                    programViewModel: programViewModel
+                )
+                
+                // Rest Day Button
+                RestDayButton(progressViewModel: progressViewModel)
+                    .padding(.horizontal, 20)
+                
+                // 7. Muscle Chart
+                MuscleChartSection(progressViewModel: progressViewModel)
             }
-            .padding(.top, 8)
-            .padding(.trailing, AppSpacing.lg)
+            .padding(.bottom, 100) // Padding for tab bar
+        }
+        .onAppear {
+            // Ensure data is loaded when dashboard appears
+            progressViewModel.updateVolumeAndCount()
+            // Force refresh of workout dates from history
+            let historyManager = WorkoutHistoryManager.shared
+            let calendar = Calendar.current
+            let workoutDatesFromHistory = historyManager.completedWorkouts.map { workout in
+                calendar.startOfDay(for: workout.startDate)
+            }
+            let existingDates = Set(progressViewModel.workoutDates.map { calendar.startOfDay(for: $0) })
+            let newDates = workoutDatesFromHistory.filter { !existingDates.contains($0) }
+            for date in newDates {
+                progressViewModel.addWorkoutDate(date)
+            }
         }
         .background(AppColors.background)
-        .id(AppColors.themeID)
-        .confirmationDialog("Generate workout", isPresented: $showGenerateTypeDialog, titleVisibility: .visible) {
-            Button("Custom") { generateAndStartWorkout(for: .custom) }
-            Button("Push") { generateAndStartWorkout(for: .push) }
-            Button("Pull") { generateAndStartWorkout(for: .pull) }
-            Button("Legs") { generateAndStartWorkout(for: .legs) }
-            Button("Full Body") { generateAndStartWorkout(for: .fullBody) }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Select the day type to auto-generate and start your workout.")
-        }
+        .id(colorThemeProvider.themeID)
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
         }
-        .sheet(isPresented: $showPRHistory) {
-            PRHistoryView(progressViewModel: progressViewModel)
-        }
-        .fullScreenCover(isPresented: $showSportsTimer) {
-            SportsTimerView()
-        }
     }
 }
 
-// MARK: - Sports Timer Card
+// MARK: - Dashboard Header
 
-struct SportsTimerCard: View {
-    let onOpen: () -> Void
+struct DashboardHeader: View {
+    @ObservedObject var progressViewModel: ProgressViewModel
+    @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var themeManager: ThemeManager
+    @EnvironmentObject var colorThemeProvider: ColorThemeProvider
+    let onSettings: () -> Void
+    let onShowHistory: () -> Void
+    
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good Morning"
+        case 12..<17:
+            return "Good Afternoon"
+        default:
+            return "Good Evening"
+        }
+    }
+    
+    private var currentStreak: Int {
+        progressViewModel.currentStreak
+    }
+    
+    private var encouragingQuote: String {
+        let streak = currentStreak
+        let workoutCount = progressViewModel.workoutCount
+        let daysSinceLastWorkout = progressViewModel.daysSinceLastWorkout
+        
+        // Streak-based quotes
+        if streak >= 30 {
+            return "🔥 You're on fire! \(streak) days strong!"
+        } else if streak >= 14 {
+            return "💪 Two weeks strong! Keep the momentum going!"
+        } else if streak >= 7 {
+            return "🌟 A week of consistency! You're building something great!"
+        } else if streak >= 3 {
+            return "✨ Building a habit! Every day counts!"
+        } else if streak > 0 {
+            return "🎯 Great start! Keep it going!"
+        }
+        
+        // Adaptive quotes based on workout patterns
+        if workoutCount == 0 {
+            return "🚀 Ready to start your fitness journey?"
+        } else if daysSinceLastWorkout == 0 {
+            return "💯 You crushed it today! Rest and recover."
+        } else if daysSinceLastWorkout == 1 {
+            return "💪 Time to get back at it! You've got this!"
+        } else if daysSinceLastWorkout >= 3 {
+            return "🔥 Let's get back on track! Your future self will thank you."
+        } else if workoutCount >= 50 {
+            return "🏆 \(workoutCount) workouts completed! You're a champion!"
+        } else if workoutCount >= 20 {
+            return "⭐ You're making real progress! Keep pushing!"
+        }
+        
+        // Default encouraging quote
+        return "💪 Every workout makes you stronger!"
+    }
     
     var body: some View {
-        Button(action: {
-            HapticManager.impact(style: .light)
-            onOpen()
-        }) {
-            HStack(spacing: 16) {
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient.primaryGradient.opacity(0.2))
-                        .frame(width: 56, height: 56)
-                    
-                    Image(systemName: "timer")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(LinearGradient.primaryGradient)
-                }
-                
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Sports Timer")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppColors.textPrimary)
-                    
-                    Text("Boxing, MMA, Wrestling & more")
-                        .font(.system(size: 13))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            // Dashboard Title Row
+            HStack {
+                Text("Dashboard")
+                    .font(AppTypography.largeTitleBold)
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 
                 Spacer()
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.mutedForeground)
+                HStack(spacing: 12) {
+                    HelpButton(pageType: .dashboard)
+                    
+                    // Theme Toggle
+                    HeaderThemeToggle(themeManager: themeManager)
+                    
+                    // Workout History Button
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onShowHistory()
+                    }) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(AppColors.card)
+                                .frame(width: 40, height: 40)
+                            
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 18))
+                                .foregroundColor(AppColors.foreground)
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Workout History")
+                    
+                    // Settings Button
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onSettings()
+                    }) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(AppColors.card)
+                                .frame(width: 40, height: 40)
+                            
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(AppColors.foreground)
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .accessibilityLabel("Settings")
+                }
             }
-            .padding(20)
-            .background(AppColors.card)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
+            
+            // Greeting Card
+            VStack(alignment: .leading, spacing: 8) {
+                Text(greeting)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(AppColors.foreground)
+                    .lineLimit(1)
+                
+                Text(encouragingQuote)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppColors.foreground.opacity(0.8))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+                    .fill(AppColors.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+                    )
             )
+            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .id(colorThemeProvider.themeID)
     }
 }
 
-// MARK: - Header
+// MARK: - Greeting Quote Card
 
-struct YourActivityHeader: View {
-    var body: some View {
-        HStack {
-            Text("Your Activity")
-                .font(AppTypography.largeTitleBold)
-                .foregroundStyle(LinearGradient.primaryGradient)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            
-            Spacer()
+struct GreetingQuoteCard: View {
+    @ObservedObject var progressViewModel: ProgressViewModel
+    @ObservedObject var programViewModel: WorkoutProgramViewModel
+    
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good Morning"
+        case 12..<17:
+            return "Good Afternoon"
+        default:
+            return "Good Evening"
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
+    }
+    
+    private var currentStreak: Int {
+        progressViewModel.currentStreak
+    }
+    
+    private var encouragingQuote: String {
+        let streak = currentStreak
+        let workoutCount = progressViewModel.workoutCount
+        let daysSinceLastWorkout = progressViewModel.daysSinceLastWorkout
+        
+        // Streak-based quotes
+        if streak >= 30 {
+            return "🔥 You're on fire! \(streak) days strong!"
+        } else if streak >= 14 {
+            return "💪 Two weeks strong! Keep the momentum going!"
+        } else if streak >= 7 {
+            return "🌟 A week of consistency! You're building something great!"
+        } else if streak >= 3 {
+            return "✨ Building a habit! Every day counts!"
+        } else if streak > 0 {
+            return "🎯 Great start! Keep it going!"
+        }
+        
+        // Adaptive quotes based on workout patterns
+        if workoutCount == 0 {
+            return "🚀 Ready to start your fitness journey?"
+        } else if daysSinceLastWorkout == 0 {
+            return "💯 You crushed it today! Rest and recover."
+        } else if daysSinceLastWorkout == 1 {
+            return "💪 Time to get back at it! You've got this!"
+        } else if daysSinceLastWorkout >= 3 {
+            return "🔥 Let's get back on track! Your future self will thank you."
+        } else if workoutCount >= 50 {
+            return "🏆 \(workoutCount) workouts completed! You're a champion!"
+        } else if workoutCount >= 20 {
+            return "⭐ You're making real progress! Keep pushing!"
+        }
+        
+        // Default encouraging quote
+        return "💪 Every workout makes you stronger!"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Greeting
+            Text(greeting)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(AppColors.foreground)
+            
+            // Encouraging Quote
+            Text(encouragingQuote)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
     }
 }
 
@@ -384,7 +457,7 @@ struct RecentPRsStatCard: View {
                 
                 // Trend indicator
                 if recentPRsCount > 0 {
-                    TrendIndicator(
+                    TrendIndicatorView(
                         change: trendData.change,
                         percentage: trendData.percentage,
                         isNew: trendData.isNew
@@ -503,7 +576,7 @@ struct TopExerciseStatCard: View {
                     
                     // Trend indicator
                     if exercise.count > 0 {
-                        TrendIndicator(
+                        TrendIndicatorView(
                             change: trendData.change,
                             percentage: trendData.percentage,
                             isNew: trendData.isNew
@@ -560,7 +633,7 @@ struct TopExerciseStatCard: View {
 
 // MARK: - Trend Indicator
 
-struct TrendIndicator: View {
+struct TrendIndicatorView: View {
     let change: Int
     let percentage: Double
     let isNew: Bool
@@ -684,6 +757,7 @@ struct DashboardView_Previews: PreviewProvider {
             workoutViewModel: workoutVM,
             templatesViewModel: templatesVM,
             programViewModel: programVM,
+            themeManager: themeMgr,
             onStartWorkout: {},
             onSettings: {},
             onNavigateToProgress: nil

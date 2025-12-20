@@ -1,3 +1,10 @@
+//
+//  ThemeManager.swift
+//  Ascend
+//
+//  Manager for app theme mode (light/dark/system)
+//
+
 import Foundation
 import SwiftUI
 import Combine
@@ -45,8 +52,3 @@ class ThemeManager: ObservableObject {
         updateColorScheme()
     }
 }
-
-
-
-
-

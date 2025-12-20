@@ -3,6 +3,9 @@ import SwiftUI
 @main
 struct WorkoutTrackerApp: App {
     init() {
+        // Pre-initialize ColorThemeProvider to ensure colors load instantly
+        _ = ColorThemeProvider.shared
+        
         // Request notification permissions on app launch
         Task {
             let hasPermission = await NotificationManager.shared.checkNotificationPermission()

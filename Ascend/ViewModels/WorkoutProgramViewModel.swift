@@ -494,5 +494,35 @@ class WorkoutProgramViewModel: ObservableObject {
         // Otherwise, return 0.0 (no completion)
         return 0.0
     }
+    
+    /// Get the next program workout template (for Dashboard quick actions)
+    func nextProgramWorkout() -> WorkoutTemplate? {
+        guard let active = activeProgram,
+              let program = programs.first(where: { $0.id == active.programId }),
+              let currentDay = getCurrentDay(for: program) else {
+            return nil
+        }
+        
+        // Convert WorkoutDay to WorkoutTemplate
+        let exercises = currentDay.exercises.map { dayExercise in
+            TemplateExercise(
+                name: dayExercise.name,
+                sets: dayExercise.sets,
+                reps: dayExercise.reps,
+                dropsets: false,
+                exerciseType: dayExercise.exerciseType,
+                targetHoldDuration: dayExercise.targetHoldDuration
+            )
+        }
+        
+        return WorkoutTemplate(
+            id: UUID(),
+            name: currentDay.name,
+            exercises: exercises,
+            estimatedDuration: currentDay.estimatedDuration,
+            intensity: .moderate,
+            isDefault: false
+        )
+    }
 }
 

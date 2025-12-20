@@ -12,6 +12,8 @@ struct ExerciseHistoryView: View {
     @State private var cachedExerciseHistory: [ExerciseSetData] = []
     @State private var cachedPRs: [PersonalRecord] = []
     @State private var cachedChartData: [ChartDataPoint] = []
+    @State private var isLoading: Bool = true
+    @State private var loadError: Error?
     
     private var exerciseHistory: [ExerciseSetData] {
         cachedExerciseHistory
@@ -30,54 +32,91 @@ struct ExerciseHistoryView: View {
     @State private var showWeightChart: Bool = true
     
     private func loadExerciseHistory() {
-        // Get all workouts containing this exercise
-        let workouts = workoutHistoryManager.completedWorkouts
-            .filter { workout in
-                workout.exercises.contains { $0.name == exerciseName }
-            }
+        // Check cache first
+        if let cached = CardDetailCacheManager.shared.getCachedExerciseHistory(exerciseName) {
+            cachedExerciseHistory = cached.history
+            cachedPRs = cached.prs
+            cachedChartData = cached.chartData
+            isLoading = false
+            return
+        }
         
-        // Extract all sets for this exercise
-        var sets: [ExerciseSetData] = []
-        for workout in workouts {
-            if let exercise = workout.exercises.first(where: { $0.name == exerciseName }) {
-                for set in exercise.sets where !set.isDropset {
-                    sets.append(ExerciseSetData(
-                        date: workout.startDate,
-                        weight: set.weight,
-                        reps: set.reps,
-                        workoutName: workout.name
-                    ))
+        isLoading = true
+        loadError = nil
+        
+        // Capture values needed for background processing
+        let exerciseNameToLoad = exerciseName
+        let workoutsToProcess = workoutHistoryManager.completedWorkouts
+        let progressPRs = progressViewModel?.prs
+        
+        // Load on background queue for better performance
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Get all workouts containing this exercise
+            let workouts = workoutsToProcess
+                .filter { workout in
+                    workout.exercises.contains { $0.name == exerciseNameToLoad }
+                }
+            
+            // Extract all sets for this exercise
+            var sets: [ExerciseSetData] = []
+            for workout in workouts {
+                if let exercise = workout.exercises.first(where: { $0.name == exerciseNameToLoad }) {
+                    for set in exercise.sets where !set.isDropset {
+                        sets.append(ExerciseSetData(
+                            date: workout.startDate,
+                            weight: set.weight,
+                            reps: set.reps,
+                            workoutName: workout.name
+                        ))
+                    }
                 }
             }
-        }
-        
-        // Sort history for table / weight progression (newest first)
-        cachedExerciseHistory = sets.sorted { $0.date > $1.date }
-        
-        // Prefer explicitly tracked PRs when available
-        let explicitPRs = progressViewModel?.prs.filter { $0.exercise == exerciseName } ?? []
-        if !explicitPRs.isEmpty {
-            cachedPRs = explicitPRs
-        } else {
-            // Derive PR milestones from historical sets so charts work with legacy data
-            let ascendingHistory = sets.sorted { $0.date < $1.date }
-            cachedPRs = derivePRsFromHistory(ascendingHistory)
-        }
-        
-        // Update chart data from full history
-        cachedChartData = cachedExerciseHistory.map { set in
-            ChartDataPoint(
-                date: set.date,
-                weight: set.weight,
-                reps: set.reps,
-                volume: set.weight * Double(set.reps)
-            )
+            
+            // Sort history for table / weight progression (newest first)
+            let sortedHistory = sets.sorted { $0.date > $1.date }
+            
+            // Prefer explicitly tracked PRs when available
+            let explicitPRs = progressPRs?.filter { $0.exercise == exerciseNameToLoad } ?? []
+            let prs: [PersonalRecord]
+            if !explicitPRs.isEmpty {
+                prs = explicitPRs
+            } else {
+                // Derive PR milestones from historical sets so charts work with legacy data
+                let ascendingHistory = sets.sorted { $0.date < $1.date }
+                prs = ExerciseHistoryView.derivePRsFromHistory(ascendingHistory, exerciseName: exerciseNameToLoad)
+            }
+            
+            // Update chart data from full history
+            let chartData = sortedHistory.map { set in
+                ChartDataPoint(
+                    date: set.date,
+                    weight: set.weight,
+                    reps: set.reps,
+                    volume: set.weight * Double(set.reps)
+                )
+            }
+            
+            // Update UI on main thread
+            DispatchQueue.main.async {
+                self.cachedExerciseHistory = sortedHistory
+                self.cachedPRs = prs
+                self.cachedChartData = chartData
+                self.isLoading = false
+                
+                // Cache the results
+                CardDetailCacheManager.shared.cacheExerciseHistory(
+                    exerciseNameToLoad,
+                    history: sortedHistory,
+                    prs: prs,
+                    chartData: chartData
+                )
+            }
         }
     }
     
     /// Derive a sequence of PR milestones from raw set history.
     /// This allows PR charts to render even for workouts logged before explicit PR tracking existed.
-    private func derivePRsFromHistory(_ history: [ExerciseSetData]) -> [PersonalRecord] {
+    private static func derivePRsFromHistory(_ history: [ExerciseSetData], exerciseName: String) -> [PersonalRecord] {
         var derived: [PersonalRecord] = []
         var bestWeight: Double = 0
         var bestReps: Int = 0
@@ -122,14 +161,19 @@ struct ExerciseHistoryView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                LazyVStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
                         Text(exerciseName)
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(AppColors.foreground)
                         
-                        if exerciseHistory.isEmpty {
+                        if isLoading {
+                            ShimmerView()
+                                .frame(height: 16)
+                                .frame(maxWidth: 150)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        } else if exerciseHistory.isEmpty {
                             Text("No sets completed yet")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(AppColors.mutedForeground)
@@ -142,8 +186,25 @@ struct ExerciseHistoryView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     
+                    // Loading State
+                    if isLoading {
+                        ExerciseHistoryPlaceholder()
+                    }
+                    
+                    // Error State
+                    if let error = loadError {
+                        ErrorStateView(
+                            message: "Failed to load exercise history",
+                            error: error.localizedDescription,
+                            onRetry: {
+                                loadExerciseHistory()
+                            }
+                        )
+                        .padding(.horizontal, 20)
+                    }
+                    
                     // Empty State
-                    if exerciseHistory.isEmpty && prs.isEmpty {
+                    if !isLoading && loadError == nil && exerciseHistory.isEmpty && prs.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .font(.system(size: 48))
@@ -164,7 +225,7 @@ struct ExerciseHistoryView: View {
                     
                     // PR Trend Chart (collapsible)
                     // Show as soon as at least one PR exists for this exercise
-                    if !prs.isEmpty {
+                    if !isLoading && !prs.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -239,7 +300,7 @@ struct ExerciseHistoryView: View {
                     }
                     
                     // PR Section
-                    if !prs.isEmpty {
+                    if !isLoading && !prs.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Personal Records")
                                 .font(.system(size: 20, weight: .bold))
@@ -273,7 +334,7 @@ struct ExerciseHistoryView: View {
                     }
                     
                     // Weight Progression Chart (collapsible)
-                    if !chartData.isEmpty {
+                    if !isLoading && !chartData.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -324,7 +385,7 @@ struct ExerciseHistoryView: View {
                     }
                     
                     // Recent Sets
-                    if !exerciseHistory.isEmpty {
+                    if !isLoading && !exerciseHistory.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Recent Sets")
                                 .font(.system(size: 20, weight: .bold))
@@ -374,8 +435,11 @@ struct ExerciseHistoryView: View {
                 loadExerciseHistory()
             }
             .onChange(of: workoutHistoryManager.completedWorkouts.count) { _, _ in
+                // Invalidate cache when workouts change
+                CardDetailCacheManager.shared.invalidateExerciseHistoryCache(exerciseName)
                 loadExerciseHistory()
             }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 }

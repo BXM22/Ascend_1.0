@@ -177,3 +177,11 @@ private struct EmptyTrendPlaceholder: View {
 
 
 
+
+
+
+
+
+
+
+
