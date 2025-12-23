@@ -1,5 +1,5 @@
 //
-//  CollapsibleInsightsView.swift
+//  CollapsibleMuscleChartSection.swift
 //  Ascend
 //
 //  Created on December 18, 2025.
@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// Collapsible container for insights grid
-struct CollapsibleInsightsView: View {
+/// Collapsible container for muscle chart
+struct CollapsibleMuscleChartSection: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     @Binding var isExpanded: Bool
     let onToggle: (() -> Void)?
@@ -30,7 +30,7 @@ struct CollapsibleInsightsView: View {
                 }
             }) {
                 HStack {
-                    Text("Insights")
+                    Text("Muscle Chart")
                         .font(AppTypography.heading2)
                         .foregroundColor(AppColors.foreground)
                     
@@ -49,18 +49,12 @@ struct CollapsibleInsightsView: View {
             
             // Collapsible Content
             if isExpanded {
-                InsightsGrid(progressViewModel: progressViewModel)
+                MuscleGroupChart(progressViewModel: progressViewModel)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
-}
-
-// MARK: - Preview
-#Preview {
-    ScrollView {
-        CollapsibleInsightsView(progressViewModel: ProgressViewModel())
-    }
-    .background(AppColors.background)
 }
 

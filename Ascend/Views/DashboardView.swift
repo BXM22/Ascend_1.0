@@ -15,6 +15,23 @@ struct DashboardView: View {
     let onNavigateToProgress: (() -> Void)?
     
     @State private var showWorkoutHistory = false
+    @State private var selectedTab: DashboardTab = .overview
+    @State private var insightsExpanded: Bool = true
+    @State private var muscleChartExpanded: Bool = true
+    
+    enum DashboardTab: String, CaseIterable {
+        case overview = "Overview"
+        case activity = "Activity"
+        case analytics = "Analytics"
+        
+        var icon: String {
+            switch self {
+            case .overview: return "house.fill"
+            case .activity: return "calendar"
+            case .analytics: return "chart.bar.fill"
+            }
+        }
+    }
     
     init(
         progressViewModel: ProgressViewModel,
@@ -37,70 +54,39 @@ struct DashboardView: View {
     }
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                // Header scrolls with content
-                DashboardHeader(
-                    progressViewModel: progressViewModel,
-                    programViewModel: programViewModel,
-                    themeManager: themeManager,
-                    onSettings: onSettings,
-                    onShowHistory: {
-                        showWorkoutHistory = true
-                    }
-                )
-                .id(colorThemeProvider.themeID)
-                .padding(.horizontal, 0)
-                
-                // 1. Streak and Workout Count Card
-                StreakWorkoutCard(progressViewModel: progressViewModel)
-                    .padding(.horizontal, 20)
-                
-                // 3. Active Program Day Card (if program is active)
-                if programViewModel.activeProgram != nil {
-                    ActiveProgramDayCard(
-                        programViewModel: programViewModel,
-                        templatesViewModel: templatesViewModel,
-                        workoutViewModel: workoutViewModel,
-                        onStartWorkout: onStartWorkout
-                    )
-                    .padding(.horizontal, 20)
+        VStack(spacing: 0) {
+            // Sticky Header
+            DashboardHeader(
+                progressViewModel: progressViewModel,
+                programViewModel: programViewModel,
+                themeManager: themeManager,
+                onSettings: onSettings,
+                onShowHistory: {
+                    showWorkoutHistory = true
                 }
-                
-                // 4. Suggested Workout Card (only show if no active program)
-                if programViewModel.activeProgram == nil {
-                    SuggestedWorkoutCard(
-                        workoutViewModel: workoutViewModel,
-                        templatesViewModel: templatesViewModel,
-                        programViewModel: programViewModel,
-                        onStartWorkout: onStartWorkout
-                    )
-                    .padding(.horizontal, 20)
+            )
+            .id(colorThemeProvider.themeID)
+            .background(AppColors.background)
+            
+            // Tab Selector
+            Picker("Dashboard Tab", selection: $selectedTab) {
+                ForEach(DashboardTab.allCases, id: \.self) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon)
+                        .tag(tab)
                 }
-                
-                // 5. Quick Actions (with generate workout)
-                QuickActionsSection(
-                    progressViewModel: progressViewModel,
-                    workoutViewModel: workoutViewModel,
-                    templatesViewModel: templatesViewModel,
-                    programViewModel: programViewModel,
-                    onStartWorkout: onStartWorkout
-                )
-                
-                // 6. Activity Section (with collapsible insights)
-                ActivitySection(
-                    progressViewModel: progressViewModel,
-                    programViewModel: programViewModel
-                )
-                
-                // Rest Day Button
-                RestDayButton(progressViewModel: progressViewModel)
-                    .padding(.horizontal, 20)
-                
-                // 7. Muscle Chart
-                MuscleChartSection(progressViewModel: progressViewModel)
             }
-            .padding(.bottom, 100) // Padding for tab bar
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(AppColors.background)
+            
+            // Tab Content
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    tabContent
+                }
+                .padding(.bottom, 100) // Padding for tab bar
+            }
         }
         .onAppear {
             // Ensure data is loaded when dashboard appears
@@ -116,11 +102,141 @@ struct DashboardView: View {
             for date in newDates {
                 progressViewModel.addWorkoutDate(date)
             }
+            
+            // Load saved preferences (default to collapsed for better initial view)
+            if UserDefaults.standard.object(forKey: "dashboard.insightsExpanded") == nil {
+                insightsExpanded = false // Default collapsed
+            } else {
+                insightsExpanded = UserDefaults.standard.bool(forKey: "dashboard.insightsExpanded")
+            }
+            
+            if UserDefaults.standard.object(forKey: "dashboard.muscleChartExpanded") == nil {
+                muscleChartExpanded = true // Default expanded
+            } else {
+                muscleChartExpanded = UserDefaults.standard.bool(forKey: "dashboard.muscleChartExpanded")
+            }
+            
+            // Preload template data for active program
+            if programViewModel.activeProgram != nil {
+                preloadActiveProgramData()
+            }
+            
+            // Warm cache
+            CardDetailCacheManager.shared.warmCache(
+                programs: programViewModel.programs,
+                templates: templatesViewModel.templates
+            )
         }
         .background(AppColors.background)
         .id(colorThemeProvider.themeID)
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
+        }
+    }
+    
+    @ViewBuilder
+    private var tabContent: some View {
+        switch selectedTab {
+        case .overview:
+            overviewContent
+        case .activity:
+            activityContent
+        case .analytics:
+            analyticsContent
+        }
+    }
+    
+    private var overviewContent: some View {
+        VStack(spacing: 16) {
+            // Streak and Workout Count Card
+            StreakWorkoutCard(progressViewModel: progressViewModel)
+                .padding(.horizontal, 20)
+            
+            // Active Program Day Card (if program is active)
+            if programViewModel.activeProgram != nil {
+                ActiveProgramDayCard(
+                    programViewModel: programViewModel,
+                    templatesViewModel: templatesViewModel,
+                    workoutViewModel: workoutViewModel,
+                    onStartWorkout: onStartWorkout
+                )
+                .padding(.horizontal, 20)
+            }
+            
+            // Suggested Workout Card (only show if no active program)
+            if programViewModel.activeProgram == nil {
+                SuggestedWorkoutCard(
+                    workoutViewModel: workoutViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    onStartWorkout: onStartWorkout
+                )
+                .padding(.horizontal, 20)
+            }
+            
+            // Quick Actions
+            QuickActionsSection(
+                progressViewModel: progressViewModel,
+                workoutViewModel: workoutViewModel,
+                templatesViewModel: templatesViewModel,
+                programViewModel: programViewModel,
+                onStartWorkout: onStartWorkout
+            )
+            
+            // Rest Day Button
+            RestDayButton(progressViewModel: progressViewModel)
+                .padding(.horizontal, 20)
+        }
+    }
+    
+    private var activityContent: some View {
+        VStack(spacing: 16) {
+            // Activity Section (includes insights)
+            ActivitySection(
+                progressViewModel: progressViewModel,
+                programViewModel: programViewModel
+            )
+        }
+    }
+    
+    private var analyticsContent: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Muscle Chart
+                CollapsibleMuscleChartSection(
+                    progressViewModel: progressViewModel,
+                    isExpanded: $muscleChartExpanded,
+                    onToggle: {
+                        muscleChartExpanded.toggle()
+                        UserDefaults.standard.set(muscleChartExpanded, forKey: "dashboard.muscleChartExpanded")
+                    }
+                )
+                .padding(.top, 8)
+            }
+            .padding(.bottom, 100)
+        }
+    }
+    
+    private func preloadActiveProgramData() {
+        // Capture needed values explicitly
+        let programVM = programViewModel
+        let templatesVM = templatesViewModel
+        
+        DispatchQueue.global(qos: .utility).async {
+            guard let active = programVM.activeProgram,
+                  let program = programVM.programs.first(where: { $0.id == active.programId }),
+                  let currentDay = programVM.getCurrentDay(for: program) else {
+                return
+            }
+            
+            // Preload current day template
+            if let templateId = currentDay.templateId {
+                if CardDetailCacheManager.shared.getCachedTemplate(templateId) == nil {
+                    if let template = templatesVM.templates.first(where: { $0.id == templateId }) {
+                        CardDetailCacheManager.shared.cacheTemplate(template)
+                    }
+                }
+            }
         }
     }
 }

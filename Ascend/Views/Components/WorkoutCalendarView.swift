@@ -2,8 +2,10 @@ import SwiftUI
 
 struct WorkoutCalendarView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var templatesViewModel: TemplatesViewModel
     @State private var selectedDate = Date()
     @State private var currentMonth = Date()
+    @State private var expandedDayDate: Date?
     
     var activeProgramInfo: (program: WorkoutProgram, activeProgram: ActiveProgram)? {
         guard let active = programViewModel.activeProgram,
@@ -88,7 +90,19 @@ struct WorkoutCalendarView: View {
                                 isCompleted: programViewModel.isDateCompleted(date, inProgram: info.program.id)
                             )
                             .onTapGesture {
-                                selectedDate = date
+                                if selectedDate == date && expandedDayDate == date {
+                                    // Toggle expansion off
+                                    expandedDayDate = nil
+                                } else {
+                                    selectedDate = date
+                                    // Toggle expansion on if day is not a rest day
+                                    if let workoutDay = getWorkoutDay(for: date, program: info.program, activeProgram: info.activeProgram),
+                                       !workoutDay.isRestDay {
+                                        expandedDayDate = date
+                                    } else {
+                                        expandedDayDate = nil
+                                    }
+                                }
                             }
                         }
                     }
@@ -96,34 +110,50 @@ struct WorkoutCalendarView: View {
                 
                 // Selected Date Info
                 if let workoutDay = getWorkoutDay(for: selectedDate, program: info.program, activeProgram: info.activeProgram) {
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text(selectedDateString)
-                            .font(AppTypography.bodyBold)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        HStack {
-                            if workoutDay.isRestDay {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "moon.zzz.fill")
-                                    Text("Rest Day")
-                                }
-                                .font(AppTypography.bodyMedium)
-                                .foregroundColor(AppColors.textSecondary)
-                            } else {
-                                Text(workoutDay.name)
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text(selectedDateString)
+                                .font(AppTypography.bodyBold)
+                                .foregroundColor(AppColors.textPrimary)
+                            
+                            HStack {
+                                if workoutDay.isRestDay {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "moon.zzz.fill")
+                                        Text("Rest Day")
+                                    }
                                     .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                            
-                            Spacer()
-                            
-                            if programViewModel.isDateCompleted(selectedDate, inProgram: info.program.id) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(AppColors.accent)
+                                    .foregroundColor(AppColors.textSecondary)
+                                } else {
+                                    Text(workoutDay.name)
+                                        .font(AppTypography.bodyMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                }
+                                
+                                Spacer()
+                                
+                                if programViewModel.isDateCompleted(selectedDate, inProgram: info.program.id) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(AppColors.accent)
+                                }
                             }
                         }
+                        .padding(.top, AppSpacing.sm)
+                        
+                        // Day Type Info Card (expanded)
+                        if expandedDayDate == selectedDate, !workoutDay.isRestDay,
+                           let dayIndex = getDayIndex(for: selectedDate, program: info.program, activeProgram: info.activeProgram) {
+                            DayTypeInfoCard(
+                                day: workoutDay,
+                                dayIndex: dayIndex,
+                                program: info.program,
+                                templatesViewModel: templatesViewModel,
+                                programViewModel: programViewModel
+                            )
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .animation(AppAnimations.smooth, value: expandedDayDate)
+                        }
                     }
-                    .padding(.top, AppSpacing.sm)
                 }
             } else {
                 Text("No active program")

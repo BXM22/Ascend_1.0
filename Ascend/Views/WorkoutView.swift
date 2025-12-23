@@ -354,8 +354,7 @@ struct LegacyWorkoutView: View {
                     holdDuration: $holdDuration,
                     onCompleteSet: {
                         if isCurrent {
-                            let duration = Int(holdDuration) ?? 0
-                            viewModel.completeStretchSet(duration: duration > 0 ? duration : nil)
+                            viewModel.completeStretchSet()
                         }
                     }
                 )

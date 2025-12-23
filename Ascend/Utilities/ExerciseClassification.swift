@@ -78,11 +78,29 @@ struct WorkoutDayTypeExtractor {
     /// Extract day type from workout name
     static func extract(from name: String) -> String? {
         let nameLower = name.lowercased()
-        if nameLower.contains("push") {
-            return "Push"
-        } else if nameLower.contains("pull") {
+        
+        // Check for compound day types first (more specific)
+        if (nameLower.contains("chest") && nameLower.contains("back")) || 
+           (nameLower.contains("push") && nameLower.contains("pull")) {
+            return "Push/Pull" // Combined push and pull
+        } else if (nameLower.contains("shoulders") && nameLower.contains("arms")) ||
+                  (nameLower.contains("shoulder") && nameLower.contains("arm")) {
+            return "Push" // Shoulders & Arms is primarily push
+        } else if (nameLower.contains("back") && nameLower.contains("biceps")) ||
+                  (nameLower.contains("back") && nameLower.contains("bicep")) {
             return "Pull"
-        } else if nameLower.contains("leg") {
+        } else if (nameLower.contains("chest") && nameLower.contains("triceps")) ||
+                  (nameLower.contains("chest") && nameLower.contains("tricep")) {
+            return "Push"
+        }
+        
+        // Check for single day types
+        if nameLower.contains("push") || nameLower.contains("chest") || nameLower.contains("shoulder") {
+            return "Push"
+        } else if nameLower.contains("pull") || nameLower.contains("back") || nameLower.contains("bicep") {
+            return "Pull"
+        } else if nameLower.contains("leg") || nameLower.contains("quad") || nameLower.contains("hamstring") || 
+                  nameLower.contains("glute") || nameLower.contains("calf") {
             return "Legs"
         } else if nameLower.contains("upper") {
             return "Upper"
@@ -90,13 +108,8 @@ struct WorkoutDayTypeExtractor {
             return "Lower"
         } else if nameLower.contains("full") || nameLower.contains("body") {
             return "Full Body"
-        } else if nameLower.contains("chest") && nameLower.contains("back") {
-            return "Push" // Chest & Back is similar to Push
-        } else if nameLower.contains("back") {
-            return "Pull"
-        } else if nameLower.contains("shoulders") {
-            return "Push"
         }
+        
         return nil
     }
 }

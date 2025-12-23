@@ -70,6 +70,12 @@ class ExerciseUsageTracker: ObservableObject {
         cachedMostUsed = nil
     }
     
+    func removeExercise(_ exerciseName: String) {
+        recentExercises.removeAll { $0 == exerciseName }
+        exerciseUsageCounts.removeValue(forKey: exerciseName)
+        cachedMostUsed = nil
+    }
+    
     private func setupAutoSave() {
         Publishers.CombineLatest($recentExercises, $exerciseUsageCounts)
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)

@@ -15,12 +15,17 @@ struct SuggestedWorkoutCard: View {
     // Check if there's an active program
     private var activeProgramDay: (name: String, day: WorkoutDay, programName: String)? {
         guard let activeProgram = programViewModel.activeProgram,
-              let program = WorkoutProgramManager.shared.programs.first(where: { $0.id == activeProgram.programId }),
-              activeProgram.currentDayIndex < program.days.count else {
+              let program = programViewModel.programs.first(where: { $0.id == activeProgram.programId }) else {
             return nil
         }
         
-        let day = program.days[activeProgram.currentDayIndex]
+        // Calculate current day index based on start date
+        let currentDayIndex = activeProgram.getCurrentDayIndex(totalDays: program.days.count)
+        guard currentDayIndex < program.days.count else {
+            return nil
+        }
+        
+        let day = program.days[currentDayIndex]
         return (day.name, day, program.name)
     }
     
@@ -93,18 +98,28 @@ struct SuggestedWorkoutCard: View {
     }
     
     private func startSuggestedWorkout() {
+        HapticManager.impact(style: .medium)
+        
         // If there's an active program, start that day
         if let programDay = activeProgramDay {
+            Logger.info("Starting active program day: \(programDay.name)", category: .general)
             // Check if day has template or exercises
             if let templateId = programDay.day.templateId,
                let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+                Logger.info("Found template for program day: \(template.name)", category: .general)
                 templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                onStartWorkout()
+                DispatchQueue.main.async {
+                    self.onStartWorkout()
+                }
             } else if !programDay.day.exercises.isEmpty {
+                Logger.info("Starting program day with exercises", category: .general)
                 startProgramDay(programDay.day, programName: programDay.programName)
-                onStartWorkout()
+                DispatchQueue.main.async {
+                    self.onStartWorkout()
+                }
             } else {
                 // Generate workout for this day
+                Logger.info("Generating workout for program day", category: .general)
                 if let active = programViewModel.activeProgram,
                    let program = programViewModel.programs.first(where: { $0.id == active.programId }) {
                     let dayIndex = active.getCurrentDayIndex(totalDays: program.days.count)
@@ -119,15 +134,40 @@ struct SuggestedWorkoutCard: View {
                             showGeneratedAlert = true
                         }
                         templatesViewModel.startTemplate(result.template, workoutViewModel: workoutViewModel)
-                        onStartWorkout()
+                        DispatchQueue.main.async {
+                            self.onStartWorkout()
+                        }
                     }
                 }
             }
         }
         // Otherwise start suggested template
         else if let suggestion = suggestedTemplate {
+            Logger.info("Starting suggested workout: \(suggestion.template.name) with \(suggestion.template.exercises.count) exercises", category: .general)
             templatesViewModel.startTemplate(suggestion.template, workoutViewModel: workoutViewModel)
-            onStartWorkout()
+            // Verify workout was set and call callback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if self.workoutViewModel.currentWorkout != nil {
+                    Logger.info("Workout successfully set: \(self.workoutViewModel.currentWorkout?.name ?? "unknown")", category: .general)
+                    self.onStartWorkout()
+                } else {
+                    Logger.error("Workout was not set after starting template", category: .general)
+                }
+            }
+        } else {
+            // If no suggestion available, generate a default workout
+            Logger.info("No suggested template found, generating default workout", category: .general)
+            let defaultTemplate = templatesViewModel.generateWorkout(name: "Quick Workout")
+            Logger.info("Generated default template: \(defaultTemplate.name) with \(defaultTemplate.exercises.count) exercises", category: .general)
+            templatesViewModel.startTemplate(defaultTemplate, workoutViewModel: workoutViewModel)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if self.workoutViewModel.currentWorkout != nil {
+                    Logger.info("Default workout successfully set", category: .general)
+                    self.onStartWorkout()
+                } else {
+                    Logger.error("Default workout was not set", category: .general)
+                }
+            }
         }
     }
     
@@ -169,14 +209,15 @@ struct SuggestedWorkoutCard: View {
             icon = template.icon
             gradient = template.gradient
         } else {
-            title = "No Templates"
-            name = "Create a template to get started"
-            icon = "plus.circle"
+            title = "Quick Workout"
+            name = "Generate a workout"
+            icon = "sparkles"
             gradient = LinearGradient.primaryGradient
         }
         
         return Button(action: {
-            HapticManager.impact(style: .medium)
+            print("🔵 SuggestedWorkoutCard button tapped")
+            Logger.info("SuggestedWorkoutCard button tapped", category: .general)
             startSuggestedWorkout()
         }) {
             HStack(spacing: 16) {
@@ -238,7 +279,6 @@ struct SuggestedWorkoutCard: View {
             )
         }
         .buttonStyle(ScaleButtonStyle())
-        .disabled(suggestedTemplate == nil && activeProgramDay == nil)
         .alert("Workout Generated", isPresented: $showGeneratedAlert, presenting: generatedWorkoutInfo) { info in
             Button("Got it", role: .cancel) { }
         } message: { info in

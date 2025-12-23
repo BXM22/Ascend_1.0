@@ -11,6 +11,8 @@ class TemplatesViewModel: ObservableObject {
             PerformanceOptimizer.shared.debouncedSave {
                 self.saveTemplates()
             }
+            // Rebuild index when templates change
+            rebuildSuggestionsIndex()
         }
     }
     @Published var generationSettings = WorkoutGenerationSettings()
@@ -22,8 +24,14 @@ class TemplatesViewModel: ObservableObject {
     private var cachedCalisthenicsTemplates: [WorkoutTemplate]?
     private let processingQueue = DispatchQueue(label: "com.ascend.templatesProcessing", qos: .utility)
     
+    // Template suggestions index for faster lookups
+    private var templateSuggestionsIndex: [String: [WorkoutTemplate]] = [:]
+    private var indexLastUpdated: Date?
+    
     init() {
         loadTemplates()
+        // Pre-build suggestions index in background
+        rebuildSuggestionsIndex()
     }
     
     func loadTemplates() {
@@ -231,13 +239,127 @@ class TemplatesViewModel: ObservableObject {
         editingTemplate = nil
     }
     
-    func deleteTemplate(_ template: WorkoutTemplate) {
+    func deleteTemplate(_ template: WorkoutTemplate, progressViewModel: ProgressViewModel? = nil) {
         // Don't allow deletion of default templates
         guard !template.isDefault else {
             Logger.info("Cannot delete default template: \(template.name)", category: Logger.Category.validation)
             return
         }
+        
+        // Clean up exercise data for all exercises in this template
+        if let progressVM = progressViewModel {
+            for exercise in template.exercises {
+                progressVM.removeExerciseData(exerciseName: exercise.name)
+            }
+        }
+        
         templates.removeAll { $0.id == template.id }
+        
+        Logger.info("✅ Deleted template: \(template.name) and cleaned up exercise data", category: .general)
+    }
+    
+    /// Suggest templates that match a specific workout day type
+    /// - Parameter dayType: The workout day type (e.g., "Push", "Pull", "Legs", "Upper", "Lower", "Full Body")
+    /// - Returns: Array of matching templates, sorted by relevance
+    func suggestTemplatesForDayType(_ dayType: String?) -> [WorkoutTemplate] {
+        guard let dayType = dayType else { return [] }
+        
+        let dayTypeLower = dayType.lowercased()
+        
+        // Check index first for instant results
+        if let indexed = templateSuggestionsIndex[dayTypeLower] {
+            return indexed
+        }
+        
+        // Check cache manager
+        if let cached = CardDetailCacheManager.shared.getCachedTemplateSuggestions(for: dayType) {
+            templateSuggestionsIndex[dayTypeLower] = cached
+            return cached
+        }
+        
+        // Compute if not cached
+        let result = computeTemplateSuggestions(for: dayTypeLower)
+        
+        // Cache the result
+        templateSuggestionsIndex[dayTypeLower] = result
+        CardDetailCacheManager.shared.cacheTemplateSuggestions(for: dayType, templates: result)
+        
+        return result
+    }
+    
+    private func computeTemplateSuggestions(for dayTypeLower: String) -> [WorkoutTemplate] {
+        // Filter out progression templates
+        let availableTemplates = templates.filter { !$0.name.contains("Progression") }
+        
+        // Define keywords for each day type
+        let keywords: [String]
+        if dayTypeLower.contains("push") {
+            keywords = ["push", "chest", "shoulders", "shoulder", "triceps", "tricep", "pecs", "pectoral"]
+        } else if dayTypeLower.contains("pull") {
+            keywords = ["pull", "back", "biceps", "bicep", "lats", "lat", "row", "rowing"]
+        } else if dayTypeLower.contains("leg") {
+            keywords = ["leg", "quad", "hamstring", "glute", "calf", "calves", "squat", "deadlift"]
+        } else if dayTypeLower.contains("upper") {
+            keywords = ["upper", "chest", "back", "shoulders", "arms", "biceps", "triceps"]
+        } else if dayTypeLower.contains("lower") {
+            keywords = ["lower", "leg", "quad", "hamstring", "glute", "squat", "deadlift"]
+        } else if dayTypeLower.contains("full") || dayTypeLower.contains("body") {
+            keywords = ["full", "body", "total", "complete"]
+        } else {
+            keywords = []
+        }
+        
+        guard !keywords.isEmpty else { return [] }
+        
+        // Score templates based on keyword matches
+        let scoredTemplates = availableTemplates.map { template -> (template: WorkoutTemplate, score: Int) in
+            let templateNameLower = template.name.lowercased()
+            var score = 0
+            
+            // Exact day type match gets highest score
+            if templateNameLower.contains(dayTypeLower) {
+                score += 10
+            }
+            
+            // Keyword matches
+            for keyword in keywords {
+                if templateNameLower.contains(keyword) {
+                    score += 1
+                }
+            }
+            
+            return (template, score)
+        }
+        .filter { $0.score > 0 } // Only return templates with matches
+        .sorted { $0.score > $1.score } // Sort by score descending
+        
+        // Return top 5 matching templates
+        return Array(scoredTemplates.prefix(5).map { $0.template })
+    }
+    
+    /// Rebuild the template suggestions index in background
+    private func rebuildSuggestionsIndex() {
+        processingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let dayTypes = ["push", "pull", "legs", "upper", "lower", "full body"]
+            var index: [String: [WorkoutTemplate]] = [:]
+            
+            for dayType in dayTypes {
+                let suggestions = self.computeTemplateSuggestions(for: dayType)
+                index[dayType] = suggestions
+            }
+            
+            DispatchQueue.main.async {
+                self.templateSuggestionsIndex = index
+                self.indexLastUpdated = Date()
+                
+                // Also update cache manager
+                for (dayType, templates) in index {
+                    CardDetailCacheManager.shared.cacheTemplateSuggestions(for: dayType, templates: templates)
+                }
+            }
+        }
     }
     
     // Generate workout using WorkoutGenerator

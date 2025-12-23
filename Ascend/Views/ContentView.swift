@@ -117,6 +117,7 @@ struct ContentView: View {
                         workoutViewModel: workoutViewModel,
                         programViewModel: programViewModel,
                         themeManager: themeManager,
+                        progressViewModel: progressViewModel,
                         onStartTemplate: {
                             withAnimation(AppAnimations.standard) {
                                 selectedTab = .workout

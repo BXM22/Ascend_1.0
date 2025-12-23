@@ -45,7 +45,9 @@ struct WorkoutProgramsSection: View {
                 if let program = selectedProgram {
                     WorkoutProgramView(
                         program: program,
-                        workoutViewModel: workoutViewModel
+                        workoutViewModel: workoutViewModel,
+                        programViewModel: workoutViewModel.programViewModel,
+                        templatesViewModel: workoutViewModel.templatesViewModel
                     )
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {

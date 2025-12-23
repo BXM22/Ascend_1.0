@@ -548,6 +548,34 @@ class ProgressViewModel: ObservableObject {
         Logger.info("✅ PR deleted: \(pr.exercise) - \(Int(pr.weight)) lbs × \(pr.reps) reps | Remaining PRs: \(prs.count)", category: .general)
     }
     
+    /// Remove all data associated with an exercise (PRs, history, etc.)
+    func removeExerciseData(exerciseName: String) {
+        // Remove all PRs for this exercise
+        let prsToRemove = prs.filter { $0.exercise == exerciseName }
+        prs.removeAll { $0.exercise == exerciseName }
+        
+        // Invalidate caches
+        invalidateExerciseCache()
+        invalidateVolumeCache()
+        invalidateStreakCache()
+        
+        // Clear selected exercise if it matches
+        if selectedExercise == exerciseName {
+            selectedExercise = ""
+        }
+        
+        // Save PRs after removal
+        savePRsImmediately()
+        
+        // Clear exercise history
+        ExerciseHistoryManager.shared.clearHistory(for: exerciseName)
+        
+        // Remove from exercise usage tracking
+        ExerciseUsageTracker.shared.removeExercise(exerciseName)
+        
+        Logger.info("✅ Removed all data for exercise: \(exerciseName) - Deleted \(prsToRemove.count) PRs", category: .general)
+    }
+    
     // MARK: - Trend Data for Graphs
     
     // Cache for volume data

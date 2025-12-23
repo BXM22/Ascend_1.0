@@ -57,9 +57,6 @@ class WorkoutViewModel: ObservableObject {
     // Weight persistence per exercise
     private var lastWeightPerExercise: [String: Double] = [:]
     
-    // Cached section types per exercise name to avoid repeated ExRx lookups
-    private var exerciseSectionCache: [String: ExerciseSectionType] = [:]
-    
     /// Public property to check if timer is paused during rest
     var isTimerPausedDuringRest: Bool {
         return isTimerPaused && settingsManager.pauseTimerDuringRest
@@ -78,14 +75,12 @@ class WorkoutViewModel: ObservableObject {
         guard let workout = currentWorkout else { return [] }
         
         return workout.exercises.sorted { ex1, ex2 in
-            // Get category from ExRxExercise or custom exercise data if available
+            // Get category from ExRxExercise data if available
             let exRx1 = ExRxDirectoryManager.shared.findExercise(name: ex1.name)
             let exRx2 = ExRxDirectoryManager.shared.findExercise(name: ex2.name)
-            let custom1 = ExerciseDataManager.shared.getCustomExercise(name: ex1.name)
-            let custom2 = ExerciseDataManager.shared.getCustomExercise(name: ex2.name)
             
-            let priority1 = ex1.name.getExerciseTypePriority(category: exRx1?.category ?? custom1?.category)
-            let priority2 = ex2.name.getExerciseTypePriority(category: exRx2?.category ?? custom2?.category)
+            let priority1 = ex1.name.getExerciseTypePriority(category: exRx1?.category)
+            let priority2 = ex2.name.getExerciseTypePriority(category: exRx2?.category)
             
             // First sort by type priority
             if priority1 != priority2 {
@@ -104,7 +99,7 @@ class WorkoutViewModel: ObservableObject {
     
     /// Group exercises by section type
     var exercisesBySection: [ExerciseSectionType: [Exercise]] {
-        guard currentWorkout != nil else { return [:] }
+        guard let workout = currentWorkout else { return [:] }
         let sorted = sortedExercises
         return Dictionary(grouping: sorted) { exercise in
             getSectionType(for: exercise)
@@ -113,50 +108,19 @@ class WorkoutViewModel: ObservableObject {
     
     /// Get section type for an exercise (for displaying section indicators)
     func getSectionType(for exercise: Exercise) -> ExerciseSectionType {
-        // Use cached value first to avoid repeated ExRx lookups and string work
-        if let cached = exerciseSectionCache[exercise.name] {
-            return cached
-        }
-        
-        let resolvedType: ExerciseSectionType
-        
         // First check category from ExRxExercise data
         if let exRxExercise = ExRxDirectoryManager.shared.findExercise(name: exercise.name) {
             let category = exRxExercise.category.lowercased()
             if category == "warmup" || exercise.name.isWarmupExercise(category: exRxExercise.category) {
-                resolvedType = .warmup
+                return .warmup
             } else if category == "stretching" || exercise.name.isStretchExercise(category: exRxExercise.category) {
-                resolvedType = .stretch
+                return .stretch
             } else if category == "cardio" || exercise.name.isCardioExercise(category: exRxExercise.category) {
-                resolvedType = .cardio
-            } else {
-                // Fall back to name-based detection below
-                resolvedType = fallbackSectionType(for: exercise)
+                return .cardio
             }
-        } else if let custom = ExerciseDataManager.shared.getCustomExercise(name: exercise.name) {
-            // Next check category from CustomExercise data
-            let category = custom.category.lowercased()
-            if category == "warmup" || exercise.name.isWarmupExercise(category: custom.category) {
-                resolvedType = .warmup
-            } else if category == "stretching" || exercise.name.isStretchExercise(category: custom.category) {
-                resolvedType = .stretch
-            } else if category == "cardio" || exercise.name.isCardioExercise(category: custom.category) {
-                resolvedType = .cardio
-            } else {
-                // Fall back to name-based detection below
-                resolvedType = fallbackSectionType(for: exercise)
-            }
-        } else {
-            // Fallback to name-based detection when ExRx or custom data is unavailable
-            resolvedType = fallbackSectionType(for: exercise)
         }
         
-        exerciseSectionCache[exercise.name] = resolvedType
-        return resolvedType
-    }
-    
-    /// Pure helper for name/type-based section classification (no caching, no ExRx lookup).
-    private func fallbackSectionType(for exercise: Exercise) -> ExerciseSectionType {
+        // Fallback to name-based detection
         if exercise.name.isWarmupExercise() {
             return .warmup
         } else if exercise.name.isStretchExercise() {
@@ -218,7 +182,7 @@ class WorkoutViewModel: ObservableObject {
     
     /// Check if an exercise is a calisthenics exercise
     func isCalisthenicsExercise(_ exercise: Exercise) -> Bool {
-        // Check if exercise matches any calisthenics skill progression
+        // Check if exercise name contains any calisthenics skill name
         let calisthenicsSkillNames = CalisthenicsSkillManager.shared.skills.map { $0.name }
         for skillName in calisthenicsSkillNames {
             if exercise.name.contains(skillName) {
@@ -234,30 +198,16 @@ class WorkoutViewModel: ObservableObject {
             }
         }
         
-        // Check ExRx or custom exercise category
-        if let exRxExercise = ExRxDirectoryManager.shared.findExercise(name: exercise.name),
-           exRxExercise.category.lowercased() == "calisthenics" {
+        // If exercise type is hold, it's likely calisthenics
+        if exercise.exerciseType == .hold {
             return true
         }
         
-        if let customExercise = ExerciseDataManager.shared.getCustomExercise(name: exercise.name),
-           customExercise.category.lowercased() == "calisthenics" {
-            return true
-        }
-        
-        // If exercise type is hold and we got here via a calisthenics skill or keyword above,
-        // it's already been classified. Otherwise, don't treat generic holds as calisthenics.
         return false
     }
     
     /// Check if an exercise is a rep-based calisthenics exercise (not hold-based)
     func isRepBasedCalisthenics(_ exerciseName: String) -> Bool {
-        // Custom exercises explicitly tagged as calisthenics should be rep-based by default.
-        if let customExercise = ExerciseDataManager.shared.getCustomExercise(name: exerciseName),
-           customExercise.category.lowercased() == "calisthenics" {
-            return true
-        }
-        
         // Rep-based calisthenics exercises (these should NOT have hold duration)
         let repBasedKeywords = ["Push-up", "Pull-up", "Chin-up", "Dip", "Muscle Up"]
         for keyword in repBasedKeywords {
@@ -310,9 +260,9 @@ class WorkoutViewModel: ObservableObject {
         return formatter.string(from: NSNumber(value: volume)) ?? "\(volume)"
     }
     
-    /// Complete a stretch set (tracked by sets and optional hold duration, no weight inputs).
+    /// Complete a stretch set (tracked by sets only, no weight/reps inputs).
     /// Uses lightweight sets under the hood but skips PR/history for stretches.
-    func completeStretchSet(duration: Int? = nil) {
+    func completeStretchSet() {
         guard var exercise = currentExercise,
               var workout = currentWorkout else { return }
         
@@ -328,7 +278,7 @@ class WorkoutViewModel: ObservableObject {
             setNumber: setNumber,
             weight: 0,
             reps: 1,
-            holdDuration: duration,
+            holdDuration: nil,
             isDropset: false,
             dropsetNumber: nil,
             isWarmup: false
@@ -610,13 +560,6 @@ class WorkoutViewModel: ObservableObject {
             if isRepBasedCalisthenics(templateExercise.name) {
                 exerciseType = .weightReps
                 holdDuration = nil // Rep-based calisthenics don't have hold duration
-            } else if templateExercise.name.isStretchExercise() || templateExercise.name.isCardioExercise() {
-                // Cardio and stretching should be time + set based
-                exerciseType = .hold
-                if holdDuration == nil {
-                    // Provide a sensible default duration when one isn't specified
-                    holdDuration = AppConstants.Validation.minHoldDuration
-                }
             }
             
             return Exercise(
@@ -1855,12 +1798,6 @@ class WorkoutViewModel: ObservableObject {
         Logger.debug("Restored rest timer state: \(newRemaining)s remaining of \(totalDuration)s total (elapsed: \(elapsed)s, original start: \(originalStartTime))", category: .persistence)
     }
     
-    private func clearRestTimerState() {
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerActive)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
-    }
     
     // MARK: - Workout Timer Persistence
     
@@ -1912,20 +1849,6 @@ class WorkoutViewModel: ObservableObject {
         Logger.debug("Restored workout timer state: elapsed=\(elapsedTime)s, paused=\(savedIsPaused)", category: .persistence)
     }
     
-    private func clearWorkoutTimerState() {
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutStartTime)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
-        
-        // Reset local properties
-        workoutStartTime = nil
-        pausedTimeAccumulator = 0
-        isTimerPaused = false
-        pauseStartTime = nil
-        elapsedTime = 0
-    }
     
     // MARK: - Workout State Persistence
     
@@ -1973,11 +1896,6 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    private func clearWorkoutState() {
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentWorkout)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentExerciseIndex)
-        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.isFromTemplate)
-    }
     
     // MARK: - Weight Persistence
     
@@ -2006,6 +1924,66 @@ class WorkoutViewModel: ObservableObject {
     /// Get the last weight used for an exercise
     func getLastWeight(for exerciseName: String) -> Double? {
         return lastWeightPerExercise[exerciseName]
+    }
+    
+    /// Get weight and rep suggestion for an exercise based on history or PRs
+    func getWeightSuggestion(for exercise: Exercise) -> (weight: Double, reps: Int)? {
+        // First, try to get from exercise history
+        if let history = ExerciseHistoryManager.shared.getLastWeightReps(for: exercise.name) {
+            return (history.weight, history.reps)
+        }
+        
+        // If no history, try to get from PRs via progressViewModel
+        if let progressVM = progressViewModel {
+            // Get the best PR for this exercise (highest weight × reps)
+            let exercisePRs = progressVM.prs.filter { $0.exercise == exercise.name }
+            if let bestPR = exercisePRs.max(by: { ($0.weight * Double($0.reps)) < ($1.weight * Double($1.reps)) }) {
+                // Suggest the PR weight and reps
+                return (bestPR.weight, bestPR.reps)
+            }
+        }
+        
+        // If no history or PR, return nil
+        return nil
+    }
+    
+    // MARK: - Workout Completion and Cancellation
+    
+    /// Cancel the current workout without saving
+    func cancelWorkout() {
+        pauseWorkout()
+        currentWorkout = nil
+        currentExerciseIndex = 0
+        clearWorkoutState()
+        clearWorkoutTimerState()
+        clearRestTimerState()
+        
+        HapticManager.impact(style: .medium)
+        Logger.info("Workout cancelled", category: .general)
+    }
+    
+    /// Clear workout state (public wrapper)
+    func clearWorkoutState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentWorkout)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.currentExerciseIndex)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.isFromTemplate)
+    }
+    
+    /// Clear workout timer state (public wrapper)
+    func clearWorkoutTimerState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutStartTime)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutElapsedTime)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPausedTimeAccumulator)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutIsPaused)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.workoutPauseStartTime)
+    }
+    
+    /// Clear rest timer state (public wrapper)
+    func clearRestTimerState() {
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerActive)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
+        UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
     }
     
     // MARK: - Exercise Deletion
@@ -2125,38 +2103,6 @@ class WorkoutViewModel: ObservableObject {
         }
         
         return isNewPR
-    }
-    
-    // MARK: - Helper Methods for Redesigned UI
-    
-    /// Get weight and rep suggestion for an exercise based on history
-    func getWeightSuggestion(for exercise: Exercise) -> (weight: Double, reps: Int)? {
-        guard let progressVM = progressViewModel else { return nil }
-        
-        // Get recent PRs for this exercise
-        let prs = progressVM.prs.filter { $0.exercise == exercise.name }
-        guard !prs.isEmpty else { return nil }
-        
-        // Get the most recent PR
-        if let recent = prs.sorted(by: { $0.date > $1.date }).first {
-            return (weight: recent.weight, reps: recent.reps)
-        }
-        
-        return nil
-    }
-    
-    /// Cancel the current workout (discards all progress)
-    func cancelWorkout() {
-        currentWorkout = nil
-        currentExerciseIndex = 0
-        elapsedTime = 0
-        restTimerActive = false
-        showPRBadge = false
-        prMessage = ""
-        timer?.invalidate()
-        restTimer?.invalidate()
-        workoutStartTime = nil
-        Logger.info("Workout canceled by user", category: .general)
     }
     
     deinit {

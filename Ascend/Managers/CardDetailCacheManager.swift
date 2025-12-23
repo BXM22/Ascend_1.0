@@ -16,10 +16,13 @@ class CardDetailCacheManager {
     private var templateDetailCache: [UUID: WorkoutTemplate] = [:]
     private var exerciseHistoryCache: [String: ExerciseHistoryCache] = [:]
     private var programDetailCache: [UUID: WorkoutProgram] = [:]
+    private var dayTypeInfoCache: [String: DayTypeInfoCache] = [:]
+    private var templateSuggestionsIndex: [String: [WorkoutTemplate]] = [:] // Index by day type
     
     // Cache metadata
     private var cacheTimestamps: [String: Date] = [:]
-    private let cacheValidityDuration: TimeInterval = 300 // 5 minutes
+    private let cacheValidityDuration: TimeInterval = 1800 // 30 minutes for detail cards
+    private let detailCardCacheValidityDuration: TimeInterval = 1800 // 30 minutes for detail cards
     
     // Background processing queue
     private let cacheQueue = DispatchQueue(label: "com.ascend.cardDetailCache", qos: .utility)
@@ -159,7 +162,81 @@ class CardDetailCacheManager {
         templateDetailCache.removeAll()
         exerciseHistoryCache.removeAll()
         programDetailCache.removeAll()
+        dayTypeInfoCache.removeAll()
+        templateSuggestionsIndex.removeAll()
         cacheTimestamps.removeAll()
+    }
+    
+    // MARK: - Day Type Info Caching
+    
+    struct DayTypeInfoCache {
+        let dayName: String
+        let dayType: String?
+        let suggestedTemplates: [WorkoutTemplate]
+        let timestamp: Date
+    }
+    
+    func getCachedDayTypeInfo(_ dayName: String) -> DayTypeInfoCache? {
+        guard let cached = dayTypeInfoCache[dayName],
+              Date().timeIntervalSince(cached.timestamp) < detailCardCacheValidityDuration else {
+            return nil
+        }
+        return cached
+    }
+    
+    func cacheDayTypeInfo(_ dayName: String, dayType: String?, suggestedTemplates: [WorkoutTemplate]) {
+        let cache = DayTypeInfoCache(
+            dayName: dayName,
+            dayType: dayType,
+            suggestedTemplates: suggestedTemplates,
+            timestamp: Date()
+        )
+        dayTypeInfoCache[dayName] = cache
+        let key = "daytype-\(dayName)"
+        cacheTimestamps[key] = Date()
+    }
+    
+    func invalidateDayTypeInfoCache(_ dayName: String) {
+        dayTypeInfoCache.removeValue(forKey: dayName)
+        let key = "daytype-\(dayName)"
+        cacheTimestamps.removeValue(forKey: key)
+    }
+    
+    // MARK: - Template Suggestions Indexing
+    
+    func getCachedTemplateSuggestions(for dayType: String) -> [WorkoutTemplate]? {
+        return templateSuggestionsIndex[dayType.lowercased()]
+    }
+    
+    func cacheTemplateSuggestions(for dayType: String, templates: [WorkoutTemplate]) {
+        templateSuggestionsIndex[dayType.lowercased()] = templates
+    }
+    
+    func invalidateTemplateSuggestionsIndex() {
+        templateSuggestionsIndex.removeAll()
+    }
+    
+    // MARK: - Cache Warming
+    
+    func warmCache(programs: [WorkoutProgram], templates: [WorkoutTemplate]) {
+        cacheQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Cache all programs
+            for program in programs {
+                DispatchQueue.main.async {
+                    self.cacheProgram(program)
+                }
+            }
+            
+            // Cache frequently accessed templates
+            let frequentTemplates = templates.prefix(20)
+            for template in frequentTemplates {
+                DispatchQueue.main.async {
+                    self.cacheTemplate(template)
+                }
+            }
+        }
     }
 }
 

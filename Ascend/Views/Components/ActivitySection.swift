@@ -83,7 +83,7 @@ struct ActivitySection: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
             
-            // Collapsible Insights
+            // Collapsible Insights (default expanded)
             CollapsibleInsightsView(progressViewModel: progressViewModel)
         }
     }

@@ -3,25 +3,70 @@ import SwiftUI
 struct WorkoutProgramView: View {
     let program: WorkoutProgram
     @ObservedObject var workoutViewModel: WorkoutViewModel
+    var programViewModel: WorkoutProgramViewModel? = nil
+    var templatesViewModel: TemplatesViewModel? = nil
     @State private var selectedDayIndex: Int = 0
+    @State private var showGenerateDayAlert = false
+    @State private var dayToGenerate: (day: WorkoutDay, dayIndex: Int)?
+    @State private var hasCheckedForGeneration = false
     @Environment(\.dismiss) var dismiss
     
+    // Get the programViewModel - prefer passed one, otherwise get from workoutViewModel
+    private var effectiveProgramViewModel: WorkoutProgramViewModel? {
+        return programViewModel ?? workoutViewModel.programViewModel
+    }
+    
+    private var effectiveTemplatesViewModel: TemplatesViewModel? {
+        return templatesViewModel ?? workoutViewModel.templatesViewModel
+    }
+    
+    // Get the current program from view model if available (to reflect updates), otherwise use passed program
+    private var currentProgram: WorkoutProgram {
+        if let programVM = effectiveProgramViewModel,
+           let updatedProgram = programVM.programs.first(where: { $0.id == program.id }) {
+            return updatedProgram
+        }
+        return program
+    }
+    
     var selectedDay: WorkoutDay {
-        program.days[selectedDayIndex]
+        currentProgram.days[selectedDayIndex]
+    }
+    
+    // Check if program is active and if current day needs generation
+    private var shouldPromptForGeneration: Bool {
+        guard let programVM = workoutViewModel.programViewModel,
+              let templatesVM = workoutViewModel.templatesViewModel,
+              let active = programVM.activeProgram,
+              active.programId == currentProgram.id else {
+            return false
+        }
+        
+        let currentDayIndex = active.getCurrentDayIndex(totalDays: currentProgram.days.count)
+        guard currentDayIndex < currentProgram.days.count else { return false }
+        
+        let currentDay = currentProgram.days[currentDayIndex]
+        
+        // Check if day has no exercises and no template
+        let hasNoExercises = currentDay.exercises.isEmpty
+        let hasNoTemplate = currentDay.templateId == nil
+        let isNotRestDay = !currentDay.isRestDay
+        
+        return hasNoExercises && hasNoTemplate && isNotRestDay
     }
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: AppSpacing.lg) {
                 // Program Header
-                ProgramHeader(program: program)
+                ProgramHeader(program: currentProgram)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.lg)
-                    .id("program-header-\(program.name)")
+                    .id("program-header-\(currentProgram.name)")
                 
                 // Day Selector
                 DaySelector(
-                    days: program.days,
+                    days: currentProgram.days,
                     selectedIndex: $selectedDayIndex
                 )
                 .padding(.horizontal, AppSpacing.lg)
@@ -40,13 +85,101 @@ struct WorkoutProgramView: View {
             }
         }
         .background(AppColors.background)
-        .navigationTitle(program.name)
+        .navigationTitle(currentProgram.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // Cache program for faster subsequent loads
-            CardDetailCacheManager.shared.cacheProgram(program)
+            CardDetailCacheManager.shared.cacheProgram(currentProgram)
+            hasCheckedForGeneration = false
+            
+            // If program is active, automatically select the current day
+            if let programVM = effectiveProgramViewModel,
+               let active = programVM.activeProgram,
+               active.programId == currentProgram.id {
+                let currentDayIndex = active.getCurrentDayIndex(totalDays: currentProgram.days.count)
+                if currentDayIndex < currentProgram.days.count {
+                    selectedDayIndex = currentDayIndex
+                }
+            }
+            
+            // Check for generation after a delay to ensure view is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                checkAndPromptForGeneration()
+            }
+        }
+        .onChange(of: selectedDayIndex) { _, _ in
+            hasCheckedForGeneration = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                checkAndPromptForGeneration()
+            }
+        }
+        .onChange(of: effectiveProgramViewModel?.activeProgram?.programId) { _, _ in
+            hasCheckedForGeneration = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                checkAndPromptForGeneration()
+            }
+        }
+        .alert("Generate Workout for \(dayToGenerate?.day.name ?? "this day")?", isPresented: $showGenerateDayAlert) {
+            Button("Cancel", role: .cancel) {
+                dayToGenerate = nil
+            }
+            Button("Generate") {
+                if let dayInfo = dayToGenerate {
+                    generateDay(day: dayInfo.day, dayIndex: dayInfo.dayIndex)
+                }
+            }
+        } message: {
+            Text("This day doesn't have any exercises set. Would you like to generate a workout for \(dayToGenerate?.day.name ?? "this day")?")
         }
         .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+    
+    private func checkAndPromptForGeneration() {
+        // Only check once per view appearance unless state changes
+        guard !hasCheckedForGeneration else { return }
+        guard !showGenerateDayAlert else { return }
+        
+        guard let programVM = effectiveProgramViewModel else { return }
+        guard let active = programVM.activeProgram else { return }
+        guard active.programId == currentProgram.id else { return }
+        
+        let currentDayIndex = active.getCurrentDayIndex(totalDays: currentProgram.days.count)
+        guard currentDayIndex < currentProgram.days.count else { return }
+        guard selectedDayIndex == currentDayIndex else { return }
+        
+        let currentDay = currentProgram.days[currentDayIndex]
+        
+        // Check if day has no exercises and no template
+        let hasNoExercises = currentDay.exercises.isEmpty
+        let hasNoTemplate = currentDay.templateId == nil
+        let isNotRestDay = !currentDay.isRestDay
+        
+        if hasNoExercises && hasNoTemplate && isNotRestDay {
+            hasCheckedForGeneration = true
+            dayToGenerate = (currentDay, currentDayIndex)
+            showGenerateDayAlert = true
+        }
+    }
+    
+    private func generateDay(day: WorkoutDay, dayIndex: Int) {
+        guard let programVM = effectiveProgramViewModel,
+              let templatesVM = effectiveTemplatesViewModel else {
+            return
+        }
+        
+        // Generate template for the day
+        if let result = programVM.ensureTemplateForDay(
+            dayIndex: dayIndex,
+            inProgram: currentProgram.id,
+            settings: templatesVM.generationSettings,
+            templatesViewModel: templatesVM
+        ) {
+            // Template has been generated and assigned to the day
+            // The day now has a template, so it can be started
+            Logger.info("Generated workout for day: \(day.name)", category: .general)
+        }
+        
+        dayToGenerate = nil
     }
     
     private func startWorkoutForDay(_ day: WorkoutDay) {
@@ -74,7 +207,7 @@ struct WorkoutProgramView: View {
             )
         }
         
-        workoutViewModel.currentWorkout = Workout(name: "\(program.name) - \(day.name)", exercises: exercises)
+        workoutViewModel.currentWorkout = Workout(name: "\(currentProgram.name) - \(day.name)", exercises: exercises)
         workoutViewModel.currentExerciseIndex = 0
         workoutViewModel.isFromTemplate = true // Mark as from template/program
         workoutViewModel.startTimer()

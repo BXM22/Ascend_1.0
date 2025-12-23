@@ -17,28 +17,17 @@ struct WorkoutSplitsSection: View {
                     .foregroundColor(AppColors.textPrimary)
                 
                 Spacer()
-            }
-            
-            // Add Program Button (full-width at top)
-            Button(action: {
-                showCreateProgram = true
-                HapticManager.impact(style: .medium)
-            }) {
-                HStack {
+                
+                // Add Program Button in header
+                Button(action: {
+                    showCreateProgram = true
+                    HapticManager.impact(style: .medium)
+                }) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                    Text("Create Program")
-                        .font(AppTypography.bodyBold)
+                        .font(.system(size: 20))
+                        .foregroundColor(AppColors.primary)
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(LinearGradient.primaryGradient)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: AppColors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
             }
-            .padding(.top, AppSpacing.sm)
-            .accessibilityLabel("Create new workout program")
             
             // Programs List
             let splitPrograms = programViewModel.programs.filter { $0.category == .split }
@@ -185,7 +174,7 @@ struct WorkoutProgramCard: View {
             
             // Days List (expanded)
             if isExpanded {
-                VStack(spacing: AppSpacing.sm) {
+                VStack(spacing: AppSpacing.xs) {
                     ForEach(Array(program.days.enumerated()), id: \.element.id) { index, day in
                         WorkoutProgramDayRow(
                             day: day,
@@ -207,9 +196,13 @@ struct WorkoutProgramCard: View {
                     }
                 }
                 .padding(.top, AppSpacing.sm)
+                .onAppear {
+                    // Preload template data for all visible days
+                    preloadDayTemplates(program: program)
+                }
             }
         }
-        .padding(AppSpacing.md)
+        .padding(AppSpacing.sm)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
@@ -223,6 +216,37 @@ struct WorkoutProgramCard: View {
         )
         .shadow(color: AppColors.foreground.opacity(0.08), radius: 8, x: 0, y: 2)
     }
+    
+    private func preloadDayTemplates(program: WorkoutProgram) {
+        // Preload templates for all days in the program
+        for day in program.days {
+            if let templateId = day.templateId {
+                // Check if already cached
+                if CardDetailCacheManager.shared.getCachedTemplate(templateId) == nil {
+                    // Try to find and cache the template
+                    if let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+                        CardDetailCacheManager.shared.cacheTemplate(template)
+                    }
+                }
+            }
+            
+            // Preload day type info if available
+            if let dayType = WorkoutDayTypeExtractor.extract(from: day.name) {
+                // Check if already cached
+                if CardDetailCacheManager.shared.getCachedDayTypeInfo(day.name) == nil {
+                    // Get suggested templates
+                    let suggested = templatesViewModel.suggestTemplatesForDayType(dayType)
+                    // Cache day type info (gradient and icon are computed in the view, not cached)
+                    CardDetailCacheManager.shared.cacheDayTypeInfo(
+                        day.name,
+                        dayType: dayType,
+                        suggestedTemplates: suggested
+                    )
+                }
+            }
+        }
+    }
+    
 }
 
 struct WorkoutProgramDayRow: View {
@@ -238,6 +262,7 @@ struct WorkoutProgramDayRow: View {
     
     @State private var showTemplatePicker = false
     @State private var showAutoGenerate = false
+    @State private var isExpanded: Bool = false
     
     var selectedTemplate: WorkoutTemplate? {
         guard let templateId = day.templateId else { return nil }
@@ -245,105 +270,153 @@ struct WorkoutProgramDayRow: View {
     }
     
     var body: some View {
-        HStack {
-            // Completion Checkbox
-            Button(action: onToggleCompletion) {
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundColor(isCompleted ? AppColors.accent : AppColors.textSecondary)
-            }
-            .buttonStyle(PlainButtonStyle())
-            
-            // Day Name
-            Text(day.name)
-                .font(AppTypography.bodyMedium)
-                .foregroundColor(day.isRestDay ? AppColors.textSecondary : (isCompleted ? AppColors.textSecondary : AppColors.textPrimary))
-                .strikethrough(isCompleted && !day.isRestDay)
-                .frame(width: 100, alignment: .leading)
-            
-            // Template Selection
-            if day.isRestDay {
-                Text("Rest Day")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
-                    .italic()
-                Spacer()
-            } else {
-                if let template = selectedTemplate {
-                    HStack(spacing: AppSpacing.xs) {
-                        Text(template.name)
+        VStack(spacing: 0) {
+            HStack {
+                // Completion Checkbox
+                Button(action: onToggleCompletion) {
+                    Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(isCompleted ? AppColors.accent : AppColors.textSecondary)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Day Name (tappable to expand) with inline day type badge
+                HStack(spacing: 6) {
+                    Button(action: {
+                        if !day.isRestDay {
+                            withAnimation(AppAnimations.smooth) {
+                                isExpanded.toggle()
+                            }
+                            HapticManager.impact(style: .light)
+                        }
+                    }) {
+                        Text(day.name)
                             .font(AppTypography.bodyMedium)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        Button(action: {
-                            if let templateId = day.templateId,
-                               let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
-                                templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                                onStartWorkout()
-                            }
-                        }) {
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(AppColors.accent)
-                        }
-                        
-                        Button(action: {
-                            programViewModel.removeTemplate(fromDay: dayIndex, inProgram: program.id)
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
+                            .foregroundColor(day.isRestDay ? AppColors.textSecondary : (isCompleted ? AppColors.textSecondary : AppColors.textPrimary))
+                            .strikethrough(isCompleted && !day.isRestDay)
+                            .frame(width: 100, alignment: .leading)
                     }
-                    .padding(.horizontal, AppSpacing.sm)
-                    .padding(.vertical, AppSpacing.xs)
-                    .background(AppColors.accent.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    HStack(spacing: AppSpacing.xs) {
-                        Button(action: {
-                            showTemplatePicker = true
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus.circle")
-                                Text("Add Template")
-                            }
-                            .font(AppTypography.captionMedium)
-                            .foregroundColor(AppColors.accent)
-                            .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, AppSpacing.xs)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        
-                        Button(action: {
-                            // Auto-generate template
-                            let generatedTemplate = programViewModel.autoGenerateTemplate(
-                                forDay: day,
-                                inProgram: program,
-                                settings: templatesViewModel.generationSettings
-                            )
-                            templatesViewModel.saveTemplate(generatedTemplate)
-                            programViewModel.assignTemplate(generatedTemplate.id, toDay: dayIndex, inProgram: program.id, templatesViewModel: templatesViewModel)
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "sparkles")
-                                Text("Auto Generate")
-                            }
-                            .font(AppTypography.captionMedium)
-                            .foregroundColor(AppColors.primary)
-                            .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, AppSpacing.xs)
-                            .background(AppColors.primary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(day.isRestDay)
+                    
+                    // Inline day type badge
+                    if !day.isRestDay, let dayType = WorkoutDayTypeExtractor.extract(from: day.name) {
+                        Text(dayType)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(dayTypeGradient(for: dayType))
+                            .clipShape(Capsule())
                     }
                 }
                 
-                Spacer()
+                // Template Selection
+                if day.isRestDay {
+                    Text("Rest Day")
+                        .font(AppTypography.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                        .italic()
+                    Spacer()
+                } else {
+                    if let template = selectedTemplate {
+                        HStack(spacing: AppSpacing.xs) {
+                            Text(template.name)
+                                .font(AppTypography.bodyMedium)
+                                .foregroundColor(AppColors.textPrimary)
+                            
+                            Button(action: {
+                                if let templateId = day.templateId,
+                                   let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+                                    templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                                    onStartWorkout()
+                                }
+                            }) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(AppColors.accent)
+                            }
+                            
+                            Button(action: {
+                                programViewModel.removeTemplate(fromDay: dayIndex, inProgram: program.id)
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
+                        .background(AppColors.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        HStack(spacing: AppSpacing.xs) {
+                            Button(action: {
+                                showTemplatePicker = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle")
+                                    Text("Add Template")
+                                }
+                                .font(AppTypography.captionMedium)
+                                .foregroundColor(AppColors.accent)
+                                .padding(.horizontal, AppSpacing.sm)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(AppColors.secondary)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            
+                            Button(action: {
+                                // Auto-generate template
+                                let generatedTemplate = programViewModel.autoGenerateTemplate(
+                                    forDay: day,
+                                    inProgram: program,
+                                    settings: templatesViewModel.generationSettings
+                                )
+                                templatesViewModel.saveTemplate(generatedTemplate)
+                                programViewModel.assignTemplate(generatedTemplate.id, toDay: dayIndex, inProgram: program.id, templatesViewModel: templatesViewModel)
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "sparkles")
+                                    Text("Auto Generate")
+                                }
+                                .font(AppTypography.captionMedium)
+                                .foregroundColor(AppColors.primary)
+                                .padding(.horizontal, AppSpacing.sm)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(AppColors.primary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Expand/Collapse indicator
+                    if !day.isRestDay {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppColors.textSecondary)
+                            .padding(.leading, AppSpacing.xs)
+                    }
+                }
+            }
+            
+            // Day Type Info Card (expanded)
+            if isExpanded && !day.isRestDay {
+                DayTypeInfoCard(
+                    day: day,
+                    dayIndex: dayIndex,
+                    program: program,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel
+                )
+                .padding(.top, AppSpacing.sm)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(AppAnimations.smooth, value: isExpanded)
             }
         }
-        .padding(.vertical, AppSpacing.xs)
+        .padding(.vertical, 4)
         .sheet(isPresented: $showTemplatePicker) {
             TemplatePickerView(
                 templates: templatesViewModel.templates,
@@ -355,6 +428,23 @@ struct WorkoutProgramDayRow: View {
                     showTemplatePicker = false
                 }
             )
+        }
+    }
+    
+    private func dayTypeGradient(for dayType: String) -> LinearGradient {
+        let dayTypeLower = dayType.lowercased()
+        if dayTypeLower.contains("push") || dayTypeLower.contains("chest") {
+            return LinearGradient.chestGradient
+        } else if dayTypeLower.contains("pull") || dayTypeLower.contains("back") {
+            return LinearGradient.backGradient
+        } else if dayTypeLower.contains("leg") {
+            return LinearGradient.legsGradient
+        } else if dayTypeLower.contains("arm") {
+            return LinearGradient.armsGradient
+        } else if dayTypeLower.contains("core") {
+            return LinearGradient.coreGradient
+        } else {
+            return LinearGradient.primaryGradient
         }
     }
 }

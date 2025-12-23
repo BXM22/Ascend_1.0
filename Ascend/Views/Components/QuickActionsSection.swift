@@ -179,6 +179,30 @@ struct QuickActionsSection: View {
                         .padding(.top, AppSpacing.xs)
                     }
                 }
+                
+                // Favorite Templates (Horizontal Scroll)
+                if !favoriteTemplates.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Quick Templates")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.foreground.opacity(0.7))
+                            .padding(.horizontal, 20)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(favoriteTemplates) { template in
+                                    QuickTemplateCard(template: template) {
+                                        HapticManager.impact(style: .light)
+                                        templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                                        onStartWorkout()
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                    .padding(.top, AppSpacing.sm)
+                }
             }
         }
         .confirmationDialog("Generate workout", isPresented: $showGenerateTypeDialog, titleVisibility: .visible) {

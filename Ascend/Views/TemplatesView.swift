@@ -21,6 +21,7 @@ struct TemplatesView: View {
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var themeManager: ThemeManager
+    @ObservedObject var progressViewModel: ProgressViewModel
     let onStartTemplate: () -> Void
     let onSettings: () -> Void
     
@@ -388,7 +389,7 @@ struct TemplatesView: View {
                                                 onStartTemplate()
                                             },
                                             onDeleteTemplate: { template in
-                                                viewModel.deleteTemplate(template)
+                                                viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
                                             },
                                             onDuplicateTemplate: { template in
                                                 duplicateTemplate(template)
@@ -420,7 +421,7 @@ struct TemplatesView: View {
                                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                             if !template.isDefault {
                                                 Button(role: .destructive) {
-                                                    viewModel.deleteTemplate(template)
+                                                    viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
                                                     HapticManager.success()
                                                 } label: {
                                                     Label("Delete", systemImage: "trash")
@@ -467,7 +468,7 @@ struct TemplatesView: View {
                         viewModel.editingTemplate = nil
                     },
                     onDelete: {
-                        viewModel.deleteTemplate(template)
+                        viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
                         viewModel.showEditTemplate = false
                         viewModel.editingTemplate = nil
                     }
@@ -513,7 +514,7 @@ struct TemplatesView: View {
                         duplicateTemplate(template)
                     },
                     onDelete: template.isDefault ? nil : {
-                        viewModel.deleteTemplate(template)
+                        viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
                         // Invalidate cache when template is deleted
                         CardDetailCacheManager.shared.invalidateTemplateCache(template.id)
                     }
@@ -555,7 +556,7 @@ struct TemplatesView: View {
         for templateId in selectedTemplates {
             if let template = viewModel.templates.first(where: { $0.id == templateId }) {
                 if !template.isDefault {
-                    viewModel.deleteTemplate(template)
+                    viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
                 }
             }
         }
