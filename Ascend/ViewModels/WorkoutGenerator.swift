@@ -212,7 +212,7 @@ class WorkoutGenerator {
             let key = exercise.muscleGroup
             
             // Validate muscle group assignment
-            let validMuscleGroups = ["Chest", "Lats", "Shoulders", "Biceps", "Triceps", "Quads", "Hamstrings", "Glutes", "Calves", "Abs", "Obliques", "Upper Back", "Lower Back", "Traps", "Forearms"]
+            let validMuscleGroups = ["Chest", "Lats", "Shoulders", "Biceps", "Triceps", "Quads", "Hamstrings", "Glutes", "Calves", "Abs", "Obliques", "Upper Back", "Lower Back", "Traps", "Forearms", "Full Body"]
             if !validMuscleGroups.contains(key) {
                 Logger.error("⚠️ Exercise '\(exercise.name)' has unrecognized muscle group: '\(key)'. This may cause it to be excluded from workout generation.", category: .validation)
             }

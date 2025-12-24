@@ -15,6 +15,9 @@ struct WorkoutView: View {
     @State private var showHelpSheet = false
     @State private var showCancelConfirmation = false
     @State private var autoAdvanceToggle: Bool = false
+    @State private var calisthenicsReps: String = "8"
+    @State private var calisthenicsWeight: String = "0"
+    @State private var holdDuration: String = "30"
     
     private var completedExercises: Int {
         guard let workout = viewModel.currentWorkout else { return 0 }
@@ -244,15 +247,82 @@ struct WorkoutView: View {
     @ViewBuilder
     private func exerciseCardView(for exercise: Exercise) -> some View {
         let sectionType = viewModel.getSectionType(for: exercise)
+        let isCurrent = viewModel.currentExercise?.id == exercise.id
         
         if sectionType == .stretch || viewModel.isCardioExercise(exercise) {
             // For stretch/cardio, use legacy card temporarily
             Text("Stretch/Cardio card - Legacy implementation")
                 .padding()
         } else if viewModel.isCalisthenicsExercise(exercise) {
-            // For calisthenics, use legacy card temporarily
-            Text("Calisthenics card - Legacy implementation")
-                .padding()
+            // Calisthenics exercise - use appropriate card based on type
+            if exercise.targetHoldDuration != nil {
+                // Hold-based calisthenics
+                CalisthenicsHoldExerciseCard(
+                    exercise: exercise,
+                    holdDuration: $holdDuration,
+                    additionalWeight: $calisthenicsWeight,
+                    showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                    prMessage: isCurrent ? viewModel.prMessage : "",
+                    onCompleteSet: {
+                        if isCurrent, let duration = Int(holdDuration),
+                           let weightValue = Double(calisthenicsWeight) {
+                            viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
+                        }
+                    }
+                )
+                .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                )
+                .onAppear {
+                    if isCurrent {
+                        if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                            calisthenicsWeight = String(format: "%.0f", lastWeight)
+                        } else {
+                            calisthenicsWeight = "0"
+                        }
+                        if let targetHoldDuration = exercise.targetHoldDuration {
+                            holdDuration = String(targetHoldDuration)
+                        } else {
+                            holdDuration = "30"
+                        }
+                    }
+                }
+            } else {
+                // Rep-based calisthenics
+                CalisthenicsExerciseCard(
+                    exercise: exercise,
+                    reps: $calisthenicsReps,
+                    additionalWeight: $calisthenicsWeight,
+                    showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                    prMessage: isCurrent ? viewModel.prMessage : "",
+                    onCompleteSet: {
+                        if isCurrent, let repsValue = Int(calisthenicsReps),
+                           let weightValue = Double(calisthenicsWeight) {
+                            viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
+                        }
+                    }
+                )
+                .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+                )
+                .onAppear {
+                    if isCurrent {
+                        if let lastWeight = viewModel.getLastWeight(for: exercise.name) {
+                            calisthenicsWeight = String(format: "%.0f", lastWeight)
+                        } else {
+                            calisthenicsWeight = "0"
+                        }
+                        // Initialize reps if needed
+                        if calisthenicsReps.isEmpty {
+                            calisthenicsReps = "8"
+                        }
+                    }
+                }
+            }
         } else {
             // Weighted exercise - use new simplified card
             SimplifiedWeightedExerciseCard(

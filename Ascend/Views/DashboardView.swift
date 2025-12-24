@@ -174,14 +174,25 @@ struct DashboardView: View {
                 .padding(.horizontal, 20)
             }
             
-            // Quick Actions
-            QuickActionsSection(
-                progressViewModel: progressViewModel,
-                workoutViewModel: workoutViewModel,
-                templatesViewModel: templatesViewModel,
-                programViewModel: programViewModel,
-                onStartWorkout: onStartWorkout
-            )
+            // Quick Actions (only show if no active program)
+            if programViewModel.activeProgram == nil {
+                QuickActionsSection(
+                    progressViewModel: progressViewModel,
+                    workoutViewModel: workoutViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    onStartWorkout: onStartWorkout
+                )
+            } else {
+                // Program Progress Tracker (when program is active)
+                ProgramDayTracker(
+                    programViewModel: programViewModel,
+                    templatesViewModel: templatesViewModel,
+                    workoutViewModel: workoutViewModel,
+                    onStartWorkout: onStartWorkout
+                )
+                .padding(.horizontal, 20)
+            }
             
             // Rest Day Button
             RestDayButton(progressViewModel: progressViewModel)
@@ -200,21 +211,12 @@ struct DashboardView: View {
     }
     
     private var analyticsContent: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Muscle Chart
-                CollapsibleMuscleChartSection(
-                    progressViewModel: progressViewModel,
-                    isExpanded: $muscleChartExpanded,
-                    onToggle: {
-                        muscleChartExpanded.toggle()
-                        UserDefaults.standard.set(muscleChartExpanded, forKey: "dashboard.muscleChartExpanded")
-                    }
-                )
+        VStack(spacing: 16) {
+            // Muscle Chart
+            MuscleChartSection(progressViewModel: progressViewModel)
                 .padding(.top, 8)
-            }
-            .padding(.bottom, 100)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
     
     private func preloadActiveProgramData() {

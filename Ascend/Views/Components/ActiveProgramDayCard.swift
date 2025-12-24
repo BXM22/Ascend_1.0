@@ -71,14 +71,7 @@ struct ActiveProgramDayCard: View {
                 hasCheckedForGeneration = false
                 checkAndPromptForGeneration()
             }
-            .alert("Generate Workout?", isPresented: $showGeneratePrompt) {
-                Button("Cancel", role: .cancel) { }
-                Button("Generate") {
-                    generateAndStartWorkout()
-                }
-            } message: {
-                generateWorkoutMessage
-            }
+            // Removed alert - now auto-generates instead
             .alert("Workout Generated", isPresented: Binding(
                 get: { generatedTemplateInfo != nil },
                 set: { if !$0 { generatedTemplateInfo = nil } }
@@ -175,6 +168,8 @@ struct ActiveProgramDayCard: View {
     @ViewBuilder
     private func startButton(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) -> some View {
         Button(action: {
+            print("🔵 ActiveProgramDayCard button tapped")
+            Logger.info("ActiveProgramDayCard button tapped", category: .general)
             handleStartButton(for: info)
         }) {
             HStack {
@@ -194,21 +189,43 @@ struct ActiveProgramDayCard: View {
     
     private func handleStartButton(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) {
         HapticManager.impact(style: .medium)
+        print("🔵 ActiveProgramDayCard: handleStartButton called for day: \(info.currentDay.name)")
+        Logger.info("ActiveProgramDayCard: Starting workout for day: \(info.currentDay.name)", category: .general)
+        
         if let templateId = info.currentDay.templateId {
+            print("🔵 ActiveProgramDayCard: Day has templateId: \(templateId)")
             let template = CardDetailCacheManager.shared.getCachedTemplate(templateId) ?? 
                          templatesViewModel.templates.first(where: { $0.id == templateId })
             if let template = template {
+                print("🔵 ActiveProgramDayCard: Template found: \(template.name) with \(template.exercises.count) exercises")
+                Logger.info("ActiveProgramDayCard: Found template: \(template.name)", category: .general)
                 if CardDetailCacheManager.shared.getCachedTemplate(templateId) == nil {
                     CardDetailCacheManager.shared.cacheTemplate(template)
                 }
                 templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                print("🔵 ActiveProgramDayCard: Template started, workout: \(workoutViewModel.currentWorkout?.name ?? "nil")")
+                // Workout is set synchronously, call callback immediately
+                print("🔵 ActiveProgramDayCard: Calling onStartWorkout callback")
                 onStartWorkout()
+            } else {
+                print("❌ ActiveProgramDayCard: Template not found for ID: \(templateId), generating new one")
+                Logger.error("ActiveProgramDayCard: Template not found for ID: \(templateId), generating", category: .general)
+                // Template ID exists but template not found, generate a new one
+                generateAndStartWorkout()
             }
         } else if !info.currentDay.exercises.isEmpty {
+            print("🔵 ActiveProgramDayCard: Day has \(info.currentDay.exercises.count) exercises")
+            Logger.info("ActiveProgramDayCard: Starting program day with \(info.currentDay.exercises.count) exercises", category: .general)
             startProgramDay(info.currentDay, programName: info.program.name)
+            print("🔵 ActiveProgramDayCard: Program day started, workout: \(workoutViewModel.currentWorkout?.name ?? "nil")")
+            // Call callback immediately
+            print("🔵 ActiveProgramDayCard: Calling onStartWorkout callback for program day")
             onStartWorkout()
         } else {
-            showGeneratePrompt = true
+            print("🔵 ActiveProgramDayCard: No template or exercises, auto-generating workout")
+            Logger.info("ActiveProgramDayCard: No template or exercises, auto-generating workout", category: .general)
+            // Auto-generate instead of showing prompt
+            generateAndStartWorkout()
         }
     }
     
@@ -234,23 +251,65 @@ struct ActiveProgramDayCard: View {
     }
     
     private func generateAndStartWorkout() {
-        guard let info = activeProgramInfo else { return }
+        guard let info = activeProgramInfo else {
+            print("❌ ActiveProgramDayCard: No active program info for generate")
+            Logger.error("ActiveProgramDayCard: No active program info for generate", category: .general)
+            return
+        }
+        
+        // Calculate current day index based on start date (not just using stored dayIndex)
+        guard let active = programViewModel.activeProgram else {
+            print("❌ ActiveProgramDayCard: No active program")
+            return
+        }
+        
+        let currentDayIndex = active.getCurrentDayIndex(totalDays: info.program.days.count)
+        print("🔵 ActiveProgramDayCard: Generating workout for day \(currentDayIndex) (calculated from start date)")
+        Logger.info("ActiveProgramDayCard: Generating workout for day \(currentDayIndex)", category: .general)
         
         // Generate template using current generation settings
-        if let result = programViewModel.ensureTemplateForDay(
-            dayIndex: info.dayIndex,
+        print("🔵 ActiveProgramDayCard: Calling ensureTemplateForDay with dayIndex: \(currentDayIndex), programId: \(info.program.id)")
+        
+        guard let result = programViewModel.ensureTemplateForDay(
+            dayIndex: currentDayIndex,
             inProgram: info.program.id,
             settings: templatesViewModel.generationSettings,
             templatesViewModel: templatesViewModel
-        ) {
-            // Show alert if it was just generated
-            if result.wasGenerated {
-                generatedTemplateInfo = (name: result.template.name, intensity: result.intensity)
-            }
-            
-            // Start the workout
-            templatesViewModel.startTemplate(result.template, workoutViewModel: workoutViewModel)
+        ) else {
+            print("❌ ActiveProgramDayCard: ensureTemplateForDay returned nil")
+            Logger.error("ActiveProgramDayCard: Failed to generate template - ensureTemplateForDay returned nil. Day index: \(currentDayIndex), Program days count: \(info.program.days.count)", category: .general)
+            return
+        }
+        
+        print("🔵 ActiveProgramDayCard: Generated template: \(result.template.name) with \(result.template.exercises.count) exercises")
+        Logger.info("ActiveProgramDayCard: Generated template: \(result.template.name) with \(result.template.exercises.count) exercises", category: .general)
+        
+        // Show alert if it was just generated
+        if result.wasGenerated {
+            generatedTemplateInfo = (name: result.template.name, intensity: result.intensity)
+        }
+        
+        // Start the workout
+        print("🔵 ActiveProgramDayCard: Starting template: \(result.template.name)")
+        templatesViewModel.startTemplate(result.template, workoutViewModel: workoutViewModel)
+        
+        // Check immediately if workout was set
+        if let workout = workoutViewModel.currentWorkout {
+            print("🔵 ActiveProgramDayCard: Workout set successfully: \(workout.name) with \(workout.exercises.count) exercises")
+            Logger.info("ActiveProgramDayCard: Workout set successfully: \(workout.name)", category: .general)
             onStartWorkout()
+        } else {
+            print("❌ ActiveProgramDayCard: Workout was not set after starting template")
+            Logger.error("ActiveProgramDayCard: Workout was not set after starting template", category: .general)
+            // Try again after a small delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                if self.workoutViewModel.currentWorkout != nil {
+                    print("🔵 ActiveProgramDayCard: Workout set on retry, calling callback")
+                    self.onStartWorkout()
+                } else {
+                    print("❌ ActiveProgramDayCard: Workout still not set after retry")
+                }
+            }
         }
     }
     

@@ -53,8 +53,10 @@ struct CollapsibleMuscleChartSection: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .id("muscle-chart-\(isExpanded)")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

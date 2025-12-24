@@ -23,6 +23,7 @@ struct MuscleChartSection: View {
             MuscleGroupChart(progressViewModel: progressViewModel)
                 .padding(.horizontal, 20)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

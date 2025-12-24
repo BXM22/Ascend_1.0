@@ -223,55 +223,98 @@ struct QuickTemplateCard: View {
     let template: WorkoutTemplate
     let onTap: () -> Void
     
-    private var muscleGroupColor: Color {
-        let (primaryGroups, _) = ExerciseDataManager.shared.getMuscleGroups(for: template.name)
-        // Map muscle group to color
-        if let primaryGroup = primaryGroups.first {
-            switch primaryGroup.lowercased() {
-            case "chest", "pectorals": return .blue
-            case "back", "lats": return .green
-            case "legs", "quadriceps", "hamstrings", "glutes": return .purple
-            case "arms", "biceps", "triceps": return .orange
-            case "shoulders", "deltoids": return .red
-            case "core", "abdominals", "abs": return .yellow
-            default: return AppColors.accent
-            }
+    private var templateGradient: LinearGradient {
+        let name = template.name.lowercased()
+        if name.contains("push") || name.contains("chest") {
+            return LinearGradient.chestGradient
+        } else if name.contains("pull") || name.contains("back") {
+            return LinearGradient.backGradient
+        } else if name.contains("leg") {
+            return LinearGradient.legsGradient
+        } else if name.contains("arm") {
+            return LinearGradient.armsGradient
+        } else if name.contains("core") || name.contains("abs") {
+            return LinearGradient.coreGradient
+        } else if name.contains("full") || name.contains("body") {
+            return LinearGradient.primaryGradient
+        } else {
+            return LinearGradient.primaryGradient
         }
-        return AppColors.accent
+    }
+    
+    private var templateIcon: String {
+        let name = template.name.lowercased()
+        if name.contains("push") || name.contains("chest") {
+            return "figure.strengthtraining.traditional"
+        } else if name.contains("pull") || name.contains("back") {
+            return "figure.climbing"
+        } else if name.contains("leg") {
+            return "figure.run"
+        } else if name.contains("arm") {
+            return "figure.flexibility"
+        } else if name.contains("core") || name.contains("abs") {
+            return "figure.core.training"
+        } else {
+            return "dumbbell.fill"
+        }
     }
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                // Icon
+            VStack(alignment: .leading, spacing: 12) {
+                // Icon with gradient background
                 ZStack {
-                    Circle()
-                        .fill(muscleGroupColor.opacity(0.2))
-                        .frame(width: 40, height: 40)
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(templateGradient.opacity(0.15))
+                        .frame(width: 56, height: 56)
                     
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(muscleGroupColor)
+                    Image(systemName: templateIcon)
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(templateGradient)
                 }
+                .frame(height: 56)
                 
-                // Template Name
+                // Template Name - fixed height to ensure consistency
                 Text(template.name)
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.foreground)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: 100, alignment: .leading)
+                    .frame(height: 40, alignment: .top)
+                    .fixedSize(horizontal: false, vertical: false)
                 
-                // Exercise Count
-                Text("\(template.exercises.count) exercises")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(AppColors.secondary)
+                // Exercise Count and Duration
+                HStack(spacing: 6) {
+                    Label("\(template.exercises.count)", systemImage: "list.bullet")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    if template.estimatedDuration > 0 {
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                        
+                        Label("\(template.estimatedDuration)min", systemImage: "clock")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppColors.textSecondary)
+                    } else {
+                        // Spacer to maintain consistent height even without duration
+                        Spacer()
+                            .frame(width: 0)
+                    }
+                }
+                .frame(height: 18)
             }
-            .frame(width: 120)
-            .padding(12)
+            .frame(width: 140, height: 142, alignment: .top)
+            .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(AppColors.card)
+                    .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(templateGradient.opacity(0.2), lineWidth: 1)
             )
         }
         .buttonStyle(ScaleButtonStyle())
