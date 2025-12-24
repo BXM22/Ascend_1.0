@@ -802,9 +802,14 @@ class ProgressViewModel: ObservableObject {
     /// Calculate trend for an exercise
     func calculateTrend(for exercise: String) -> TrendIndicator {
         let exercisePRs = prsForExercise(exercise)
+        return calculateTrend(for: exercise, using: exercisePRs)
+    }
+    
+    /// More efficient trend calculation when PRs for the exercise are already available
+    func calculateTrend(for exercise: String, using exercisePRs: [PersonalRecord]) -> TrendIndicator {
         
         guard exercisePRs.count >= 2 else {
-            return exercisePRs.isEmpty ? .new : .new
+            return .new
         }
         
         // Get last 3 PRs to calculate trend

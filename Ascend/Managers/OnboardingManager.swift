@@ -66,7 +66,7 @@ enum TutorialStep: Int, CaseIterable {
     case workout
     case progress
     case templates
-    case theme
+    case sportsTimer
     case complete
     
     var title: String {
@@ -81,8 +81,8 @@ enum TutorialStep: Int, CaseIterable {
             return "Monitor Progress"
         case .templates:
             return "Workout Templates"
-        case .theme:
-            return "Customize Your Theme"
+        case .sportsTimer:
+            return "Sports Timer"
         case .complete:
             return "You're All Set!"
         }
@@ -93,17 +93,17 @@ enum TutorialStep: Int, CaseIterable {
         case .welcome:
             return "Your personal workout companion for tracking exercises, monitoring progress, and achieving your fitness goals."
         case .dashboard:
-            return "Start here! View your workout streak, quick stats, and access your favorite templates. Tap any template to begin a workout."
+            return "Start here! See your streak, upcoming program day or suggested workout, quick actions, and your weekly calendar all in one place."
         case .workout:
             return "Log your sets, track weight and reps, and use the rest timer between exercises. Complete sets to see your progress in real-time."
         case .progress:
-            return "View your workout history, personal records, and track your progress over time with detailed charts and statistics."
+            return "Dive into detailed analytics, PR history, and charts to understand how your strength and volume are changing over time."
         case .templates:
-            return "Create custom workout templates or generate new ones based on your preferences. Organize your workouts for easy access."
-        case .theme:
-            return "Personalize your app! Tap the paintbrush button to change the color palette and make Ascend match your style."
+            return "Create custom workouts or quickly generate new ones. Organize templates, edit them, and start a session in just a few taps."
+        case .sportsTimer:
+            return "Perfect for boxing, MMA, wrestling, and more! Configure round and rest times, customize sounds, and track your training sessions."
         case .complete:
-            return "Start your fitness journey! Swipe through the tabs to explore all features. You can always access this tutorial from Settings."
+            return "You’re ready to go. Use the tabs to switch between Dashboard, Workouts, Progress, and Templates, and revisit this tutorial any time from Settings."
         }
     }
     
@@ -119,8 +119,8 @@ enum TutorialStep: Int, CaseIterable {
             return "chart.line.uptrend.xyaxis"
         case .templates:
             return "list.bullet.rectangle"
-        case .theme:
-            return "paintbrush.fill"
+        case .sportsTimer:
+            return "timer"
         case .complete:
             return "checkmark.circle.fill"
         }
@@ -152,10 +152,10 @@ enum TutorialStep: Int, CaseIterable {
                 description: "Create custom workout templates or generate new ones based on your preferences.",
                 position: .top
             )
-        case .theme:
+        case .sportsTimer:
             return TutorialCallout(
-                title: "Customize Your Theme",
-                description: "Personalize your app! Tap the paintbrush button to change the color palette and make Ascend match your style.",
+                title: "Sports Timer",
+                description: "Perfect for boxing, MMA, wrestling, and more! Configure round and rest times, customize sounds, and track your training sessions.",
                 position: .top
             )
         case .welcome:
@@ -183,6 +183,8 @@ enum TutorialStep: Int, CaseIterable {
             return .progress
         case .templates:
             return .templates
+        case .sportsTimer:
+            return .sportsTimer
         default:
             return nil
         }
@@ -198,8 +200,8 @@ enum TutorialStep: Int, CaseIterable {
             return .progressTab
         case .templates:
             return .templatesTab
-        case .theme:
-            return .themeButton
+        case .sportsTimer:
+            return .sportsTimerTab
         case .welcome:
             return nil
         case .complete:

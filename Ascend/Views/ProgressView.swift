@@ -349,12 +349,16 @@ struct ExercisesTab: View {
                         .padding(.vertical, 40)
                     } else {
                         ForEach(filteredExercises, id: \.self) { exercise in
+                            // Pull PR data once per exercise to avoid repeated work during rendering
+                            let prsForExercise = viewModel.prsForExercise(exercise)
+                            let currentPR = prsForExercise.first
+                            
                             ExercisePreviewCard(
                                 exercise: exercise,
-                                currentPR: viewModel.prsForExercise(exercise).first,
-                                prCount: viewModel.prsForExercise(exercise).count,
-                                lastPerformed: viewModel.prsForExercise(exercise).first?.date,
-                                trend: viewModel.calculateTrend(for: exercise)
+                                currentPR: currentPR,
+                                prCount: prsForExercise.count,
+                                lastPerformed: currentPR?.date,
+                                trend: viewModel.calculateTrend(for: exercise, using: prsForExercise)
                             )
                             .onTapGesture {
                                 HapticManager.impact(style: .light)
@@ -364,8 +368,7 @@ struct ExercisesTab: View {
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     HapticManager.impact(style: .light)
-                                    let prs = viewModel.prsForExercise(exercise)
-                                    for pr in prs {
+                                    for pr in prsForExercise {
                                         viewModel.deletePR(pr)
                                     }
                                 } label: {
@@ -834,11 +837,16 @@ struct CurrentPRCard: View {
     @State private var showDeleteConfirmation = false
     @Binding var showExerciseHistory: Bool
     
-    private var dateString: String {
+    // Reuse a single formatter instance to avoid repeated allocations during rendering
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        return formatter.string(from: pr.date)
+        return formatter
+    }()
+    
+    private var dateString: String {
+        CurrentPRCard.dateFormatter.string(from: pr.date)
     }
     
     private var gradient: LinearGradient {
@@ -924,11 +932,16 @@ struct PRHistoryItemView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showDeleteConfirmation = false
     
-    private var dateString: String {
+    // Shared formatter to reduce allocation cost across list rows
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        return formatter.string(from: pr.date)
+        return formatter
+    }()
+    
+    private var dateString: String {
+        PRHistoryItemView.dateFormatter.string(from: pr.date)
     }
     
     private var improvementText: String? {
@@ -1045,10 +1058,15 @@ struct PRItemView: View {
     let pr: PersonalRecord
     @Environment(\.colorScheme) var colorScheme
     
-    private var dateString: String {
+    // Shared relative date formatter for lightweight list rendering
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return formatter.localizedString(for: pr.date, relativeTo: Date())
+        return formatter
+    }()
+    
+    private var dateString: String {
+        PRItemView.relativeFormatter.localizedString(for: pr.date, relativeTo: Date())
     }
     
     var body: some View {

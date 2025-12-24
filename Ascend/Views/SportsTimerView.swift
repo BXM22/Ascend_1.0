@@ -993,6 +993,7 @@ struct SportsTimerConfigView: View {
     @State private var restLabel: String
     @State private var isSaving: Bool = false
     @State private var soundEnabled: Bool = AudioManager.shared.soundEnabled
+    @State private var intervalVolume: Double = Double(AudioManager.shared.intervalVolume)
     
     init(config: SportsTimerConfig, onSave: @escaping (SportsTimerConfig) -> Void) {
         self.initialConfig = config
@@ -1064,6 +1065,68 @@ struct SportsTimerConfigView: View {
                         .padding(.horizontal, 20)
                     }
                     .padding(.top, 20)
+                    
+                    // Interval Sounds Configuration
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Choose your interval sounds")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
+                            .padding(.horizontal, 20)
+                        
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Interval Sounds")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.textSecondary)
+                                Spacer()
+                                Text(soundEnabled ? "On" : "Off")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            
+                            Divider()
+                                .padding(.horizontal, 20)
+                            
+                            HStack {
+                                Text("Resting Sound")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppColors.textSecondary)
+                                Spacer()
+                                Text("Boxing Bell")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            
+                            Divider()
+                                .padding(.horizontal, 20)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Interval Volume")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(AppColors.textSecondary)
+                                    Spacer()
+                                    Text("\(Int(intervalVolume * 100))%")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                                
+                                Slider(value: $intervalVolume, in: 0...1) { _ in
+                                    AudioManager.shared.intervalVolume = Float(intervalVolume)
+                                }
+                                .tint(AppColors.primary)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                        }
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, 20)
+                    }
                     
                     // Round Settings
                     VStack(alignment: .leading, spacing: 16) {

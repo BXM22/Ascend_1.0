@@ -18,6 +18,7 @@ struct WorkoutView: View {
     @State private var calisthenicsReps: String = "8"
     @State private var calisthenicsWeight: String = "0"
     @State private var holdDuration: String = "30"
+    @State private var isVerticalLayout: Bool = false
     
     private var completedExercises: Int {
         guard let workout = viewModel.currentWorkout else { return 0 }
@@ -55,6 +56,10 @@ struct WorkoutView: View {
                         },
                         onCancel: {
                             showCancelConfirmation = true
+                        },
+                        isVerticalLayout: isVerticalLayout,
+                        onToggleLayout: {
+                            isVerticalLayout.toggle()
                         },
                         autoAdvanceToggle: $autoAdvanceToggle
                     )
@@ -98,40 +103,115 @@ struct WorkoutView: View {
                         .id("pr-banner-\(viewModel.prMessage)")
                     }
                     
-                    // Exercise Navigation (only if workout has exercises)
+                    // Exercise Navigation / Vertical List (only if workout has exercises)
                     if let workout = viewModel.currentWorkout, !workout.exercises.isEmpty {
-                        ExerciseNavigationBar(
-                            exercises: workout.exercises,
-                            currentIndex: $viewModel.currentExerciseIndex,
-                            onExerciseSelect: { index in
-                                viewModel.currentExerciseIndex = index
-                                if let exercise = viewModel.currentExercise {
-                                    viewModel.ensureSectionExpanded(for: exercise)
-                                    viewModel.syncDropsetStateFromCurrentExercise()
-                                    
-                                    let exerciseId = "exercise-\(exercise.id)"
-                                    withAnimation(.smooth) {
-                                        proxy.scrollTo(exerciseId, anchor: .top)
+                        if isVerticalLayout {
+                            // Vertically stacked exercises with simple reordering controls
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                    Text("Exercises (tap to focus, use arrows to reorder)")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(AppColors.mutedForeground)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.top, 4)
+                                
+                                ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        // Exercise name label above each card
+                                        HStack {
+                                            Text(exercise.name)
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundColor(AppColors.textPrimary)
+                                                .lineLimit(2)
+                                                .multilineTextAlignment(.leading)
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 20)
+                                        
+                                        ZStack(alignment: .topTrailing) {
+                                            exerciseCardView(for: exercise)
+                                                .id("exercise-\(exercise.id)")
+                                                .onTapGesture {
+                                                    // Focus this exercise as the current one
+                                                    if viewModel.currentExerciseIndex != index {
+                                                        viewModel.currentExerciseIndex = index
+                                                    }
+                                                }
+                                            
+                                            // Simple up/down controls for reordering
+                                            VStack(spacing: 4) {
+                                                if index > 0 {
+                                                    Button(action: {
+                                                        viewModel.moveExercise(from: index, to: index - 1)
+                                                    }) {
+                                                        Image(systemName: "chevron.up.circle.fill")
+                                                            .font(.system(size: 18, weight: .semibold))
+                                                            .foregroundColor(AppColors.primary)
+                                                            .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
+                                                    }
+                                                }
+                                                if index < workout.exercises.count - 1 {
+                                                    Button(action: {
+                                                        viewModel.moveExercise(from: index, to: index + 1)
+                                                    }) {
+                                                        Image(systemName: "chevron.down.circle.fill")
+                                                            .font(.system(size: 18, weight: .semibold))
+                                                            .foregroundColor(AppColors.primary)
+                                                            .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
+                                                    }
+                                                }
+                                            }
+                                            .padding(12)
+                                        }
                                     }
                                 }
                             }
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        
-                        // Current Exercise Card
-                        if let exercise = viewModel.currentExercise {
-                            exerciseCardView(for: exercise)
-                                .id("exercise-\(exercise.id)")
-                                .padding(.top, 8)
+                            
+                            // Add Exercise Button
+                            AddExerciseButton {
+                                viewModel.showAddExerciseSheet = true
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                        } else {
+                            // Original horizontal navigation with a single focused card
+                            ExerciseNavigationBar(
+                                exercises: workout.exercises,
+                                currentIndex: $viewModel.currentExerciseIndex,
+                                onExerciseSelect: { index in
+                                    viewModel.currentExerciseIndex = index
+                                    if let exercise = viewModel.currentExercise {
+                                        viewModel.ensureSectionExpanded(for: exercise)
+                                        viewModel.syncDropsetStateFromCurrentExercise()
+                                        
+                                        let exerciseId = "exercise-\(exercise.id)"
+                                        withAnimation(.smooth) {
+                                            proxy.scrollTo(exerciseId, anchor: .top)
+                                        }
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            
+                            // Current Exercise Card
+                            if let exercise = viewModel.currentExercise {
+                                exerciseCardView(for: exercise)
+                                    .id("exercise-\(exercise.id)")
+                                    .padding(.top, 8)
+                            }
+                            
+                            // Add Exercise Button
+                            AddExerciseButton {
+                                viewModel.showAddExerciseSheet = true
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
                         }
-                        
-                        // Add Exercise Button
-                        AddExerciseButton {
-                            viewModel.showAddExerciseSheet = true
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
                     } else {
                         // Empty state - no exercises yet
                         VStack(spacing: 16) {

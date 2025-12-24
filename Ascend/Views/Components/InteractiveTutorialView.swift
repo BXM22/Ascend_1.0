@@ -134,30 +134,29 @@ struct SpotlightBackground: View {
 
 private func calculateButtonFrame(element: TutorialElement, size: CGSize) -> CGRect {
     switch element {
-    case .dashboardTab, .workoutTab, .progressTab, .templatesTab:
-        // Navigation bar layout: HStack with spacing: 0, 4 NavButtons + 4 Spacers + 1 ThemeButton
+    case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
+        // Navigation bar layout: HStack with 5 NavButtons
         // Each NavButton uses .frame(maxWidth: .infinity), so they share space equally
         let horizontalPadding: CGFloat = 24 // AppSpacing.lg
         let verticalPadding: CGFloat = 16 // AppSpacing.md
-        let themeButtonWidth: CGFloat = 44
         
         // Calculate available width for navigation buttons
         let totalAvailableWidth = size.width - (2 * horizontalPadding)
-        let navButtonAreaWidth = totalAvailableWidth - themeButtonWidth
-        // Each of the 4 NavButtons gets equal space (Spacers take minimal space with spacing: 0)
-        let buttonAreaWidth = navButtonAreaWidth / 4
+        // Each of the 5 NavButtons gets equal space
+        let buttonAreaWidth = totalAvailableWidth / 5
         
         // Button dimensions - NavButton uses VStack with icon, text, and indicator
         let buttonHeight: CGFloat = 60 // Approximate height of NavButton content
         let buttonWidth: CGFloat = buttonAreaWidth // NavButton expands to fill its area
         
-        // Button index (0-3)
+        // Button index (0-4)
         let buttonIndex: Int
         switch element {
         case .dashboardTab: buttonIndex = 0
         case .workoutTab: buttonIndex = 1
         case .progressTab: buttonIndex = 2
         case .templatesTab: buttonIndex = 3
+        case .sportsTimerTab: buttonIndex = 4
         default: buttonIndex = 0
         }
         
@@ -174,27 +173,6 @@ private func calculateButtonFrame(element: TutorialElement, size: CGSize) -> CGR
             y: buttonY,
             width: buttonWidth,
             height: buttonHeight
-        )
-        
-    case .themeButton:
-        // Theme button is on the right side of the navigation bar
-        let horizontalPadding: CGFloat = 24 // AppSpacing.lg
-        let verticalPadding: CGFloat = 16 // AppSpacing.md
-        let themeButtonWidth: CGFloat = 44
-        let themeButtonHeight: CGFloat = 44
-        
-        // Calculate X position - theme button is at the right edge
-        let buttonX = size.width - horizontalPadding - themeButtonWidth
-        
-        // Calculate Y position - nav bar is at bottom with padding
-        let navBarContentHeight = themeButtonHeight + (verticalPadding * 2)
-        let buttonY = size.height - navBarContentHeight + verticalPadding
-        
-        return CGRect(
-            x: buttonX,
-            y: buttonY,
-            width: themeButtonWidth,
-            height: themeButtonHeight
         )
         
     case .quickStartTemplates:
@@ -235,7 +213,7 @@ struct InteractiveCalloutCard: View {
                             highlightedElement == .workoutTab || 
                             highlightedElement == .progressTab || 
                             highlightedElement == .templatesTab ||
-                            highlightedElement == .themeButton
+                            highlightedElement == .sportsTimerTab
             
             // Position callout based on element type
             let calloutY: CGFloat = isBottomNav ? geometry.size.height * 0.3 : geometry.size.height * 0.4
@@ -363,7 +341,7 @@ struct InteractiveCalloutCard: View {
     
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
-        case .dashboardTab, .workoutTab, .progressTab, .templatesTab:
+        case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
             let buttonWidth: CGFloat = size.width / 5
             let buttonHeight: CGFloat = 60
             let yPosition = size.height - buttonHeight / 2 - 20
@@ -374,6 +352,7 @@ struct InteractiveCalloutCard: View {
             case .workoutTab: index = 1.5
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
+            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             

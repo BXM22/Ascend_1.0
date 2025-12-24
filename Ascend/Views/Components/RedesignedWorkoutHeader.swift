@@ -20,6 +20,8 @@ struct RedesignedWorkoutHeader: View {
     let onSettings: () -> Void
     let onHelp: () -> Void
     let onCancel: () -> Void
+    let isVerticalLayout: Bool
+    let onToggleLayout: () -> Void
     @Binding var autoAdvanceToggle: Bool
     
     var body: some View {
@@ -55,6 +57,21 @@ struct RedesignedWorkoutHeader: View {
                 }
                 
                 Spacer()
+                
+                // Layout toggle
+                Button(action: {
+                    onToggleLayout()
+                    HapticManager.selection()
+                }) {
+                    Image(systemName: isVerticalLayout ? "rectangle.grid.1x2" : "list.bullet")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .accessibilityLabel(isVerticalLayout ? "Show horizontal exercise view" : "Show vertical exercise list")
+                .accessibilityHint("Switches how your workout exercises are displayed")
                 
                 // Consolidated menu
                 Menu {

@@ -7,7 +7,7 @@ enum TutorialElement: String, Identifiable {
     case workoutTab
     case progressTab
     case templatesTab
-    case themeButton
+    case sportsTimerTab
     case quickStartTemplates
     case generateButton
     case settingsButton
@@ -83,7 +83,7 @@ struct SpotlightMask: View {
     
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
-        case .dashboardTab, .workoutTab, .progressTab, .templatesTab:
+        case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
             // Bottom navigation bar buttons
             let buttonWidth: CGFloat = size.width / 5
             let buttonHeight: CGFloat = 60
@@ -95,6 +95,7 @@ struct SpotlightMask: View {
             case .workoutTab: index = 1.5
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
+            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             
@@ -103,27 +104,6 @@ struct SpotlightMask: View {
                 y: yPosition,
                 width: buttonWidth * 0.8,
                 height: buttonHeight
-            )
-            
-        case .themeButton:
-            // Theme button is on the right side of the navigation bar
-            let horizontalPadding: CGFloat = 24
-            let verticalPadding: CGFloat = 16
-            let themeButtonWidth: CGFloat = 44
-            let themeButtonHeight: CGFloat = 44
-            
-            // Calculate X position - theme button is at the right edge
-            let buttonX = size.width - horizontalPadding - themeButtonWidth
-            
-            // Calculate Y position - nav bar is at bottom with padding
-            let navBarContentHeight = themeButtonHeight + (verticalPadding * 2)
-            let buttonY = size.height - navBarContentHeight + verticalPadding
-            
-            return CGRect(
-                x: buttonX,
-                y: buttonY,
-                width: themeButtonWidth,
-                height: themeButtonHeight
             )
             
         case .quickStartTemplates:
@@ -210,7 +190,7 @@ struct TutorialCalloutView: View {
     
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
-        case .dashboardTab, .workoutTab, .progressTab, .templatesTab:
+        case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
             let buttonWidth: CGFloat = size.width / 5
             let buttonHeight: CGFloat = 60
             let yPosition = size.height - buttonHeight / 2 - 20
@@ -221,6 +201,7 @@ struct TutorialCalloutView: View {
             case .workoutTab: index = 1.5
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
+            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             
@@ -229,27 +210,6 @@ struct TutorialCalloutView: View {
                 y: yPosition,
                 width: buttonWidth * 0.8,
                 height: buttonHeight
-            )
-            
-        case .themeButton:
-            // Theme button is on the right side of the navigation bar
-            let horizontalPadding: CGFloat = 24
-            let verticalPadding: CGFloat = 16
-            let themeButtonWidth: CGFloat = 44
-            let themeButtonHeight: CGFloat = 44
-            
-            // Calculate X position - theme button is at the right edge
-            let buttonX = size.width - horizontalPadding - themeButtonWidth
-            
-            // Calculate Y position - nav bar is at bottom with padding
-            let navBarContentHeight = themeButtonHeight + (verticalPadding * 2)
-            let buttonY = size.height - navBarContentHeight + verticalPadding
-            
-            return CGRect(
-                x: buttonX,
-                y: buttonY,
-                width: themeButtonWidth,
-                height: themeButtonHeight
             )
             
         case .quickStartTemplates:
@@ -481,7 +441,8 @@ struct TutorialOverlayView: View {
                     let isBottomNavTab = highlightedElement == .dashboardTab || 
                                         highlightedElement == .workoutTab || 
                                         highlightedElement == .progressTab || 
-                                        highlightedElement == .templatesTab
+                                        highlightedElement == .templatesTab ||
+                                        highlightedElement == .sportsTimerTab
                     
                     HStack(spacing: 12) {
                         // Previous button (not on first step)

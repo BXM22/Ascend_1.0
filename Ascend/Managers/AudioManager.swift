@@ -8,6 +8,7 @@ class AudioManager {
     
     private var audioPlayers: [String: AVAudioPlayer] = [:]
     private let soundEnabledKey = "sportsTimerSoundEnabled"
+    private let intervalVolumeKey = "sportsTimerIntervalVolume"
     
     // Sound file names (should be added to the app bundle)
     private let boxingBellSound = "Boxing Bell Sound FX"
@@ -20,6 +21,18 @@ class AudioManager {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: soundEnabledKey)
+        }
+    }
+    
+    /// Global interval volume for timer sounds (0.0 - 1.0)
+    var intervalVolume: Float {
+        get {
+            let value = UserDefaults.standard.object(forKey: intervalVolumeKey) as? Float ?? 1.0
+            return max(0.0, min(1.0, value))
+        }
+        set {
+            let clamped = max(0.0, min(1.0, newValue))
+            UserDefaults.standard.set(clamped, forKey: intervalVolumeKey)
         }
     }
     
@@ -85,7 +98,8 @@ class AudioManager {
                          Bundle.main.url(forResource: filename, withExtension: "aiff") {
                 do {
                     let newPlayer = try AVAudioPlayer(contentsOf: url)
-                    newPlayer.volume = volume
+                    // Apply global interval volume multiplier
+                    newPlayer.volume = volume * intervalVolume
                     newPlayer.play()
                 } catch {
                     Logger.error("Failed to play sound: \(filename)", error: error, category: .general)
