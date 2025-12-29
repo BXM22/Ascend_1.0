@@ -93,3 +93,4 @@ struct WorkoutPatternInsightCard: View {
 
 
 
+
