@@ -156,7 +156,7 @@ struct DayTypeInfoCard: View {
             // Preload data when card appears
             preloadCardData()
         }
-        .onChange(of: day.templateId) { _ in
+        .onChange(of: day.templateId) {
             // Invalidate cache when template changes
             cachedCurrentTemplate = nil
             preloadCardData()
@@ -166,7 +166,7 @@ struct DayTypeInfoCard: View {
         .sheet(isPresented: $showEditTemplate) {
             editTemplateSheetView
         }
-        .onChange(of: templatesViewModel.showEditTemplate) { newValue in
+        .onChange(of: templatesViewModel.showEditTemplate) { oldValue, newValue in
             if newValue {
                 showEditTemplate = true
             }

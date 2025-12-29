@@ -59,15 +59,15 @@ struct ActiveProgramDayCard: View {
                 preloadTemplateData()
                 checkAndPromptForGeneration()
             }
-            .onChange(of: programViewModel.programs.count) { _ in
+            .onChange(of: programViewModel.programs.count) {
                 hasCheckedForGeneration = false
                 checkAndPromptForGeneration()
             }
-            .onChange(of: programViewModel.activeProgram?.programId) { _ in
+            .onChange(of: programViewModel.activeProgram?.programId) {
                 hasCheckedForGeneration = false
                 checkAndPromptForGeneration()
             }
-            .onChange(of: currentDayTemplateId) { _ in
+            .onChange(of: currentDayTemplateId) {
                 hasCheckedForGeneration = false
                 checkAndPromptForGeneration()
             }

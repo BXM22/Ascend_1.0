@@ -15,73 +15,15 @@ struct ActivitySection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section Header with Toggle
+            // Section Header
             HStack {
                 Text("Activity")
                     .font(AppTypography.heading2)
                     .foregroundColor(AppColors.foreground)
                 
                 Spacer()
-                
-                // Week/Month Toggle
-                HStack(spacing: 0) {
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showMonthView = false
-                        }
-                    }) {
-                        Text("Week")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(showMonthView ? AppColors.foreground.opacity(0.7) : .white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(showMonthView ? Color.clear : AppColors.accent)
-                            )
-                    }
-                    
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showMonthView = true
-                        }
-                    }) {
-                        Text("Month")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(showMonthView ? .white : AppColors.foreground.opacity(0.7))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(showMonthView ? AppColors.accent : Color.clear)
-                            )
-                    }
-                }
-                .padding(4)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(AppColors.card)
-                )
             }
             .padding(.horizontal, 20)
-            
-            // Calendar View
-            if showMonthView {
-                MonthCalendarView(
-                    progressViewModel: progressViewModel,
-                    programViewModel: programViewModel
-                )
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                .padding(.horizontal, 20)
-            } else {
-                WeeklyCalendarWidget(
-                    progressViewModel: progressViewModel,
-                    programViewModel: programViewModel
-                )
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
             
             // Collapsible Insights (default expanded)
             CollapsibleInsightsView(progressViewModel: progressViewModel)

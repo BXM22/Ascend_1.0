@@ -536,6 +536,7 @@ struct TemplatesView: View {
             exercises: template.exercises,
             estimatedDuration: template.estimatedDuration,
             intensity: template.intensity,
+            workoutType: template.workoutType,
             isDefault: false,
             colorHex: template.colorHex
         )
@@ -939,6 +940,7 @@ struct TemplateEditView: View {
     @State private var templateName: String
     @State private var exercises: [TemplateExercise]
     @State private var intensity: WorkoutIntensity?
+    @State private var workoutType: WorkoutType
     @State private var templateColorHex: String?
     @State private var newExerciseName: String = ""
     @State private var newExerciseSets: Int = 3
@@ -961,11 +963,13 @@ struct TemplateEditView: View {
             _templateName = State(initialValue: template.name)
             _exercises = State(initialValue: template.exercises)
             _intensity = State(initialValue: template.intensity)
+            _workoutType = State(initialValue: template.workoutType)
             _templateColorHex = State(initialValue: template.colorHex)
         } else {
             _templateName = State(initialValue: "")
             _exercises = State(initialValue: [])
             _intensity = State(initialValue: nil)
+            _workoutType = State(initialValue: .standard)
             _templateColorHex = State(initialValue: nil)
         }
         self.onSave = onSave
@@ -994,6 +998,24 @@ struct TemplateEditView: View {
                                     .stroke(AppColors.border, lineWidth: 2)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    
+                    // Workout Type Selection
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Workout Type")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                        
+                        Picker("Workout Type", selection: $workoutType) {
+                            ForEach(WorkoutType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(AppColors.input)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
                     // Intensity Selection
@@ -1245,6 +1267,7 @@ struct TemplateEditView: View {
                                 exercises: exercises,
                                 estimatedDuration: original.estimatedDuration,
                                 intensity: intensity,
+                                workoutType: workoutType,
                                 colorHex: templateColorHex
                             )
                         } else {
@@ -1254,6 +1277,7 @@ struct TemplateEditView: View {
                                 exercises: exercises,
                                 estimatedDuration: 60,
                                 intensity: intensity,
+                                workoutType: workoutType,
                                 colorHex: templateColorHex
                             )
                         }

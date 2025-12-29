@@ -36,7 +36,7 @@ struct WorkoutProgramView: View {
     // Check if program is active and if current day needs generation
     private var shouldPromptForGeneration: Bool {
         guard let programVM = workoutViewModel.programViewModel,
-              let templatesVM = workoutViewModel.templatesViewModel,
+              let _ = workoutViewModel.templatesViewModel,
               let active = programVM.activeProgram,
               active.programId == currentProgram.id else {
             return false
@@ -168,12 +168,12 @@ struct WorkoutProgramView: View {
         }
         
         // Generate template for the day
-        if let result = programVM.ensureTemplateForDay(
+        if programVM.ensureTemplateForDay(
             dayIndex: dayIndex,
             inProgram: currentProgram.id,
             settings: templatesVM.generationSettings,
             templatesViewModel: templatesVM
-        ) {
+        ) != nil {
             // Template has been generated and assigned to the day
             // The day now has a template, so it can be started
             Logger.info("Generated workout for day: \(day.name)", category: .general)

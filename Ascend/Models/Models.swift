@@ -110,6 +110,7 @@ struct WorkoutTemplate: Identifiable, Codable {
     var exercises: [TemplateExercise] // Changed from [String] to [TemplateExercise]
     let estimatedDuration: Int
     var intensity: WorkoutIntensity? // Optional intensity level
+    var workoutType: WorkoutType // Standard or Circuit
     var isDefault: Bool // True for default templates that shouldn't be deleted
     var colorHex: String? // Optional custom color for the template (hex string)
     
@@ -119,6 +120,7 @@ struct WorkoutTemplate: Identifiable, Codable {
         self.name = name
         self.estimatedDuration = estimatedDuration
         self.intensity = nil
+        self.workoutType = .standard
         self.isDefault = false
         self.colorHex = nil
         // Convert old format to new format
@@ -126,12 +128,13 @@ struct WorkoutTemplate: Identifiable, Codable {
     }
     
     // New initializer with TemplateExercise array
-    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil, isDefault: Bool = false, colorHex: String? = nil) {
+    init(id: UUID = UUID(), name: String, exercises: [TemplateExercise], estimatedDuration: Int, intensity: WorkoutIntensity? = nil, workoutType: WorkoutType = .standard, isDefault: Bool = false, colorHex: String? = nil) {
         self.id = id
         self.name = name
         self.exercises = exercises
         self.estimatedDuration = estimatedDuration
         self.intensity = intensity
+        self.workoutType = workoutType
         self.isDefault = isDefault
         self.colorHex = colorHex
     }
@@ -150,6 +153,19 @@ enum WorkoutIntensity: String, Codable, CaseIterable {
         case .moderate: return "Standard training"
         case .intense: return "High effort workout"
         case .extreme: return "Maximum intensity"
+        }
+    }
+}
+
+// MARK: - Workout Type
+enum WorkoutType: String, Codable, CaseIterable {
+    case standard = "Standard"
+    case circuit = "Circuit"
+    
+    var description: String {
+        switch self {
+        case .standard: return "Traditional sets with rest periods"
+        case .circuit: return "Continuous circuit with minimal rest"
         }
     }
 }

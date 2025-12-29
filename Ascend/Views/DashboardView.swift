@@ -152,6 +152,13 @@ struct DashboardView: View {
             StreakWorkoutCard(progressViewModel: progressViewModel)
                 .padding(.horizontal, 20)
             
+            // Calendar View (moved from Activity section)
+            WeeklyCalendarWidget(
+                progressViewModel: progressViewModel,
+                programViewModel: programViewModel
+            )
+            .padding(.horizontal, 20)
+            
             // Active Program Day Card (if program is active)
             if programViewModel.activeProgram != nil {
                 ActiveProgramDayCard(

@@ -99,7 +99,7 @@ class WorkoutViewModel: ObservableObject {
     
     /// Group exercises by section type
     var exercisesBySection: [ExerciseSectionType: [Exercise]] {
-        guard let workout = currentWorkout else { return [:] }
+        guard currentWorkout != nil else { return [:] }
         let sorted = sortedExercises
         return Dictionary(grouping: sorted) { exercise in
             getSectionType(for: exercise)

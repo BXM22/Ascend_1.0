@@ -454,8 +454,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
-					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
+					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
+					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
 				},
 				{
 					ProductGroup = E39374E72EE7C0A50090E148 /* Products */;
@@ -566,8 +566,8 @@
 					ProjectRef = E3821EF02EF236A0005A4FF2 /* Ascend.xcodeproj */;
 				},
 				{
-					ProductGroup = E393765B2EE8D3110090E148 /* Products */;
-					ProjectRef = E39376542EE8D3110090E148 /* Ascend.xcodeproj */;
+					ProductGroup = 6036BB5F2EEB7BF70020006A /* Products */;
+					ProjectRef = 6036BB582EEB7BF70020006A /* Ascend.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -788,7 +788,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.com.Ascend;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -828,7 +828,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.com.Ascend;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

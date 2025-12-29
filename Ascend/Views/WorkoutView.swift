@@ -329,10 +329,62 @@ struct WorkoutView: View {
         let sectionType = viewModel.getSectionType(for: exercise)
         let isCurrent = viewModel.currentExercise?.id == exercise.id
         
-        if sectionType == .stretch || viewModel.isCardioExercise(exercise) {
-            // For stretch/cardio, use legacy card temporarily
-            Text("Stretch/Cardio card - Legacy implementation")
-                .padding()
+        if sectionType == .stretch {
+            // Stretch exercise card - unified design
+            StretchExerciseCard(
+                exercise: exercise,
+                holdDuration: $holdDuration,
+                onCompleteSet: {
+                    if isCurrent {
+                        viewModel.completeStretchSet()
+                    }
+                },
+                viewModel: viewModel
+            )
+            .id("exercise-\(exercise.id)-stretch-\(exercise.sets.count)")
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+            )
+            .onAppear {
+                if isCurrent {
+                    if let targetHoldDuration = exercise.targetHoldDuration {
+                        holdDuration = String(targetHoldDuration)
+                    } else {
+                        holdDuration = "30"
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+        } else if viewModel.isCardioExercise(exercise) {
+            // Cardio exercise card - unified design
+            CardioExerciseCard(
+                exercise: exercise,
+                holdDuration: $holdDuration,
+                showPRBadge: isCurrent ? viewModel.showPRBadge : false,
+                prMessage: isCurrent ? viewModel.prMessage : "",
+                onCompleteSet: {
+                    if isCurrent, let duration = Int(holdDuration) {
+                        viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
+                    }
+                },
+                viewModel: viewModel
+            )
+            .id("exercise-\(exercise.id)-cardio-\(exercise.sets.count)")
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isCurrent ? AppColors.primary : Color.clear, lineWidth: isCurrent ? 2 : 0)
+            )
+            .onAppear {
+                if isCurrent {
+                    if let target = exercise.targetHoldDuration {
+                        holdDuration = String(target)
+                    } else {
+                        holdDuration = "300"
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
         } else if viewModel.isCalisthenicsExercise(exercise) {
             // Calisthenics exercise - use appropriate card based on type
             if exercise.targetHoldDuration != nil {
@@ -348,7 +400,8 @@ struct WorkoutView: View {
                            let weightValue = Double(calisthenicsWeight) {
                             viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
                         }
-                    }
+                    },
+                    viewModel: viewModel
                 )
                 .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                 .overlay(
@@ -369,6 +422,7 @@ struct WorkoutView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 20)
             } else {
                 // Rep-based calisthenics
                 CalisthenicsExerciseCard(
@@ -382,7 +436,8 @@ struct WorkoutView: View {
                            let weightValue = Double(calisthenicsWeight) {
                             viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
                         }
-                    }
+                    },
+                    viewModel: viewModel
                 )
                 .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                 .overlay(
@@ -402,6 +457,7 @@ struct WorkoutView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 20)
             }
         } else {
             // Weighted exercise - use new simplified card
@@ -506,7 +562,8 @@ struct LegacyWorkoutView: View {
                         if isCurrent {
                             viewModel.completeStretchSet()
                         }
-                    }
+                    },
+                    viewModel: viewModel
                 )
                 .id("exercise-\(exercise.id)-stretch-\(exercise.sets.count)")
             } else if viewModel.isCardioExercise(exercise) {
@@ -520,7 +577,8 @@ struct LegacyWorkoutView: View {
                         if isCurrent, let duration = Int(holdDuration) {
                             viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: 0)
                         }
-                    }
+                    },
+                    viewModel: viewModel
                 )
                 .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                 .overlay(
@@ -551,7 +609,8 @@ struct LegacyWorkoutView: View {
                                let weightValue = Double(calisthenicsWeight) {
                                 viewModel.completeCalisthenicsHoldSet(duration: duration, additionalWeight: weightValue)
                             }
-                        }
+                        },
+                        viewModel: viewModel
                     )
                     .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                     .overlay(
@@ -583,7 +642,8 @@ struct LegacyWorkoutView: View {
                                let weightValue = Double(calisthenicsWeight) {
                                 viewModel.completeCalisthenicsSet(reps: repsValue, additionalWeight: weightValue)
                             }
-                        }
+                        },
+                        viewModel: viewModel
                     )
                     .id("exercise-\(exercise.id)-\(viewModel.currentExerciseVolume)-\(exercise.sets.count)")
                     .overlay(
@@ -1818,7 +1878,7 @@ struct ExerciseCard: View {
     }
 } // Close ExerciseCard struct
 
-// MARK: - Calisthenics Exercise Card (Reps + Additional Weight)
+// MARK: - Calisthenics Exercise Card (Reps + Additional Weight) - Unified Design
 struct CalisthenicsExerciseCard: View {
     let exercise: Exercise
     @Binding var reps: String
@@ -1827,104 +1887,162 @@ struct CalisthenicsExerciseCard: View {
     let prMessage: String
     let onCompleteSet: () -> Void
     
+    @State private var showHistory = false
+    @State private var showDeleteConfirmation = false
+    @ObservedObject var viewModel: WorkoutViewModel
+    
+    var canCompleteSet: Bool {
+        !reps.isEmpty && Int(reps) != nil && Int(reps)! > 0
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Top gradient bar
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [
-                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
-                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ))
-                .frame(height: 4)
-            
-            VStack(alignment: .leading, spacing: 20) {
-                // Exercise Header
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "figure.strengthtraining.traditional")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppColors.accent)
-                        
-                        Text(exercise.name)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                // Set progress
+                Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                
+                Spacer()
+                
+                // Quick actions menu
+                Menu {
+                    if viewModel.progressViewModel != nil {
+                        Button(action: { showHistory = true }) {
+                            Label("View History", systemImage: "chart.bar")
+                        }
                     }
                     
-                    Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(AppColors.secondary)
-                        .clipShape(Capsule())
-                }
-                
-                // PR Badge
-                if showPRBadge {
-                    PRBadge(message: prMessage)
-                        .transition(.scaleWithFade)
-                        .zIndex(10)
-                }
-                
-                // Reps Input
-                InputField(
-                    label: "Reps",
-                    value: $reps,
-                    unit: "reps",
-                    keyboardType: .numberPad,
-                    isWeight: false,
-                    presets: [5, 8, 10, 12, 15]
-                )
-                
-                // Additional Weight Input
-                InputField(
-                    label: "Additional Weight",
-                    value: $additionalWeight,
-                    unit: "lbs",
-                    keyboardType: .decimalPad,
-                    isWeight: true
-                )
-                
-                // Complete Set Button
-                Button(action: onCompleteSet) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Complete Set")
-                            .font(.system(size: 18, weight: .bold))
+                    Section {
+                        Button(role: .destructive, action: { showDeleteConfirmation = true }) {
+                            Label("Delete Exercise", systemImage: "trash")
+                        }
                     }
-                    .foregroundColor(AppColors.accentForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(LinearGradient.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Exercise options")
             }
-            .padding(24)
+            
+            // PR Badge
+            if showPRBadge {
+                PRBadge(message: prMessage)
+                    .transition(.scaleWithFade)
+            }
+            
+            // Input section
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Reps")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    TextField("reps", text: $reps)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(12)
+                        .background(AppColors.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Additional Weight")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    TextField("lbs", text: $additionalWeight)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(12)
+                        .background(AppColors.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            
+            // Quick rep presets
+            HStack(spacing: 8) {
+                ForEach([5, 8, 10, 12, 15], id: \.self) { preset in
+                    Button(action: {
+                        reps = "\(preset)"
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Text("\(preset)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(reps == "\(preset)" ? .white : AppColors.foreground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(reps == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            
+            // Complete Set button
+            Button(action: onCompleteSet) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Complete Set")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(canCompleteSet ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.muted))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: canCompleteSet ? AppColors.accent.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+            }
+            .disabled(!canCompleteSet)
+            .accessibilityLabel("Complete set")
+            
+            // Previous sets (if any)
+            if !exercise.sets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Previous Sets")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    ForEach(exercise.sets.reversed()) { set in
+                        PreviousSetRow(set: set)
+                    }
+                }
+            }
         }
+        .padding(20)
         .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
         .onAppear {
-            // Reset additional weight to 0 if empty
             if additionalWeight.isEmpty {
                 additionalWeight = "0"
             }
         }
+        .sheet(isPresented: $showHistory) {
+            if let progressVM = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
+            }
+        }
+        .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let index = viewModel.currentWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    viewModel.removeExercise(at: index)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(exercise.name)'? This will remove all completed sets for this exercise.")
+        }
     }
 }
 
-// MARK: - Cardio Exercise Card (Time + Sets)
+// MARK: - Cardio Exercise Card (Time + Sets) - Unified Design
 struct CardioExerciseCard: View {
     let exercise: Exercise
     @Binding var holdDuration: String
@@ -1932,240 +2050,282 @@ struct CardioExerciseCard: View {
     let prMessage: String
     let onCompleteSet: () -> Void
     
+    @State private var showHistory = false
+    @State private var showDeleteConfirmation = false
+    @ObservedObject var viewModel: WorkoutViewModel
+    
+    var canCompleteSet: Bool {
+        !holdDuration.isEmpty && Int(holdDuration) != nil && Int(holdDuration)! > 0
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-                // Header
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "figure.run")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.accent)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(exercise.name)
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                        
-                        Text("Cardio • Set \(exercise.currentSet) of \(exercise.targetSets)")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                // Set progress
+                Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                
+                Spacer()
+                
+                // Quick actions menu
+                Menu {
+                    if viewModel.progressViewModel != nil {
+                        Button(action: { showHistory = true }) {
+                            Label("View History", systemImage: "chart.bar")
+                        }
                     }
                     
-                    Spacer()
+                    Section {
+                        Button(role: .destructive, action: { showDeleteConfirmation = true }) {
+                            Label("Delete Exercise", systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
+                .accessibilityLabel("Exercise options")
+            }
+            
+            // PR Badge
+            if showPRBadge {
+                PRBadge(message: prMessage)
+                    .transition(.scaleWithFade)
+            }
+            
+            // Input section
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Duration")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
                 
-                // PR Badge
-                if showPRBadge {
-                    PRBadge(message: prMessage)
-                        .transition(.scaleWithFade)
-                        .zIndex(10)
+                TextField("seconds", text: $holdDuration)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(12)
+                    .background(AppColors.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
+            // Quick duration presets
+            HStack(spacing: 8) {
+                ForEach([60, 120, 180, 300], id: \.self) { preset in
+                    Button(action: {
+                        holdDuration = "\(preset)"
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Text("\(preset / 60)m")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                            .clipShape(Capsule())
+                    }
                 }
-                
-                // Time input
+            }
+            
+            // Complete Set button
+            Button(action: {
+                HapticManager.impact(style: .medium)
+                onCompleteSet()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Complete Set")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(canCompleteSet ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.muted))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: canCompleteSet ? AppColors.accent.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+            }
+            .disabled(!canCompleteSet)
+            .accessibilityLabel("Complete set")
+            
+            // Previous sets (if any)
+            if !exercise.sets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Duration (seconds)")
-                        .font(AppTypography.subheadlineMedium)
+                    Text("Previous Sets")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(AppColors.mutedForeground)
                     
-                    HStack(spacing: 12) {
-                        TextField("0", text: $holdDuration)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 20)
-                            .inputFieldStyle()
-                        
-                        Text("sec")
-                            .font(AppTypography.bodyMedium)
-                            .foregroundColor(AppColors.mutedForeground)
-                            .frame(width: 40, alignment: .leading)
+                    ForEach(exercise.sets.reversed()) { set in
+                        PreviousSetRow(set: set)
                     }
                 }
-                
-                // Quick duration presets
-                HStack(spacing: 8) {
-                    ForEach([60, 120, 180, 300], id: \.self) { preset in
-                        Button(action: {
-                            holdDuration = String(preset)
-                            HapticManager.impact(style: .light)
-                        }) {
-                            Text("\(preset / 60)m")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(holdDuration == String(preset) ? AppColors.alabasterGrey : AppColors.foreground)
-                                .frame(minWidth: 44, minHeight: 32)
-                                .background(holdDuration == String(preset) ? AppColors.accent : AppColors.secondary)
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(ScaleButtonStyle())
-                    }
-                }
-                
-                // Set progress dots
-                HStack(spacing: 8) {
-                    ForEach(1...exercise.targetSets, id: \.self) { setNumber in
-                        Circle()
-                            .fill(setNumber <= exercise.sets.count ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                            .frame(width: setNumber <= exercise.sets.count ? 10 : 8, height: setNumber <= exercise.sets.count ? 10 : 8)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                
-                // Complete set
-                Button(action: {
-                    HapticManager.impact(style: .medium)
-                    onCompleteSet()
-                }) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Complete Cardio Set")
-                            .font(.system(size: 18, weight: .bold))
-                    }
-                    .foregroundColor(AppColors.accentForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(LinearGradient.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
-            .padding(20)
-            .background(AppColors.card)
+        }
+        .padding(20)
+        .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
-        )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .sheet(isPresented: $showHistory) {
+            if let progressVM = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
+            }
+        }
+        .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let index = viewModel.currentWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    viewModel.removeExercise(at: index)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(exercise.name)'? This will remove all completed sets for this exercise.")
+        }
     }
 }
-// MARK: - Stretch Exercise Card (Time + Sets)
+// MARK: - Stretch Exercise Card (Time + Sets) - Unified Design
 struct StretchExerciseCard: View {
     let exercise: Exercise
     @Binding var holdDuration: String
     let onCompleteSet: () -> Void
     
+    @State private var showHistory = false
+    @State private var showDeleteConfirmation = false
+    @ObservedObject var viewModel: WorkoutViewModel
+    
+    var canCompleteSet: Bool {
+        !holdDuration.isEmpty && Int(holdDuration) != nil && Int(holdDuration)! > 0
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-                // Header
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "figure.cooldown")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.accent)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(exercise.name)
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                        
-                        Text("Stretch • Set \(exercise.currentSet) of \(exercise.targetSets)")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                // Set progress
+                Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                
+                Spacer()
+                
+                // Quick actions menu
+                Menu {
+                    if viewModel.progressViewModel != nil {
+                        Button(action: { showHistory = true }) {
+                            Label("View History", systemImage: "chart.bar")
+                        }
                     }
                     
-                    Spacer()
+                    Section {
+                        Button(role: .destructive, action: { showDeleteConfirmation = true }) {
+                            Label("Delete Exercise", systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
+                .accessibilityLabel("Exercise options")
+            }
+            
+            // Input section
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Hold Duration")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
                 
-                // Hold duration input
+                TextField("seconds", text: $holdDuration)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(12)
+                    .background(AppColors.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
+            // Quick duration presets
+            HStack(spacing: 8) {
+                ForEach([15, 30, 45, 60], id: \.self) { preset in
+                    Button(action: {
+                        holdDuration = "\(preset)"
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Text("\(preset)s")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            
+            // Guidance text
+            Text("Focus on slow, controlled breathing and a gentle stretch.")
+                .font(.system(size: 12))
+                .foregroundColor(AppColors.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            // Complete Set button
+            Button(action: {
+                HapticManager.impact(style: .medium)
+                onCompleteSet()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Complete Set")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(canCompleteSet ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.muted))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: canCompleteSet ? AppColors.accent.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+            }
+            .disabled(!canCompleteSet)
+            .accessibilityLabel("Complete set")
+            
+            // Previous sets (if any)
+            if !exercise.sets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Hold Duration (seconds)")
-                        .font(AppTypography.subheadlineMedium)
+                    Text("Previous Sets")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(AppColors.mutedForeground)
                     
-                    HStack(spacing: 12) {
-                        TextField("0", text: $holdDuration)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .inputFieldStyle()
-                        
-                        Text("sec")
-                            .font(AppTypography.bodyMedium)
-                            .foregroundColor(AppColors.mutedForeground)
-                            .frame(width: 40, alignment: .leading)
+                    ForEach(exercise.sets.reversed()) { set in
+                        PreviousSetRow(set: set)
                     }
                 }
-                
-                // Quick duration presets
-                HStack(spacing: 8) {
-                    ForEach([15, 30, 45, 60], id: \.self) { preset in
-                        Button(action: {
-                            holdDuration = String(preset)
-                            HapticManager.impact(style: .light)
-                        }) {
-                            Text("\(preset)s")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(holdDuration == String(preset) ? AppColors.alabasterGrey : AppColors.foreground)
-                                .frame(minWidth: 44, minHeight: 32)
-                                .background(holdDuration == String(preset) ? AppColors.accent : AppColors.secondary)
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(ScaleButtonStyle())
-                    }
-                }
-                
-                // Set progress dots (no weight/reps)
-                HStack(spacing: 8) {
-                    ForEach(1...exercise.targetSets, id: \.self) { setNumber in
-                        Circle()
-                            .fill(setNumber <= exercise.sets.count ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                            .frame(width: setNumber <= exercise.sets.count ? 10 : 8, height: setNumber <= exercise.sets.count ? 10 : 8)
-                    }
-                }
-                
-                // Guidance text
-                Text("Focus on slow, controlled breathing and a gentle stretch. Hold for the selected duration, then complete the set.")
-                    .font(AppTypography.body)
-                    .foregroundColor(AppColors.mutedForeground)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                // Complete Set button
-                Button(action: {
-                    HapticManager.impact(style: .medium)
-                    onCompleteSet()
-                }) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Complete Stretch Set")
-                            .font(.system(size: 18, weight: .bold))
-                    }
-                    .foregroundColor(AppColors.accentForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(LinearGradient.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
-            .padding(20)
-            .background(AppColors.card)
+        }
+        .padding(20)
+        .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
-        )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .sheet(isPresented: $showHistory) {
+            if let progressVM = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
+            }
+        }
+        .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let index = viewModel.currentWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    viewModel.removeExercise(at: index)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(exercise.name)'? This will remove all completed sets for this exercise.")
+        }
     }
 }
 
-// MARK: - Calisthenics Hold Exercise Card (Hold Duration + Additional Weight)
+// MARK: - Calisthenics Hold Exercise Card (Hold Duration + Additional Weight) - Unified Design
 struct CalisthenicsHoldExerciseCard: View {
     let exercise: Exercise
     @Binding var holdDuration: String
@@ -2174,147 +2334,160 @@ struct CalisthenicsHoldExerciseCard: View {
     let prMessage: String
     let onCompleteSet: () -> Void
     
+    @State private var showHistory = false
+    @State private var showDeleteConfirmation = false
+    @ObservedObject var viewModel: WorkoutViewModel
+    
+    var canCompleteSet: Bool {
+        !holdDuration.isEmpty && Int(holdDuration) != nil && Int(holdDuration)! > 0
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Top gradient bar
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [
-                        Color(light: AppColors.prussianBlue, dark: Color(hex: "1c1c1e")),
-                        Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                        Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ))
-                .frame(height: 4)
-            
-            VStack(alignment: .leading, spacing: 20) {
-                // Exercise Header
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "timer")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(AppColors.accent)
-                        
-                        Text(exercise.name)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                    }
-                    
-                    Text("Set \(exercise.currentSet) of \(exercise.targetSets)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(AppColors.secondary)
-                        .clipShape(Capsule())
-                }
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                // Set progress
+                Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
                 
-                // PR Badge
-                if showPRBadge {
-                    PRBadge(message: prMessage)
-                        .transition(.scaleWithFade)
-                        .zIndex(10)
-                }
+                Spacer()
                 
-                // Hold Duration Input
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Hold Duration")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    HStack(spacing: 12) {
-                        TextField("", text: $holdDuration)
-                            .keyboardType(.numberPad)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(AppColors.input)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.border, lineWidth: 2)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        
-                        Text("seconds")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                    }
-                }
-                
-                // Additional Weight Input
-                InputField(
-                    label: "Additional Weight",
-                    value: $additionalWeight,
-                    unit: "lbs",
-                    keyboardType: .decimalPad,
-                    isWeight: true
-                )
-                
-                // Quick Duration Buttons
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Quick Select")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        ForEach([15, 30, 45, 60], id: \.self) { duration in
-                            Button(action: {
-                                holdDuration = String(duration)
-                            }) {
-                                Text("\(duration)s")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(holdDuration == String(duration) ? AppColors.alabasterGrey : AppColors.foreground)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(holdDuration == String(duration) ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
+                // Quick actions menu
+                Menu {
+                    if viewModel.progressViewModel != nil {
+                        Button(action: { showHistory = true }) {
+                            Label("View History", systemImage: "chart.bar")
                         }
                     }
-                }
-                
-                // Complete Set Button
-                Button(action: onCompleteSet) {
-                    HStack {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Complete Set")
-                            .font(.system(size: 18, weight: .bold))
+                    
+                    Section {
+                        Button(role: .destructive, action: { showDeleteConfirmation = true }) {
+                            Label("Delete Exercise", systemImage: "trash")
+                        }
                     }
-                    .foregroundColor(AppColors.accentForeground)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(LinearGradient.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Exercise options")
             }
-            .padding(24)
+            
+            // PR Badge
+            if showPRBadge {
+                PRBadge(message: prMessage)
+                    .transition(.scaleWithFade)
+            }
+            
+            // Input section
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Hold Duration")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    TextField("seconds", text: $holdDuration)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(12)
+                        .background(AppColors.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Additional Weight")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    TextField("lbs", text: $additionalWeight)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(12)
+                        .background(AppColors.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            
+            // Quick duration presets
+            HStack(spacing: 8) {
+                ForEach([15, 30, 45, 60], id: \.self) { preset in
+                    Button(action: {
+                        holdDuration = "\(preset)"
+                        HapticManager.impact(style: .light)
+                    }) {
+                        Text("\(preset)s")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            
+            // Complete Set button
+            Button(action: onCompleteSet) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Complete Set")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(canCompleteSet ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.muted))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: canCompleteSet ? AppColors.accent.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+            }
+            .disabled(!canCompleteSet)
+            .accessibilityLabel("Complete set")
+            
+            // Previous sets (if any)
+            if !exercise.sets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Previous Sets")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    ForEach(exercise.sets.reversed()) { set in
+                        PreviousSetRow(set: set)
+                    }
+                }
+            }
         }
+        .padding(20)
         .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
         .onAppear {
-            // Reset additional weight to 0 if empty
             if additionalWeight.isEmpty {
                 additionalWeight = "0"
             }
-            // Set default hold duration if available
             if holdDuration.isEmpty, let targetDuration = exercise.targetHoldDuration {
                 holdDuration = String(targetDuration)
             }
+        }
+        .sheet(isPresented: $showHistory) {
+            if let progressVM = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
+            }
+        }
+        .alert("Delete Exercise?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let index = viewModel.currentWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    viewModel.removeExercise(at: index)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(exercise.name)'? This will remove all completed sets for this exercise.")
         }
     }
 }
