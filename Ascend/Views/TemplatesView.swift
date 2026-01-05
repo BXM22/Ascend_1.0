@@ -77,7 +77,8 @@ struct TemplatesView: View {
     
     private var filteredTemplates: [WorkoutTemplate] {
         // Create cache key based on inputs
-        let cacheKey = "\(debouncedSearchText)-\(filters.hashValue)-\(sortOption.rawValue)-\(viewModel.templates.count)"
+        let filterKey = createFilterCacheKey(filters)
+        let cacheKey = "\(debouncedSearchText)-\(filterKey)-\(sortOption.rawValue)-\(viewModel.templates.count)"
         
         // Return cached if key matches
         if cacheKey == lastFilterCacheKey && !cachedFilteredTemplates.isEmpty {
@@ -580,6 +581,12 @@ struct TemplatesView: View {
         cachedFilteredTemplates = []
         cachedGroupedTemplates = [:]
         lastFilterCacheKey = ""
+    }
+    
+    private func createFilterCacheKey(_ filters: TemplateFilters) -> String {
+        let intensities = filters.intensities.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.rawValue }.joined(separator: ",")
+        let muscleGroups = filters.muscleGroups.sorted().joined(separator: ",")
+        return "\(intensities)-\(filters.showQuick)-\(filters.showMedium)-\(filters.showLong)-\(muscleGroups)-\(filters.showDefault)-\(filters.showCustom)"
     }
     
     // MARK: - Helper Functions
