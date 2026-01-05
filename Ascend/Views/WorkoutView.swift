@@ -119,53 +119,55 @@ struct WorkoutView: View {
                                 .padding(.horizontal, 20)
                                 .padding(.top, 4)
                                 
-                                ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        // Exercise name label above each card
-                                        HStack {
-                                            Text(exercise.name)
-                                                .font(.system(size: 16, weight: .semibold))
-                                                .foregroundColor(AppColors.textPrimary)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.leading)
-                                            Spacer()
-                                        }
-                                        .padding(.horizontal, 20)
-                                        
-                                        ZStack(alignment: .topTrailing) {
-                                            exerciseCardView(for: exercise)
-                                                .id("exercise-\(exercise.id)")
-                                                .onTapGesture {
-                                                    // Focus this exercise as the current one
-                                                    if viewModel.currentExerciseIndex != index {
-                                                        viewModel.currentExerciseIndex = index
-                                                    }
-                                                }
-                                            
-                                            // Simple up/down controls for reordering
-                                            VStack(spacing: 4) {
-                                                if index > 0 {
-                                                    Button(action: {
-                                                        viewModel.moveExercise(from: index, to: index - 1)
-                                                    }) {
-                                                        Image(systemName: "chevron.up.circle.fill")
-                                                            .font(.system(size: 18, weight: .semibold))
-                                                            .foregroundColor(AppColors.primary)
-                                                            .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
-                                                    }
-                                                }
-                                                if index < workout.exercises.count - 1 {
-                                                    Button(action: {
-                                                        viewModel.moveExercise(from: index, to: index + 1)
-                                                    }) {
-                                                        Image(systemName: "chevron.down.circle.fill")
-                                                            .font(.system(size: 18, weight: .semibold))
-                                                            .foregroundColor(AppColors.primary)
-                                                            .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
-                                                    }
-                                                }
+                                LazyVStack(spacing: 8) {
+                                    ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            // Exercise name label above each card
+                                            HStack {
+                                                Text(exercise.name)
+                                                    .font(.system(size: 16, weight: .semibold))
+                                                    .foregroundColor(AppColors.textPrimary)
+                                                    .lineLimit(2)
+                                                    .multilineTextAlignment(.leading)
+                                                Spacer()
                                             }
-                                            .padding(12)
+                                            .padding(.horizontal, 20)
+                                            
+                                            ZStack(alignment: .topTrailing) {
+                                                exerciseCardView(for: exercise)
+                                                    .id("exercise-\(exercise.id)")
+                                                    .onTapGesture {
+                                                        // Focus this exercise as the current one
+                                                        if viewModel.currentExerciseIndex != index {
+                                                            viewModel.currentExerciseIndex = index
+                                                        }
+                                                    }
+                                                
+                                                // Simple up/down controls for reordering
+                                                VStack(spacing: 4) {
+                                                    if index > 0 {
+                                                        Button(action: {
+                                                            viewModel.moveExercise(from: index, to: index - 1)
+                                                        }) {
+                                                            Image(systemName: "chevron.up.circle.fill")
+                                                                .font(.system(size: 18, weight: .semibold))
+                                                                .foregroundColor(AppColors.primary)
+                                                                .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
+                                                        }
+                                                    }
+                                                    if index < workout.exercises.count - 1 {
+                                                        Button(action: {
+                                                            viewModel.moveExercise(from: index, to: index + 1)
+                                                        }) {
+                                                            Image(systemName: "chevron.down.circle.fill")
+                                                                .font(.system(size: 18, weight: .semibold))
+                                                                .foregroundColor(AppColors.primary)
+                                                                .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
+                                                        }
+                                                    }
+                                                }
+                                                .padding(12)
+                                            }
                                         }
                                     }
                                 }

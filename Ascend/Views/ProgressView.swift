@@ -28,6 +28,10 @@ struct ProgressView: View {
     @State private var viewMode: ViewMode = .list
     @State private var expandedGroups: Set<String> = []
     
+    // Performance: Cache filtered exercises
+    @State private var cachedFilteredExercises: [String] = []
+    @State private var lastFilterCacheKey: String = ""
+    
     var body: some View {
         VStack(spacing: 0) {
             // Redesigned Header
@@ -348,31 +352,33 @@ struct ExercisesTab: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 40)
                     } else {
-                        ForEach(filteredExercises, id: \.self) { exercise in
-                            // Pull PR data once per exercise to avoid repeated work during rendering
-                            let prsForExercise = viewModel.prsForExercise(exercise)
-                            let currentPR = prsForExercise.first
-                            
-                            ExercisePreviewCard(
-                                exercise: exercise,
-                                currentPR: currentPR,
-                                prCount: prsForExercise.count,
-                                lastPerformed: currentPR?.date,
-                                trend: viewModel.calculateTrend(for: exercise, using: prsForExercise)
-                            )
-                            .onTapGesture {
-                                HapticManager.impact(style: .light)
-                                selectedExercise = exercise
-                                showExerciseDetail = true
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredExercises, id: \.self) { exercise in
+                                // Pull PR data once per exercise to avoid repeated work during rendering
+                                let prsForExercise = viewModel.prsForExercise(exercise)
+                                let currentPR = prsForExercise.first
+                                
+                                ExercisePreviewCard(
+                                    exercise: exercise,
+                                    currentPR: currentPR,
+                                    prCount: prsForExercise.count,
+                                    lastPerformed: currentPR?.date,
+                                    trend: viewModel.calculateTrend(for: exercise, using: prsForExercise)
+                                )
+                                .onTapGesture {
                                     HapticManager.impact(style: .light)
-                                    for pr in prsForExercise {
-                                        viewModel.deletePR(pr)
+                                    selectedExercise = exercise
+                                    showExerciseDetail = true
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        HapticManager.impact(style: .light)
+                                        for pr in prsForExercise {
+                                            viewModel.deletePR(pr)
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
                                 }
                             }
                         }

@@ -89,14 +89,16 @@ struct TemplateDetailView: View {
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.lg)
                         
-                        ForEach(Array(template.exercises.enumerated()), id: \.element.id) { index, exercise in
-                            ExerciseDetailRow(
-                                exercise: exercise,
-                                index: index,
-                                gradient: gradient
-                            )
-                            .padding(.horizontal, AppSpacing.lg)
-                            .id("exercise-\(exercise.id)")
+                        LazyVStack(spacing: AppSpacing.md) {
+                            ForEach(Array(template.exercises.enumerated()), id: \.element.id) { index, exercise in
+                                ExerciseDetailRow(
+                                    exercise: exercise,
+                                    index: index,
+                                    gradient: gradient
+                                )
+                                .padding(.horizontal, AppSpacing.lg)
+                                .id("exercise-\(exercise.id)")
+                            }
                         }
                     }
                     

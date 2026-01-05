@@ -35,11 +35,15 @@ struct TemplatesView: View {
     @State private var showFilterSheet = false
     @State private var filters = TemplateFilters()
     @State private var selectedSegment: ContentSegment = .templates
-    @State private var showDetailSheet = false
     @State private var selectedTemplate: WorkoutTemplate?
     @State private var isMultiSelectMode = false
     @State private var selectedTemplates: Set<UUID> = []
     @State private var showGrouped = false
+    
+    // Performance: Cache filtered and grouped templates
+    @State private var cachedFilteredTemplates: [WorkoutTemplate] = []
+    @State private var cachedGroupedTemplates: [String: [WorkoutTemplate]] = [:]
+    @State private var lastFilterCacheKey: String = ""
     
     enum ContentSegment: String, CaseIterable {
         case programs = "Programs"
@@ -72,6 +76,15 @@ struct TemplatesView: View {
     }
     
     private var filteredTemplates: [WorkoutTemplate] {
+        // Create cache key based on inputs
+        let cacheKey = "\(debouncedSearchText)-\(filters.hashValue)-\(sortOption.rawValue)-\(viewModel.templates.count)"
+        
+        // Return cached if key matches
+        if cacheKey == lastFilterCacheKey && !cachedFilteredTemplates.isEmpty {
+            return cachedFilteredTemplates
+        }
+        
+        // Compute filtered templates
         let filtered = viewModel.templates.filter { template in
             if template.name.contains("Progression") { return false }
             
@@ -89,13 +102,36 @@ struct TemplatesView: View {
             
             return true
         }
-        return sortOption.sort(filtered)
+        let sorted = sortOption.sort(filtered)
+        
+        // Cache the result
+        cachedFilteredTemplates = sorted
+        lastFilterCacheKey = cacheKey
+        
+        return sorted
     }
     
     private var groupedTemplates: [String: [WorkoutTemplate]] {
-        Dictionary(grouping: filteredTemplates) { template in
+        // Use cached filtered templates
+        let filtered = filteredTemplates
+        
+        // Create cache key
+        let cacheKey = "\(lastFilterCacheKey)-grouped"
+        
+        // Return cached if available and still valid
+        if !cachedGroupedTemplates.isEmpty && lastFilterCacheKey == cacheKey.replacingOccurrences(of: "-grouped", with: "") {
+            return cachedGroupedTemplates
+        }
+        
+        // Compute grouped templates
+        let grouped = Dictionary(grouping: filtered) { template in
             detectMuscleGroup(template.exercises.first?.name ?? "General")
         }
+        
+        // Cache the result
+        cachedGroupedTemplates = grouped
+        
+        return grouped
     }
     
     private func detectMuscleGroup(_ exerciseName: String) -> String {
@@ -370,7 +406,8 @@ struct TemplatesView: View {
                             } else {
                                 if showGrouped {
                                     // Grouped View
-                                    ForEach(groupedTemplates.keys.sorted(), id: \.self) { group in
+                                    LazyVStack(spacing: 16) {
+                                        ForEach(groupedTemplates.keys.sorted(), id: \.self) { group in
                                         GroupedTemplateSection(
                                             groupName: group,
                                             templates: groupedTemplates[group] ?? [],
@@ -381,7 +418,6 @@ struct TemplatesView: View {
                                                     toggleSelection(template)
                                                 } else {
                                                     selectedTemplate = template
-                                                    showDetailSheet = true
                                                 }
                                             },
                                             onStartTemplate: { template in
@@ -397,9 +433,11 @@ struct TemplatesView: View {
                                         )
                                         .padding(.horizontal, AppSpacing.lg)
                                     }
+                                    }
                                 } else {
                                     // List View with Swipe Actions
-                                    ForEach(filteredTemplates, id: \.id) { template in
+                                    LazyVStack(spacing: 12) {
+                                        ForEach(filteredTemplates, id: \.id) { template in
                                         RedesignedTemplateCard(
                                             template: template,
                                             isMultiSelectMode: isMultiSelectMode,
@@ -409,7 +447,6 @@ struct TemplatesView: View {
                                                     toggleSelection(template)
                                                 } else {
                                                     selectedTemplate = template
-                                                    showDetailSheet = true
                                                     HapticManager.impact(style: .light)
                                                 }
                                             },
@@ -440,6 +477,7 @@ struct TemplatesView: View {
                                             .accessibilityLabel("Duplicate \(template.name)")
                                         }
                                         .padding(.horizontal, AppSpacing.lg)
+                                    }
                                     }
                                 }
                             }
@@ -499,33 +537,49 @@ struct TemplatesView: View {
             TemplateFilterSheet(filters: $filters)
                 .presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $showDetailSheet) {
-            if let template = selectedTemplate {
-                TemplateDetailView(
-                    template: template,
-                    onStart: {
-                        viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                        onStartTemplate()
-                    },
-                    onEdit: {
-                        viewModel.editTemplate(template)
-                    },
-                    onDuplicate: {
-                        duplicateTemplate(template)
-                    },
-                    onDelete: template.isDefault ? nil : {
-                        viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
-                        // Invalidate cache when template is deleted
-                        CardDetailCacheManager.shared.invalidateTemplateCache(template.id)
-                    }
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
+        .sheet(item: $selectedTemplate) { template in
+            TemplateDetailView(
+                template: template,
+                onStart: {
+                    viewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+                    onStartTemplate()
+                },
+                onEdit: {
+                    viewModel.editTemplate(template)
+                },
+                onDuplicate: {
+                    duplicateTemplate(template)
+                },
+                onDelete: template.isDefault ? nil : {
+                    viewModel.deleteTemplate(template, progressViewModel: progressViewModel)
+                    // Invalidate cache when template is deleted
+                    CardDetailCacheManager.shared.invalidateTemplateCache(template.id)
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
         .animation(.easeInOut(duration: 0.3), value: selectedSegment)
         .animation(.easeInOut(duration: 0.3), value: showGrouped)
+        .onChange(of: debouncedSearchText) {
+            invalidateTemplateCache()
+        }
+        .onChange(of: filters) {
+            invalidateTemplateCache()
+        }
+        .onChange(of: sortOption) {
+            invalidateTemplateCache()
+        }
+        .onChange(of: viewModel.templates.count) {
+            invalidateTemplateCache()
+        }
+    }
+    
+    private func invalidateTemplateCache() {
+        cachedFilteredTemplates = []
+        cachedGroupedTemplates = [:]
+        lastFilterCacheKey = ""
     }
     
     // MARK: - Helper Functions
