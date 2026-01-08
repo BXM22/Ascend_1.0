@@ -1406,13 +1406,7 @@ struct ExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
-        )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
     }
     
     private var expandedView: some View {
@@ -2020,7 +2014,7 @@ struct CalisthenicsExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
         .onAppear {
             if additionalWeight.isEmpty {
                 additionalWeight = "0"
@@ -2168,7 +2162,7 @@ struct CardioExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
         .sheet(isPresented: $showHistory) {
             if let progressVM = viewModel.progressViewModel {
                 ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
@@ -2308,7 +2302,7 @@ struct StretchExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
         .sheet(isPresented: $showHistory) {
             if let progressVM = viewModel.progressViewModel {
                 ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
@@ -2467,7 +2461,7 @@ struct CalisthenicsHoldExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
         .onAppear {
             if additionalWeight.isEmpty {
                 additionalWeight = "0"

@@ -159,7 +159,7 @@ struct SimplifiedWeightedExerciseCard: View {
         .padding(20)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 4, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
         .sheet(isPresented: $showHistory) {
             if let progressVM = viewModel.progressViewModel {
                 ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)

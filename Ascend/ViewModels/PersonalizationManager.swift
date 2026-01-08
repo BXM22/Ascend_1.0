@@ -413,6 +413,41 @@ class PersonalizationManager: ObservableObject {
         }.sorted { $0.1 > $1.1 }
     }
     
+    // MARK: - Recovery Manager Integration
+    
+    /// Get detailed muscle recovery status using RecoveryManager
+    func getMuscleRecoveryStatus(for muscle: String) -> MuscleRecoveryState {
+        let summary = RecoveryManager.shared.getRecoverySummary()
+        if let recovery = summary.muscleRecoveries.first(where: { $0.muscleGroup == muscle }) {
+            return recovery.state
+        }
+        return .ready // Default if not tracked
+    }
+    
+    /// Get all muscles that are ready to train
+    func getTrainableMuscles() -> [String] {
+        let summary = RecoveryManager.shared.getRecoverySummary()
+        return summary.readyToTrain
+    }
+    
+    /// Get muscles that need rest
+    func getMusclesNeedingRest() -> [String] {
+        let summary = RecoveryManager.shared.getRecoverySummary()
+        return summary.needsRest
+    }
+    
+    /// Get training recommendation based on recovery status
+    func getRecoveryBasedRecommendation() -> String {
+        let summary = RecoveryManager.shared.getRecoverySummary()
+        return summary.trainingRecommendation
+    }
+    
+    /// Check if overall recovery status allows training
+    func isReadyToTrain() -> Bool {
+        let summary = RecoveryManager.shared.getRecoverySummary()
+        return summary.overallStatus == .ready || summary.overallStatus == .recovering
+    }
+    
     // MARK: - Cache Management
     
     func invalidateCache() {
@@ -422,6 +457,8 @@ class PersonalizationManager: ObservableObject {
         cachedRecoveryDate = nil
         cachedRecommendations = nil
         cachedRecommendationsDate = nil
+        // Also invalidate recovery cache
+        RecoveryManager.shared.invalidateCache()
     }
 }
 

@@ -219,9 +219,12 @@ struct DashboardView: View {
     
     private var analyticsContent: some View {
         VStack(spacing: 16) {
+            // Recovery Section
+            RecoverySectionView(progressViewModel: progressViewModel)
+                .padding(.top, 8)
+            
             // Muscle Chart
             MuscleChartSection(progressViewModel: progressViewModel)
-                .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }

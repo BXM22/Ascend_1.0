@@ -322,10 +322,7 @@ struct MasterExerciseCard: View {
         .padding(16)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-        )
+        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 

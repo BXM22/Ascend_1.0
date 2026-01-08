@@ -78,7 +78,7 @@ struct ExercisePreviewCard: View {
         .padding(16)
         .background(AppColors.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(exercise), current PR: \(currentPR.map { "\(Int($0.weight)) pounds for \($0.reps) reps" } ?? "No PR yet")")
         .accessibilityHint("Double tap to view detailed PR history and charts")

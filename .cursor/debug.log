@@ -1,3 +1,3 @@
-{"data":{"durationMs":11,"totalSets":6},"message":"refreshData","timestamp":1766555307756.3582,"hypothesisId":"perf","runId":"perf-tuning","location":"MuscleGroupChart.swift","sessionId":"debug-session"}
-omplete"}
+{"runId":"perf-tuning","data":{"durationMs":15,"totalSets":6},"timestamp":1767846531253.865,"message":"refreshData","hypothesisId":"perf","location":"MuscleGroupChart.swift","sessionId":"debug-session"}
+rt.swift"}
 
