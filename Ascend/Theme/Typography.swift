@@ -28,6 +28,32 @@ struct AppTypography {
     static let captionBold = Font.custom(avenirBold, size: 13, relativeTo: .caption)
     static let largeTitleBold = Font.custom(avenirBold, size: 36, relativeTo: .largeTitle)
     
+    // MARK: - Extended Typography for Exercise Cards
+    // Footnote size (12pt) - labels above inputs
+    static let footnote = Font.custom(avenirRegular, size: 12, relativeTo: .footnote)
+    static let footnoteMedium = Font.custom(avenirMedium, size: 12, relativeTo: .footnote)
+    
+    // Small body (14pt) - set indicators, secondary labels
+    static let bodySmall = Font.custom(avenirRegular, size: 14, relativeTo: .subheadline)
+    static let bodySmallMedium = Font.custom(avenirMedium, size: 14, relativeTo: .subheadline)
+    static let bodySmallBold = Font.custom(avenirBold, size: 14, relativeTo: .subheadline)
+    
+    // Large numbers (24pt) - input fields
+    static let numberInput = Font.custom(avenirBold, size: 24, relativeTo: .title2)
+    
+    // Extra large numbers (32pt) - primary inputs
+    static let numberInputLarge = Font.custom(avenirBold, size: 32, relativeTo: .title)
+    
+    // Button text (16pt)
+    static let button = Font.custom(avenirMedium, size: 16, relativeTo: .body)
+    static let buttonBold = Font.custom(avenirBold, size: 16, relativeTo: .body)
+    
+    // Large button text (20pt)
+    static let buttonLarge = Font.custom(avenirBold, size: 20, relativeTo: .title3)
+    
+    // Exercise name header (28pt)
+    static let exerciseTitle = Font.custom(avenirBold, size: 28, relativeTo: .title)
+    
     // MARK: - Fallback to System Fonts (if Avenir not loaded)
     // If you see system fonts, it means Avenir didn't load properly.
     // Check: 1) Font file is in project 2) Added to Info.plist 3) PostScript name is correct

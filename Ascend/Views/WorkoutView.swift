@@ -154,6 +154,8 @@ struct WorkoutView: View {
                                                                 .foregroundColor(AppColors.primary)
                                                                 .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
                                                         }
+                                                        .accessibilityLabel("Move \(exercise.name) up")
+                                                        .accessibilityHint("Moves this exercise earlier in the workout")
                                                     }
                                                     if index < workout.exercises.count - 1 {
                                                         Button(action: {
@@ -164,6 +166,8 @@ struct WorkoutView: View {
                                                                 .foregroundColor(AppColors.primary)
                                                                 .shadow(color: AppColors.foreground.opacity(0.4), radius: 2, x: 0, y: 1)
                                                         }
+                                                        .accessibilityLabel("Move \(exercise.name) down")
+                                                        .accessibilityHint("Moves this exercise later in the workout")
                                                     }
                                                 }
                                                 .padding(12)
@@ -953,47 +957,26 @@ struct LegacyWorkoutView: View {
                 masterListSection(proxy: proxy)
                 
                 // PR Badge (shown when PR is achieved, appears below sticky timer)
-                if viewModel.showPRBadge && !viewModel.restTimerActive {
+                if viewModel.showPRBadge && !viewModel.restTimerActive && !viewModel.prMessage.isEmpty {
                     VStack(spacing: 16) {
-                        if !viewModel.prMessage.isEmpty {
-                            PRBadge(message: viewModel.prMessage)
-                                .transition(.scale.combined(with: .opacity))
-                                .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
-                                .zIndex(10)
-                                .id("pr-badge-\(viewModel.prMessage)")
-                                .onAppear {
-                                    Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
-                                }
-                        } else {
-                            // Debug: Badge flag is true but message is empty
-                            Text("PR Badge Debug: showPRBadge=true but prMessage is empty")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        }
+                        PRBadge(message: viewModel.prMessage)
+                            .transition(.scale.combined(with: .opacity))
+                            .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
+                            .zIndex(10)
+                            .id("pr-badge-\(viewModel.prMessage)")
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
-                    .onChange(of: viewModel.showPRBadge) { oldValue, newValue in
-                        Logger.debug("PR Badge state changed: \(oldValue) -> \(newValue), message: '\(viewModel.prMessage)'", category: .general)
-                    }
-                    .onChange(of: viewModel.prMessage) { oldValue, newValue in
-                        Logger.debug("PR Message changed: '\(oldValue)' -> '\(newValue)', showPRBadge: \(viewModel.showPRBadge)", category: .general)
-                    }
                 }
                 
                 // PR Badge (shown beneath rest timer when active)
-                if viewModel.showPRBadge && viewModel.restTimerActive {
+                if viewModel.showPRBadge && viewModel.restTimerActive && !viewModel.prMessage.isEmpty {
                     VStack(spacing: 16) {
-                        if !viewModel.prMessage.isEmpty {
-                            PRBadge(message: viewModel.prMessage)
-                                .transition(.scale.combined(with: .opacity))
-                                .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
-                                .zIndex(10)
-                                .id("pr-badge-\(viewModel.prMessage)")
-                                .onAppear {
-                                    Logger.info("✅ PR BADGE VIEW APPEARED: '\(viewModel.prMessage)'", category: .general)
-                                }
-                        }
+                        PRBadge(message: viewModel.prMessage)
+                            .transition(.scale.combined(with: .opacity))
+                            .animation(AppAnimations.celebration, value: viewModel.showPRBadge)
+                            .zIndex(10)
+                            .id("pr-badge-\(viewModel.prMessage)")
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
@@ -1466,6 +1449,8 @@ struct ExerciseCard: View {
                                             .animation(AppAnimations.snappy, value: exercise.sets.count)
                                     }
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel("Set progress: \(exercise.sets.count) of \(exercise.targetSets) sets completed")
                             }
                         }
                         
@@ -1499,6 +1484,7 @@ struct ExerciseCard: View {
                                     .frame(minWidth: 44, minHeight: 44)
                             }
                             .buttonStyle(ScaleButtonStyle())
+                            .accessibilityLabel("Decrease weight by 5 pounds")
                             
                             // Weight display/input
                             TextField("0", text: $weight)
@@ -1510,11 +1496,14 @@ struct ExerciseCard: View {
                                 .padding(.vertical, 16)
                                 .padding(.horizontal, 20)
                                 .inputFieldStyle()
+                                .accessibilityLabel("Weight in pounds")
+                                .accessibilityValue(weight.isEmpty ? "Not set" : "\(weight) pounds")
                             
                             Text("lbs")
                                 .font(AppTypography.bodyMedium)
                                 .foregroundColor(AppColors.mutedForeground)
                                 .frame(width: 40, alignment: .leading)
+                                .accessibilityHidden(true)
                             
                             // Increment button
                             Button(action: {
@@ -1529,8 +1518,10 @@ struct ExerciseCard: View {
                                     .frame(minWidth: 44, minHeight: 44)
                             }
                             .buttonStyle(ScaleButtonStyle())
+                            .accessibilityLabel("Increase weight by 5 pounds")
                         }
                     }
+                    .accessibilityElement(children: .contain)
                     
                     // Core Inputs - Reps
                     VStack(alignment: .leading, spacing: 8) {
@@ -1552,6 +1543,7 @@ struct ExerciseCard: View {
                                     .frame(minWidth: 44, minHeight: 44)
                             }
                             .buttonStyle(ScaleButtonStyle())
+                            .accessibilityLabel("Decrease reps by 1")
                             
                             // Reps display/input
                             TextField("0", text: $reps)
@@ -1563,11 +1555,14 @@ struct ExerciseCard: View {
                                 .padding(.vertical, 16)
                                 .padding(.horizontal, 20)
                                 .inputFieldStyle()
+                                .accessibilityLabel("Number of reps")
+                                .accessibilityValue(reps.isEmpty ? "Not set" : "\(reps) reps")
                             
                             Text("reps")
                                 .font(AppTypography.bodyMedium)
                                 .foregroundColor(AppColors.mutedForeground)
                                 .frame(width: 40, alignment: .leading)
+                                .accessibilityHidden(true)
                             
                             // Increment button
                             Button(action: {
@@ -1582,6 +1577,7 @@ struct ExerciseCard: View {
                                     .frame(minWidth: 44, minHeight: 44)
                             }
                             .buttonStyle(ScaleButtonStyle())
+                            .accessibilityLabel("Increase reps by 1")
                         }
                         
                         // Quick preset buttons
@@ -1599,9 +1595,13 @@ struct ExerciseCard: View {
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(ScaleButtonStyle())
+                                .accessibilityLabel("Set \(preset) reps")
+                                .accessibilityAddTraits(reps == String(preset) ? .isSelected : [])
                             }
                         }
+                        .accessibilityLabel("Quick rep presets")
                     }
+                    .accessibilityElement(children: .contain)
                     
                     // Advanced helpers: suggestions & plates (styled card)
                     DisclosureGroup {
@@ -1822,14 +1822,14 @@ struct ExerciseCard: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 24, weight: .bold))
                         Text("Complete Set")
-                            .font(.system(size: 20, weight: .bold))
+                            .font(AppTypography.buttonLarge)
                     }
                     .foregroundColor(AppColors.alabasterGrey)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 22)
                     .background(
                         ZStack {
-                            LinearGradient.accentGradient
+                            LinearGradient.primaryGradient
                             
                             // Subtle shimmer effect
                             LinearGradient(
@@ -1847,15 +1847,17 @@ struct ExerciseCard: View {
                     .applyElevation(.prominent)
                 }
                 .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Complete set")
+                .accessibilityHint("Logs your current set with weight and reps")
                 
                 // Undo Last Set Button
                 if showUndoButton {
                     Button(action: onUndoSet) {
                         HStack {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(AppTypography.buttonBold)
                             Text("Undo Last Set")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(AppTypography.subheadlineMedium)
                         }
                         .foregroundColor(AppColors.destructive)
                         .frame(maxWidth: .infinity)
@@ -1897,7 +1899,7 @@ struct CalisthenicsExerciseCard: View {
             HStack {
                 // Set progress
                 Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppTypography.bodySmallBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
                 
                 Spacer()
@@ -1917,7 +1919,7 @@ struct CalisthenicsExerciseCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16))
+                        .font(AppTypography.button)
                         .foregroundColor(AppColors.mutedForeground)
                 }
                 .accessibilityLabel("Exercise options")
@@ -1933,31 +1935,35 @@ struct CalisthenicsExerciseCard: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Reps")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppTypography.footnoteMedium)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     TextField("reps", text: $reps)
                         .keyboardType(.numberPad)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppTypography.numberInput)
                         .foregroundColor(AppColors.textPrimary)
                         .padding(12)
                         .background(AppColors.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .accessibilityLabel("Number of reps")
+                        .accessibilityValue(reps.isEmpty ? "Not set" : "\(reps) reps")
                 }
                 .frame(maxWidth: .infinity)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Additional Weight")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppTypography.footnoteMedium)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     TextField("lbs", text: $additionalWeight)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppTypography.numberInput)
                         .foregroundColor(AppColors.textPrimary)
                         .padding(12)
                         .background(AppColors.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .accessibilityLabel("Additional weight in pounds")
+                        .accessibilityValue(additionalWeight.isEmpty || additionalWeight == "0" ? "No additional weight" : "\(additionalWeight) pounds")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -1970,15 +1976,18 @@ struct CalisthenicsExerciseCard: View {
                         HapticManager.impact(style: .light)
                     }) {
                         Text("\(preset)")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppTypography.captionMedium)
                             .foregroundColor(reps == "\(preset)" ? .white : AppColors.foreground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(reps == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
                             .clipShape(Capsule())
                     }
+                    .accessibilityLabel("Set \(preset) reps")
+                    .accessibilityAddTraits(reps == "\(preset)" ? .isSelected : [])
                 }
             }
+            .accessibilityLabel("Quick rep presets")
             
             // Complete Set button
             Button(action: onCompleteSet) {
@@ -1986,7 +1995,7 @@ struct CalisthenicsExerciseCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
                     Text("Complete Set")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppTypography.buttonBold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -2060,7 +2069,7 @@ struct CardioExerciseCard: View {
             HStack {
                 // Set progress
                 Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppTypography.bodySmallBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
                 
                 Spacer()
@@ -2080,7 +2089,7 @@ struct CardioExerciseCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16))
+                        .font(AppTypography.button)
                         .foregroundColor(AppColors.mutedForeground)
                 }
                 .accessibilityLabel("Exercise options")
@@ -2095,16 +2104,18 @@ struct CardioExerciseCard: View {
             // Input section
             VStack(alignment: .leading, spacing: 6) {
                 Text("Duration")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppTypography.footnoteMedium)
                     .foregroundColor(AppColors.mutedForeground)
                 
                 TextField("seconds", text: $holdDuration)
                     .keyboardType(.numberPad)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTypography.numberInput)
                     .foregroundColor(AppColors.textPrimary)
                     .padding(12)
                     .background(AppColors.background)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Duration in seconds")
+                    .accessibilityValue(holdDuration.isEmpty ? "Not set" : "\(holdDuration) seconds")
             }
             
             // Quick duration presets
@@ -2115,15 +2126,18 @@ struct CardioExerciseCard: View {
                         HapticManager.impact(style: .light)
                     }) {
                         Text("\(preset / 60)m")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppTypography.captionMedium)
                             .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
                             .clipShape(Capsule())
                     }
+                    .accessibilityLabel("Set \(preset / 60) minute\(preset / 60 > 1 ? "s" : "")")
+                    .accessibilityAddTraits(holdDuration == "\(preset)" ? .isSelected : [])
                 }
             }
+            .accessibilityLabel("Quick duration presets")
             
             // Complete Set button
             Button(action: {
@@ -2134,7 +2148,7 @@ struct CardioExerciseCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
                     Text("Complete Set")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppTypography.buttonBold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -2200,7 +2214,7 @@ struct StretchExerciseCard: View {
             HStack {
                 // Set progress
                 Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppTypography.bodySmallBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
                 
                 Spacer()
@@ -2220,7 +2234,7 @@ struct StretchExerciseCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16))
+                        .font(AppTypography.button)
                         .foregroundColor(AppColors.mutedForeground)
                 }
                 .accessibilityLabel("Exercise options")
@@ -2229,16 +2243,18 @@ struct StretchExerciseCard: View {
             // Input section
             VStack(alignment: .leading, spacing: 6) {
                 Text("Hold Duration")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppTypography.footnoteMedium)
                     .foregroundColor(AppColors.mutedForeground)
                 
                 TextField("seconds", text: $holdDuration)
                     .keyboardType(.numberPad)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTypography.numberInput)
                     .foregroundColor(AppColors.textPrimary)
                     .padding(12)
                     .background(AppColors.background)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Hold duration in seconds")
+                    .accessibilityValue(holdDuration.isEmpty ? "Not set" : "\(holdDuration) seconds")
             }
             
             // Quick duration presets
@@ -2249,19 +2265,22 @@ struct StretchExerciseCard: View {
                         HapticManager.impact(style: .light)
                     }) {
                         Text("\(preset)s")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppTypography.captionMedium)
                             .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
                             .clipShape(Capsule())
                     }
+                    .accessibilityLabel("Set \(preset) seconds")
+                    .accessibilityAddTraits(holdDuration == "\(preset)" ? .isSelected : [])
                 }
             }
+            .accessibilityLabel("Quick duration presets")
             
             // Guidance text
             Text("Focus on slow, controlled breathing and a gentle stretch.")
-                .font(.system(size: 12))
+                .font(AppTypography.footnote)
                 .foregroundColor(AppColors.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             
@@ -2274,7 +2293,7 @@ struct StretchExerciseCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
                     Text("Complete Set")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppTypography.buttonBold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -2290,7 +2309,7 @@ struct StretchExerciseCard: View {
             if !exercise.sets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Previous Sets")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppTypography.captionBold)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     ForEach(exercise.sets.reversed()) { set in
@@ -2344,7 +2363,7 @@ struct CalisthenicsHoldExerciseCard: View {
             HStack {
                 // Set progress
                 Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppTypography.bodySmallBold)
                     .foregroundStyle(LinearGradient.primaryGradient)
                 
                 Spacer()
@@ -2364,7 +2383,7 @@ struct CalisthenicsHoldExerciseCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16))
+                        .font(AppTypography.button)
                         .foregroundColor(AppColors.mutedForeground)
                 }
                 .accessibilityLabel("Exercise options")
@@ -2380,31 +2399,35 @@ struct CalisthenicsHoldExerciseCard: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Hold Duration")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppTypography.footnoteMedium)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     TextField("seconds", text: $holdDuration)
                         .keyboardType(.numberPad)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppTypography.numberInput)
                         .foregroundColor(AppColors.textPrimary)
                         .padding(12)
                         .background(AppColors.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .accessibilityLabel("Hold duration in seconds")
+                        .accessibilityValue(holdDuration.isEmpty ? "Not set" : "\(holdDuration) seconds")
                 }
                 .frame(maxWidth: .infinity)
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Additional Weight")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppTypography.footnoteMedium)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     TextField("lbs", text: $additionalWeight)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppTypography.numberInput)
                         .foregroundColor(AppColors.textPrimary)
                         .padding(12)
                         .background(AppColors.background)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .accessibilityLabel("Additional weight in pounds")
+                        .accessibilityValue(additionalWeight.isEmpty || additionalWeight == "0" ? "No additional weight" : "\(additionalWeight) pounds")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -2417,15 +2440,18 @@ struct CalisthenicsHoldExerciseCard: View {
                         HapticManager.impact(style: .light)
                     }) {
                         Text("\(preset)s")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(AppTypography.captionMedium)
                             .foregroundColor(holdDuration == "\(preset)" ? .white : AppColors.foreground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(holdDuration == "\(preset)" ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.secondary))
                             .clipShape(Capsule())
                     }
+                    .accessibilityLabel("Set \(preset) seconds")
+                    .accessibilityAddTraits(holdDuration == "\(preset)" ? .isSelected : [])
                 }
             }
+            .accessibilityLabel("Quick duration presets")
             
             // Complete Set button
             Button(action: onCompleteSet) {
@@ -2433,7 +2459,7 @@ struct CalisthenicsHoldExerciseCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
                     Text("Complete Set")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppTypography.buttonBold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -2449,7 +2475,7 @@ struct CalisthenicsHoldExerciseCard: View {
             if !exercise.sets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Previous Sets")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppTypography.captionBold)
                         .foregroundColor(AppColors.mutedForeground)
                     
                     ForEach(exercise.sets.reversed()) { set in
