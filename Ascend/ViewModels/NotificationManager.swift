@@ -77,6 +77,126 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         Logger.debug("Cancelled all notifications", category: .notification)
     }
     
+    // MARK: - Habit Reminders
+    
+    /// Schedules a daily repeating notification for a habit
+    func scheduleHabitReminder(habit: Habit) {
+        guard habit.reminderEnabled,
+              let reminderTime = habit.reminderTime else {
+            Logger.debug("Cannot schedule habit reminder - reminder not enabled or no time set", category: .notification)
+            return
+        }
+        
+        // Cancel any existing reminder for this habit
+        cancelHabitReminder(habitId: habit.id)
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        
+        // Create notification content
+        let content = UNMutableNotificationContent()
+        content.title = habit.name
+        content.body = "Time to complete your habit! (\(habit.completionDuration) min)"
+        content.sound = .default
+        content.categoryIdentifier = "HABIT_REMINDER"
+        content.userInfo = [
+            "habitId": habit.id.uuidString,
+            "habitName": habit.name
+        ]
+        
+        // Create daily repeating trigger
+        var dateComponents = DateComponents()
+        dateComponents.hour = components.hour
+        dateComponents.minute = components.minute
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let identifier = "habitReminder_\(habit.id.uuidString)"
+        
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                Logger.error("Error scheduling habit reminder", error: error, category: .notification)
+            } else {
+                Logger.debug("Scheduled daily habit reminder for \(habit.name) at \(components.hour ?? 0):\(components.minute ?? 0)", category: .notification)
+            }
+        }
+    }
+    
+    /// Cancels the reminder for a specific habit
+    func cancelHabitReminder(habitId: UUID) {
+        let identifier = "habitReminder_\(habitId.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
+        Logger.debug("Cancelled habit reminder for \(habitId)", category: .notification)
+    }
+    
+    /// Updates all habit reminders (call when habits change)
+    func updateAllHabitReminders(habits: [Habit]) {
+        Task {
+            // Cancel all existing habit reminders
+            let center = UNUserNotificationCenter.current()
+            let requests = await center.pendingNotificationRequests()
+            let habitReminderIds = requests
+                .filter { $0.identifier.hasPrefix("habitReminder_") }
+                .map { $0.identifier }
+            
+            center.removePendingNotificationRequests(withIdentifiers: habitReminderIds)
+            
+            // Schedule reminders for habits that have them enabled
+            for habit in habits {
+                if habit.reminderEnabled {
+                    await scheduleHabitReminderAsync(habit: habit)
+                }
+            }
+        }
+    }
+    
+    /// Async version for scheduling habit reminder
+    private func scheduleHabitReminderAsync(habit: Habit) async {
+        guard habit.reminderEnabled,
+              let reminderTime = habit.reminderTime else {
+            return
+        }
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        
+        let content = UNMutableNotificationContent()
+        content.title = habit.name
+        content.body = "Time to complete your habit! (\(habit.completionDuration) min)"
+        content.sound = .default
+        content.categoryIdentifier = "HABIT_REMINDER"
+        content.userInfo = [
+            "habitId": habit.id.uuidString,
+            "habitName": habit.name
+        ]
+        
+        var dateComponents = DateComponents()
+        dateComponents.hour = components.hour
+        dateComponents.minute = components.minute
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let identifier = "habitReminder_\(habit.id.uuidString)"
+        
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            Logger.debug("Scheduled daily habit reminder for \(habit.name)", category: .notification)
+        } catch {
+            Logger.error("Error scheduling habit reminder", error: error, category: .notification)
+        }
+    }
+    
     // MARK: - UNUserNotificationCenterDelegate
     
     /// Handle notification when app is in foreground

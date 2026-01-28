@@ -9,10 +9,12 @@ struct DashboardView: View {
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var themeManager: ThemeManager
+    @StateObject private var habitViewModel = HabitViewModel()
     @EnvironmentObject var colorThemeProvider: ColorThemeProvider
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
     let onNavigateToProgress: (() -> Void)?
+    let onNavigateToHabits: (() -> Void)?
     
     @State private var showWorkoutHistory = false
     @State private var selectedTab: DashboardTab = .overview
@@ -41,7 +43,8 @@ struct DashboardView: View {
         themeManager: ThemeManager,
         onStartWorkout: @escaping () -> Void,
         onSettings: @escaping () -> Void,
-        onNavigateToProgress: (() -> Void)? = nil
+        onNavigateToProgress: (() -> Void)? = nil,
+        onNavigateToHabits: (() -> Void)? = nil
     ) {
         self.progressViewModel = progressViewModel
         self.workoutViewModel = workoutViewModel
@@ -51,6 +54,7 @@ struct DashboardView: View {
         self.onStartWorkout = onStartWorkout
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
+        self.onNavigateToHabits = onNavigateToHabits
     }
     
     var body: some View {
@@ -151,6 +155,25 @@ struct DashboardView: View {
             // Streak and Workout Count Card
             StreakWorkoutCard(progressViewModel: progressViewModel)
                 .padding(.horizontal, 20)
+            
+            // Habits Summary Card
+            if habitViewModel.totalHabits > 0 {
+                HabitsSummaryCard(viewModel: habitViewModel) {
+                    onNavigateToHabits?()
+                }
+                .padding(.horizontal, 20)
+            }
+            
+            // Today's Habits Card
+            if !habitViewModel.habitsDueToday.isEmpty {
+                TodayHabitsCard(
+                    viewModel: habitViewModel,
+                    onTapHabit: { habit in
+                        // Could navigate to habit detail or mark complete
+                    }
+                )
+                .padding(.horizontal, 20)
+            }
             
             // Calendar View (moved from Activity section)
             WeeklyCalendarWidget(
