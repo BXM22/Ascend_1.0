@@ -15,12 +15,14 @@ class HabitViewModel: ObservableObject {
     init(habitManager: HabitManager = .shared) {
         self.habitManager = habitManager
         
-        // Observe habit changes to update notifications
+        // Observe habit changes to update notifications and trigger view updates
         habitManager.$habits
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { [weak self] habits in
                 // Update notifications when habits change
                 NotificationManager.shared.updateAllHabitReminders(habits: habits)
+                // Trigger view update
+                self?.objectWillChange.send()
             }
             .store(in: &cancellables)
     }
@@ -36,7 +38,7 @@ class HabitViewModel: ObservableObject {
     }
     
     var todayCompletions: Int {
-        let today = Calendar.current.startOfDay(for: Date())
+        let today = DateHelper.today
         return habitManager.habits.filter { habit in
             habitManager.isCompleted(habitId: habit.id, date: today)
         }.count
@@ -73,9 +75,15 @@ class HabitViewModel: ObservableObject {
         let oldHabit = habitManager.getHabit(byId: habit.id)
         habitManager.updateHabit(habit)
         
+        // Trigger view update
+        objectWillChange.send()
+        
         // Update notification if reminder settings changed
-        if oldHabit?.reminderEnabled != habit.reminderEnabled ||
-           oldHabit?.reminderTime != habit.reminderTime {
+        // Only update if there's an actual change to avoid unnecessary work
+        let reminderChanged = oldHabit?.reminderEnabled != habit.reminderEnabled ||
+                              oldHabit?.reminderTime != habit.reminderTime
+        
+        if reminderChanged {
             if habit.reminderEnabled {
                 NotificationManager.shared.scheduleHabitReminder(habit: habit)
             } else {
@@ -87,6 +95,20 @@ class HabitViewModel: ObservableObject {
     func deleteHabit(_ habit: Habit) {
         NotificationManager.shared.cancelHabitReminder(habitId: habit.id)
         habitManager.deleteHabit(habit)
+        
+        // Clear selected habit if it was deleted
+        if selectedHabit?.id == habit.id {
+            selectedHabit = nil
+        }
+        
+        // Clear editing habit if it was deleted
+        if editingHabit?.id == habit.id {
+            editingHabit = nil
+            showEditHabit = false
+        }
+        
+        // Trigger view update
+        objectWillChange.send()
     }
     
     func toggleCompletion(habitId: UUID, date: Date = Date()) {
@@ -97,6 +119,9 @@ class HabitViewModel: ObservableObject {
             HapticManager.success()
         }
     }
+    
+    // MARK: - Delegated Methods (DRY - avoid duplication)
+    // These methods delegate to HabitManager to maintain single source of truth
     
     func getStreak(habitId: UUID) -> Int {
         habitManager.getStreak(habitId: habitId)

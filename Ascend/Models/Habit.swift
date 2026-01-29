@@ -10,8 +10,7 @@ struct HabitCompletion: Identifiable, Codable, Equatable {
     
     init(date: Date, completedAt: Date = Date(), duration: Int? = nil) {
         self.id = UUID()
-        let calendar = Calendar.current
-        self.date = calendar.startOfDay(for: date)
+        self.date = DateHelper.startOfDay(date)
         self.completedAt = completedAt
         self.duration = duration
     }
@@ -64,4 +63,5 @@ struct Habit: Identifiable, Codable, Equatable {
         return AppColors.primary
     }
 }
+
 

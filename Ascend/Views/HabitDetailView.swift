@@ -13,81 +13,73 @@ struct HabitDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showEditSheet = false
     
-    private var currentStreak: Int {
-        viewModel.getStreak(habitId: habit.id)
+    // Get current habit from manager to reflect updates
+    private var currentHabit: Habit? {
+        viewModel.habitManager.getHabit(byId: habit.id)
     }
     
-    private var longestStreak: Int {
-        viewModel.getLongestStreak(habitId: habit.id)
+    // Check if habit still exists
+    private var habitExists: Bool {
+        currentHabit != nil
     }
     
-    private var completionCount: Int {
-        viewModel.getCompletionCount(habitId: habit.id)
-    }
-    
-    private var progress: Double? {
-        viewModel.getProgress(habitId: habit.id)
-    }
-    
-    private var isCompletedToday: Bool {
-        viewModel.isCompleted(habitId: habit.id)
-    }
-    
-    private var habitGradient: LinearGradient {
-        if let hex = habit.colorHex {
-            let color = Color(hex: hex)
-            return LinearGradient(
-                colors: [color, color.opacity(0.7)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-        return LinearGradient.primaryGradient
+    private func habitGradient(for habit: Habit) -> LinearGradient {
+        HabitGradientHelper.gradient(for: habit)
     }
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                contentView
-                    .padding(20)
-            }
-            .background(AppColors.background)
-            .navigationTitle("Habit Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") {
-                        showEditSheet = true
+        Group {
+            if habitExists, let habit = currentHabit {
+                NavigationView {
+                    ScrollView {
+                        contentView(for: habit)
+                            .padding(20)
                     }
-                    .foregroundColor(AppColors.primary)
+                    .background(AppColors.background)
+                    .navigationTitle("Habit Details")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Edit") {
+                                showEditSheet = true
+                            }
+                            .foregroundColor(AppColors.primary)
+                        }
+                    }
                 }
+                .sheet(isPresented: $showEditSheet) {
+                    editSheet(for: habit)
+                }
+            } else {
+                // Habit was deleted, show empty state and dismiss
+                Color.clear
+                    .onAppear {
+                        dismiss()
+                    }
             }
         }
-        .sheet(isPresented: $showEditSheet) {
-            editSheet
-        }
     }
     
-    private var contentView: some View {
+    private func contentView(for habit: Habit) -> some View {
         VStack(spacing: 20) {
-            headerCard
-            statsGrid
-            progressSection
-            completionButton
+            headerCard(for: habit)
+            statsGrid(for: habit)
+            progressSection(for: habit)
+            completionButton(for: habit)
         }
     }
     
-    private var headerCard: some View {
+    private func headerCard(for habit: Habit) -> some View {
         VStack(spacing: 16) {
             // Icon
             ZStack {
                 Circle()
-                    .fill(habitGradient.opacity(0.2))
+                    .fill(habitGradient(for: habit).opacity(0.2))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: habit.icon)
                     .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(habitGradient)
+                    .foregroundStyle(habitGradient(for: habit))
             }
             
             // Name
@@ -101,58 +93,50 @@ struct HabitDetailView: View {
                 .foregroundColor(AppColors.mutedForeground)
         }
         .padding(AppSpacing.lg)
-        .background(headerCardBackground)
+        .background(headerCardBackground(for: habit))
         .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
     }
     
-    private var headerCardBackground: some View {
+    private func headerCardBackground(for habit: Habit) -> some View {
         RoundedRectangle(cornerRadius: 20)
             .fill(AppColors.card)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(habitGradient.opacity(0.3), lineWidth: 2)
+                    .stroke(habitGradient(for: habit).opacity(0.3), lineWidth: 2)
             )
     }
     
-    private var statsGrid: some View {
+    private func statsGrid(for habit: Habit) -> some View {
         HStack(spacing: 12) {
             StatBox(
                 title: "Current Streak",
-                value: "\(currentStreak)",
+                value: "\(viewModel.getStreak(habitId: habit.id))",
                 subtitle: "days",
-                gradient: streakGradient
+                gradient: HabitGradientHelper.streakGradient
             )
             
             StatBox(
                 title: "Longest Streak",
-                value: "\(longestStreak)",
+                value: "\(viewModel.getLongestStreak(habitId: habit.id))",
                 subtitle: "days",
-                gradient: habitGradient
+                gradient: habitGradient(for: habit)
             )
             
             StatBox(
                 title: "Completed",
-                value: "\(completionCount)",
+                value: "\(viewModel.getCompletionCount(habitId: habit.id))",
                 subtitle: "times",
-                gradient: habitGradient
+                gradient: habitGradient(for: habit)
             )
         }
     }
     
-    private var streakGradient: LinearGradient {
-        LinearGradient(
-            colors: [.orange, .red],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-    
     @ViewBuilder
-    private var progressSection: some View {
-        if let progress = progress, let target = habit.targetStreakDays {
+    private func progressSection(for habit: Habit) -> some View {
+        if let progress = viewModel.getProgress(habitId: habit.id), let target = habit.targetStreakDays {
             VStack(alignment: .leading, spacing: 12) {
-                progressHeader(target: target)
-                progressBar(progress: progress)
+                progressHeader(target: target, currentStreak: viewModel.getStreak(habitId: habit.id))
+                progressBar(progress: progress, habit: habit)
                 progressText(progress: progress)
             }
             .padding(AppSpacing.lg)
@@ -163,7 +147,7 @@ struct HabitDetailView: View {
         }
     }
     
-    private func progressHeader(target: Int) -> some View {
+    private func progressHeader(target: Int, currentStreak: Int) -> some View {
         HStack {
             Text("Progress")
                 .font(.system(size: 18, weight: .semibold))
@@ -177,19 +161,11 @@ struct HabitDetailView: View {
         }
     }
     
-    private func progressBar(progress: Double) -> some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.border.opacity(0.2))
-                    .frame(height: 12)
-                
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(habitGradient)
-                    .frame(width: geometry.size.width * CGFloat(progress), height: 12)
-            }
-        }
-        .frame(height: 12)
+    private func progressBar(progress: Double, habit: Habit) -> some View {
+        ProgressBarView(
+            progress: progress,
+            gradient: habitGradient(for: habit)
+        )
     }
     
     private func progressText(progress: Double) -> some View {
@@ -198,54 +174,48 @@ struct HabitDetailView: View {
             .foregroundColor(AppColors.mutedForeground)
     }
     
-    private var completionButton: some View {
-        Button(action: {
+    private func completionButton(for habit: Habit) -> some View {
+        let isCompleted = viewModel.isCompleted(habitId: habit.id)
+        return Button(action: {
             HapticManager.success()
             viewModel.toggleCompletion(habitId: habit.id)
         }) {
             HStack {
-                completionIcon
-                Text(isCompletedToday ? "Completed Today" : "Mark as Complete")
+                completionIcon(isCompleted: isCompleted, habit: habit)
+                Text(isCompleted ? "Completed Today" : "Mark as Complete")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(AppColors.foreground)
                 Spacer()
             }
             .padding(AppSpacing.lg)
-            .background(completionButtonBackground)
+            .background(completionButtonBackground(isCompleted: isCompleted, habit: habit))
         }
         .buttonStyle(PlainButtonStyle())
     }
     
-    private var completionIcon: some View {
+    private func completionIcon(isCompleted: Bool, habit: Habit) -> some View {
         Group {
-            if isCompletedToday {
+            if isCompleted {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 24))
-                    .foregroundStyle(habitGradient)
+                    .foregroundStyle(habitGradient(for: habit))
             } else {
                 Image(systemName: "circle")
                     .font(.system(size: 24))
-                    .foregroundStyle(mutedGradient)
+                    .foregroundStyle(HabitGradientHelper.mutedGradient)
             }
         }
     }
     
-    private var mutedGradient: LinearGradient {
-        LinearGradient(
-            colors: [AppColors.mutedForeground],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
     
-    private var completionButtonBackground: some View {
+    private func completionButtonBackground(isCompleted: Bool, habit: Habit) -> some View {
         Group {
-            if isCompletedToday {
+            if isCompleted {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(habitGradient.opacity(0.1))
+                    .fill(habitGradient(for: habit).opacity(0.1))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(habitGradient.opacity(0.5), lineWidth: 2)
+                            .stroke(habitGradient(for: habit).opacity(0.5), lineWidth: 2)
                     )
             } else {
                 RoundedRectangle(cornerRadius: 16)
@@ -258,7 +228,7 @@ struct HabitDetailView: View {
         }
     }
     
-    private var editSheet: some View {
+    private func editSheet(for habit: Habit) -> some View {
         HabitEditView(
             habit: habit,
             onSave: { updatedHabit in

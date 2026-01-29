@@ -17,7 +17,10 @@ struct HabitEditView: View {
     @State private var completionDuration: Int = 15
     @State private var targetStreakDays: Int? = nil
     @State private var isForever: Bool = true
-    @State private var reminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var reminderTime: Date = {
+        let calendar = Calendar.current
+        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    }()
     @State private var reminderEnabled: Bool = false
     @State private var selectedColorHex: String? = nil
     @State private var selectedIcon: String = "checkmark.circle.fill"

@@ -29,15 +29,7 @@ struct HabitCard: View {
     }
     
     private var habitGradient: LinearGradient {
-        if let hex = habit.colorHex {
-            let color = Color(hex: hex)
-            return LinearGradient(
-                colors: [color, color.opacity(0.7)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-        return LinearGradient.primaryGradient
+        HabitGradientHelper.gradient(for: habit)
     }
     
     var body: some View {
@@ -92,13 +84,7 @@ struct HabitCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.orange, .red],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .foregroundStyle(HabitGradientHelper.streakGradient)
                             
                             Text("\(currentStreak)")
                                 .font(.system(size: 20, weight: .bold))
@@ -130,18 +116,13 @@ struct HabitCard: View {
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(AppColors.foreground)
                             
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(AppColors.border.opacity(0.2))
-                                        .frame(height: 6)
-                                    
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(habitGradient)
-                                        .frame(width: geometry.size.width * CGFloat(progress), height: 6)
-                                }
-                            }
-                            .frame(width: 80, height: 6)
+                            ProgressBarView(
+                                progress: progress,
+                                gradient: habitGradient,
+                                height: 6,
+                                cornerRadius: 4
+                            )
+                            .frame(width: 80)
                             
                             Text("\(currentStreak)/\(target) days")
                                 .font(.system(size: 11))
@@ -205,4 +186,5 @@ struct HabitCard: View {
     .padding()
     .background(AppColors.background)
 }
+
 

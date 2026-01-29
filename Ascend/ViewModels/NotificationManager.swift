@@ -136,8 +136,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     /// Updates all habit reminders (call when habits change)
+    /// Optimized to batch operations and avoid redundant work
     func updateAllHabitReminders(habits: [Habit]) {
-        Task {
+        Task { [weak self] in
+            guard let self = self else { return }
+            
             // Cancel all existing habit reminders
             let center = UNUserNotificationCenter.current()
             let requests = await center.pendingNotificationRequests()
@@ -145,12 +148,17 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 .filter { $0.identifier.hasPrefix("habitReminder_") }
                 .map { $0.identifier }
             
-            center.removePendingNotificationRequests(withIdentifiers: habitReminderIds)
+            if !habitReminderIds.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: habitReminderIds)
+            }
             
             // Schedule reminders for habits that have them enabled
-            for habit in habits {
-                if habit.reminderEnabled {
-                    await scheduleHabitReminderAsync(habit: habit)
+            // Process in background to avoid blocking
+            await withTaskGroup(of: Void.self) { group in
+                for habit in habits where habit.reminderEnabled {
+                    group.addTask {
+                        await self.scheduleHabitReminderAsync(habit: habit)
+                    }
                 }
             }
         }

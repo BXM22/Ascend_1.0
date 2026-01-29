@@ -69,15 +69,7 @@ struct TodayHabitItem: View {
     let onTap: () -> Void
     
     private var habitGradient: LinearGradient {
-        if let hex = habit.colorHex {
-            let color = Color(hex: hex)
-            return LinearGradient(
-                colors: [color, color.opacity(0.7)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-        return LinearGradient.primaryGradient
+        HabitGradientHelper.gradient(for: habit)
     }
     
     var body: some View {
@@ -112,7 +104,7 @@ struct TodayHabitItem: View {
                 }) {
                     Image(systemName: viewModel.isCompleted(habitId: habit.id) ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20))
-                        .foregroundStyle(viewModel.isCompleted(habitId: habit.id) ? habitGradient : LinearGradient(colors: [AppColors.mutedForeground], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .foregroundStyle(viewModel.isCompleted(habitId: habit.id) ? habitGradient : HabitGradientHelper.mutedGradient)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -134,4 +126,5 @@ struct TodayHabitItem: View {
     .padding()
     .background(AppColors.background)
 }
+
 

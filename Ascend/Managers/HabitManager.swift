@@ -7,26 +7,48 @@ class HabitManager: ObservableObject {
     
     @Published var habits: [Habit] = [] {
         didSet {
-            saveHabits()
+            invalidateStreakCache()
+            debouncedSaveHabits()
         }
     }
     
     @Published var completions: [UUID: [HabitCompletion]] = [:] {
         didSet {
-            saveCompletions()
+            invalidateStreakCache()
+            debouncedSaveCompletions()
         }
     }
     
     private let habitsKey = "userHabits"
     private let completionsKey = "habitCompletions"
     private let calendar = Calendar.current
+    private let streakCalculator: StreakCalculatable
     
-    private init() {
+    // Caching for performance
+    private var streakCache: [UUID: (streak: Int, longest: Int, date: Date)] = [:]
+    private let cacheValidityDuration: TimeInterval = 60 // 1 minute cache
+    
+    // Debounce timers
+    private var habitsSaveWorkItem: DispatchWorkItem?
+    private var completionsSaveWorkItem: DispatchWorkItem?
+    private let saveQueue = DispatchQueue(label: "com.ascend.habitManager.save", qos: .utility)
+    
+    private init(streakCalculator: StreakCalculatable = StreakCalculator()) {
+        self.streakCalculator = streakCalculator
         loadHabits()
         loadCompletions()
     }
     
     // MARK: - Persistence
+    
+    private func debouncedSaveHabits() {
+        habitsSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.saveHabits()
+        }
+        habitsSaveWorkItem = workItem
+        saveQueue.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+    }
     
     private func saveHabits() {
         do {
@@ -50,6 +72,15 @@ class HabitManager: ObservableObject {
             Logger.error("Failed to load habits", error: error, category: .persistence)
             habits = []
         }
+    }
+    
+    private func debouncedSaveCompletions() {
+        completionsSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.saveCompletions()
+        }
+        completionsSaveWorkItem = workItem
+        saveQueue.asyncAfter(deadline: .now() + 0.5, execute: workItem)
     }
     
     private func saveCompletions() {
@@ -86,6 +117,16 @@ class HabitManager: ObservableObject {
         }
     }
     
+    // MARK: - Cache Management
+    
+    private func invalidateStreakCache() {
+        streakCache.removeAll()
+    }
+    
+    private func invalidateStreakCache(for habitId: UUID) {
+        streakCache.removeValue(forKey: habitId)
+    }
+    
     // MARK: - CRUD Operations
     
     func addHabit(_ habit: Habit) {
@@ -117,28 +158,31 @@ class HabitManager: ObservableObject {
         }
         
         // Check if already completed today
-        let dayStart = calendar.startOfDay(for: date)
+        let dayStart = DateHelper.startOfDay(date)
         if let existingCompletions = completions[habitId],
-           existingCompletions.contains(where: { calendar.startOfDay(for: $0.date) == dayStart }) {
+           existingCompletions.contains(where: { DateHelper.startOfDay($0.date) == dayStart }) {
             // Already completed today, update the completion
-            if let index = completions[habitId]?.firstIndex(where: { calendar.startOfDay(for: $0.date) == dayStart }) {
+            if let index = completions[habitId]?.firstIndex(where: { DateHelper.startOfDay($0.date) == dayStart }) {
                 completions[habitId]?[index] = completion
             }
         } else {
             // New completion
             completions[habitId]?.append(completion)
         }
+        
+        invalidateStreakCache(for: habitId)
     }
     
     func markIncomplete(habitId: UUID, date: Date = Date()) {
-        let dayStart = calendar.startOfDay(for: date)
-        completions[habitId]?.removeAll { calendar.startOfDay(for: $0.date) == dayStart }
+        let dayStart = DateHelper.startOfDay(date)
+        completions[habitId]?.removeAll { DateHelper.startOfDay($0.date) == dayStart }
+        invalidateStreakCache(for: habitId)
     }
     
     func isCompleted(habitId: UUID, date: Date = Date()) -> Bool {
-        let dayStart = calendar.startOfDay(for: date)
+        let dayStart = DateHelper.startOfDay(date)
         guard let habitCompletions = completions[habitId] else { return false }
-        return habitCompletions.contains { calendar.startOfDay(for: $0.date) == dayStart }
+        return habitCompletions.contains { DateHelper.startOfDay($0.date) == dayStart }
     }
     
     func getCompletionCount(habitId: UUID) -> Int {
@@ -153,37 +197,24 @@ class HabitManager: ObservableObject {
             return 0
         }
         
-        let today = calendar.startOfDay(for: Date())
-        let sortedDates = habitCompletions.map { calendar.startOfDay(for: $0.date) }
-            .sorted(by: >) // Most recent first
-        
-        var streak = 0
-        var checkDate = today
-        
-        // Check if today is completed
-        if sortedDates.first == today {
-            streak = 1
-            checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
+        // Check cache
+        if let cached = streakCache[habitId],
+           Date().timeIntervalSince(cached.date) < cacheValidityDuration {
+            return cached.streak
         }
         
-        // Count consecutive days backwards
-        for date in sortedDates {
-            let daysDiff = calendar.dateComponents([.day], from: date, to: checkDate).day ?? Int.max
-            
-            if daysDiff == 0 || daysDiff == 1 {
-                if daysDiff == 1 {
-                    streak += 1
-                    checkDate = date
-                } else if daysDiff == 0 && streak == 0 {
-                    // Today is in the list but we haven't started counting
-                    streak = 1
-                    checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
-                }
-            } else if daysDiff > 1 {
-                // Gap found, streak broken
-                break
-            }
-        }
+        // Calculate both streaks at once for efficiency
+        let completionDates = habitCompletions.map { $0.date }
+        let today = DateHelper.today
+        let streak = streakCalculator.calculateCurrentStreak(dates: completionDates, from: today)
+        let longest = streakCalculator.calculateLongestStreak(dates: completionDates)
+        
+        // Update cache with both values
+        streakCache[habitId] = (
+            streak: streak,
+            longest: longest,
+            date: Date()
+        )
         
         return streak
     }
@@ -194,24 +225,26 @@ class HabitManager: ObservableObject {
             return 0
         }
         
-        let sortedDates = habitCompletions.map { calendar.startOfDay(for: $0.date) }
-            .sorted(by: >) // Most recent first
-        
-        var longestStreakCount = 1
-        var currentStreakCount = 1
-        
-        for i in 1..<sortedDates.count {
-            let daysBetween = calendar.dateComponents([.day], from: sortedDates[i], to: sortedDates[i-1]).day ?? Int.max
-            
-            if daysBetween == 1 {
-                currentStreakCount += 1
-                longestStreakCount = max(longestStreakCount, currentStreakCount)
-            } else {
-                currentStreakCount = 1
-            }
+        // Check cache
+        if let cached = streakCache[habitId],
+           Date().timeIntervalSince(cached.date) < cacheValidityDuration {
+            return cached.longest
         }
         
-        return longestStreakCount
+        // Calculate both streaks at once for efficiency
+        let completionDates = habitCompletions.map { $0.date }
+        let today = DateHelper.today
+        let streak = streakCalculator.calculateCurrentStreak(dates: completionDates, from: today)
+        let longest = streakCalculator.calculateLongestStreak(dates: completionDates)
+        
+        // Update cache with both values
+        streakCache[habitId] = (
+            streak: streak,
+            longest: longest,
+            date: Date()
+        )
+        
+        return longest
     }
     
     /// Get progress percentage for habits with target streak days
