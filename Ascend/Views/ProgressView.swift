@@ -14,7 +14,9 @@ enum ViewMode {
 struct ProgressView: View {
     @ObservedObject var viewModel: ProgressViewModel
     @ObservedObject var themeManager: ThemeManager
+    @ObservedObject var habitViewModel: HabitViewModel
     let onSettings: () -> Void
+    let onNavigateToHabits: (() -> Void)?
     @Environment(\.colorScheme) var colorScheme
     
     // State for redesign
@@ -55,8 +57,14 @@ struct ProgressView: View {
             
             // Tab Content
             TabView(selection: $selectedTab) {
-                OverviewTab(viewModel: viewModel, showExerciseDetail: $showExerciseDetail, selectedExercise: $selectedExerciseForDetail)
-                    .tag(ProgressTab.overview)
+                OverviewTab(
+                    viewModel: viewModel,
+                    habitViewModel: habitViewModel,
+                    showExerciseDetail: $showExerciseDetail,
+                    selectedExercise: $selectedExerciseForDetail,
+                    onNavigateToHabits: onNavigateToHabits
+                )
+                .tag(ProgressTab.overview)
                 
                 ExercisesTab(
                     viewModel: viewModel,
@@ -70,8 +78,11 @@ struct ProgressView: View {
                 )
                 .tag(ProgressTab.exercises)
                 
-                StatsTab(viewModel: viewModel)
-                    .tag(ProgressTab.stats)
+                StatsTab(
+                    viewModel: viewModel,
+                    habitViewModel: habitViewModel
+                )
+                .tag(ProgressTab.stats)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
@@ -147,8 +158,10 @@ struct RedesignedProgressHeader: View {
 
 struct OverviewTab: View {
     @ObservedObject var viewModel: ProgressViewModel
+    @ObservedObject var habitViewModel: HabitViewModel
     @Binding var showExerciseDetail: Bool
     @Binding var selectedExercise: String
+    let onNavigateToHabits: (() -> Void)?
     
     var body: some View {
         ScrollView {
@@ -176,6 +189,33 @@ struct OverviewTab: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 
+                // Habit Stats Cards
+                if habitViewModel.totalHabits > 0 {
+                    HStack(spacing: 12) {
+                        EnhancedStatCard(
+                            icon: "checkmark.circle.fill",
+                            gradient: LinearGradient.primaryGradient,
+                            primaryValue: "\(Int(habitViewModel.todayCompletionRate * 100))%",
+                            primaryLabel: "Habit Rate",
+                            secondaryValue: "\(habitViewModel.todayCompletions)/\(habitViewModel.totalHabits)",
+                            secondaryLabel: "Today"
+                        )
+                        
+                        EnhancedStatCard(
+                            icon: "flame.fill",
+                            gradient: HabitGradientHelper.streakGradient,
+                            primaryValue: "\(habitViewModel.activeHabits.count)",
+                            primaryLabel: "Active Habits",
+                            secondaryValue: "\(habitViewModel.totalHabits) Total",
+                            secondaryLabel: "All Habits"
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    .onTapGesture {
+                        onNavigateToHabits?()
+                    }
+                }
+                
                 // Recent PRs Section
                 if !viewModel.recentPRs().isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
@@ -190,6 +230,30 @@ struct OverviewTab: View {
                                         selectedExercise = pr.exercise
                                         showExerciseDetail = true
                                     }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                
+                // Recent Habit Completions Section
+                let recentHabitCompletions = habitViewModel.recentCompletions(days: 7)
+                if !recentHabitCompletions.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionHeader(title: "Recent Habits", subtitle: "Last 7 days")
+                            .padding(.horizontal, 20)
+                        
+                        VStack(spacing: 8) {
+                            ForEach(Array(recentHabitCompletions.prefix(5).enumerated()), id: \.offset) { index, completion in
+                                RecentHabitCompletionCard(
+                                    habit: completion.habit,
+                                    date: completion.date,
+                                    viewModel: habitViewModel
+                                )
+                                .onTapGesture {
+                                    HapticManager.impact(style: .light)
+                                    onNavigateToHabits?()
+                                }
                             }
                         }
                         .padding(.horizontal, 20)
@@ -395,6 +459,7 @@ struct ExercisesTab: View {
 
 struct StatsTab: View {
     @ObservedObject var viewModel: ProgressViewModel
+    @ObservedObject var habitViewModel: HabitViewModel
     
     var body: some View {
         ScrollView {
@@ -405,8 +470,12 @@ struct StatsTab: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(AppColors.textPrimary)
                     
-                    // Grid of stat pills
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    // Grid of stat pills (2x3 or 3x2 depending on habits)
+                    let columns = habitViewModel.totalHabits > 0 
+                        ? [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+                        : [GridItem(.flexible()), GridItem(.flexible())]
+                    
+                    LazyVGrid(columns: columns, spacing: 12) {
                         StatPill(
                             value: "\(viewModel.prs.count)",
                             label: "Total PRs",
@@ -427,6 +496,25 @@ struct StatsTab: View {
                             label: "Workouts",
                             gradient: LinearGradient.backGradient
                         )
+                        
+                        // Habit stats
+                        if habitViewModel.totalHabits > 0 {
+                            StatPill(
+                                value: "\(habitViewModel.totalHabits)",
+                                label: "Habits",
+                                gradient: LinearGradient.primaryGradient
+                            )
+                            StatPill(
+                                value: "\(Int(habitViewModel.todayCompletionRate * 100))%",
+                                label: "Habit Rate",
+                                gradient: HabitGradientHelper.streakGradient
+                            )
+                            StatPill(
+                                value: "\(habitViewModel.todayCompletions)",
+                                label: "Today",
+                                gradient: LinearGradient.primaryGradient
+                            )
+                        }
                     }
                 }
                 .padding(20)
@@ -1016,6 +1104,84 @@ struct PRHistoryItemView: View {
         } message: {
             Text("Are you sure you want to delete this personal record? This action cannot be undone.")
         }
+    }
+}
+
+// MARK: - Recent Habit Completion Card
+
+struct RecentHabitCompletionCard: View {
+    let habit: Habit
+    let date: Date
+    @ObservedObject var viewModel: HabitViewModel
+    
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+    
+    private var dateString: String {
+        RecentHabitCompletionCard.dateFormatter.string(from: date)
+    }
+    
+    private var habitGradient: LinearGradient {
+        HabitGradientHelper.gradient(for: habit)
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(habitGradient.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: habit.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(habitGradient)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(habit.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppColors.foreground)
+                
+                HStack(spacing: 8) {
+                    Text(dateString)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(AppColors.mutedForeground)
+                    
+                    if let streak = viewModel.getStreak(habitId: habit.id), streak > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(HabitGradientHelper.streakGradient)
+                            Text("\(streak) day streak")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(AppColors.mutedForeground)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(HabitGradientHelper.streakGradient.opacity(0.15))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(habitGradient)
+        }
+        .padding(16)
+        .background(LinearGradient.cardGradient)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.border, lineWidth: 1)
+        )
     }
 }
 

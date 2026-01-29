@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayHabitsCard: View {
     @ObservedObject var viewModel: HabitViewModel
     let onTapHabit: ((Habit) -> Void)?
+    let onViewAll: (() -> Void)?
     
     private var habitsDueToday: [Habit] {
         viewModel.habitsDueToday
@@ -18,7 +19,7 @@ struct TodayHabitsCard: View {
     var body: some View {
         if !habitsDueToday.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                // Header
+                // Header with count and "View All"
                 HStack {
                     Text("Due Today")
                         .font(.system(size: 16, weight: .semibold))
@@ -26,15 +27,23 @@ struct TodayHabitsCard: View {
                     
                     Spacer()
                     
-                    Text("\(habitsDueToday.count)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
+                    if habitsDueToday.count > 3, let onViewAll = onViewAll {
+                        Button("View All (\(habitsDueToday.count))") {
+                            onViewAll()
+                        }
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppColors.primary)
+                    } else {
+                        Text("\(habitsDueToday.count)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
                 }
                 
-                // Habit list
+                // Limited visible items
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(habitsDueToday) { habit in
+                        ForEach(habitsDueToday.prefix(3)) { habit in
                             TodayHabitItem(
                                 habit: habit,
                                 viewModel: viewModel,
@@ -121,7 +130,8 @@ struct TodayHabitItem: View {
 #Preview {
     TodayHabitsCard(
         viewModel: HabitViewModel(),
-        onTapHabit: { _ in }
+        onTapHabit: { _ in },
+        onViewAll: {}
     )
     .padding()
     .background(AppColors.background)

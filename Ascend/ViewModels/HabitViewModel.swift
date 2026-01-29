@@ -142,5 +142,30 @@ class HabitViewModel: ObservableObject {
     func isCompleted(habitId: UUID, date: Date = Date()) -> Bool {
         habitManager.isCompleted(habitId: habitId, date: date)
     }
+    
+    // MARK: - Recent Completions
+    
+    /// Get recent habit completions from the last N days
+    func recentCompletions(days: Int = 7) -> [(habit: Habit, date: Date)] {
+        let calendar = Calendar.current
+        let endDate = DateHelper.today
+        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else {
+            return []
+        }
+        
+        var completions: [(habit: Habit, date: Date)] = []
+        
+        for habit in habitManager.habits {
+            let completionDates = habitManager.getCompletionDates(habitId: habit.id)
+            for completionDate in completionDates {
+                if completionDate >= startDate && completionDate <= endDate {
+                    completions.append((habit: habit, date: completionDate))
+                }
+            }
+        }
+        
+        // Sort by date, most recent first
+        return completions.sorted { $0.date > $1.date }
+    }
 }
 

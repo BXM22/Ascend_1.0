@@ -12,6 +12,7 @@ struct HabitDetailView: View {
     @ObservedObject var viewModel: HabitViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showEditSheet = false
+    @State private var isProgressExpanded = true
     
     // Get current habit from manager to reflect updates
     private var currentHabit: Habit? {
@@ -39,6 +40,22 @@ struct HabitDetailView: View {
                     .navigationTitle("Habit Details")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: {
+                                HapticManager.success()
+                                viewModel.toggleCompletion(habitId: habit.id)
+                            }) {
+                                Image(systemName: viewModel.isCompleted(habitId: habit.id) ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(
+                                        viewModel.isCompleted(habitId: habit.id)
+                                            ? habitGradient(for: habit)
+                                            : HabitGradientHelper.mutedGradient
+                                    )
+                            }
+                            .accessibilityLabel(viewModel.isCompleted(habitId: habit.id) ? "Mark habit as incomplete" : "Mark habit as complete")
+                        }
+                        
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Edit") {
                                 showEditSheet = true
@@ -63,36 +80,35 @@ struct HabitDetailView: View {
     private func contentView(for habit: Habit) -> some View {
         VStack(spacing: 20) {
             headerCard(for: habit)
-            statsGrid(for: habit)
+            statsScrollView(for: habit)
             progressSection(for: habit)
-            completionButton(for: habit)
         }
     }
     
     private func headerCard(for habit: Habit) -> some View {
-        VStack(spacing: 16) {
-            // Icon
+        VStack(spacing: 12) {
+            // Icon (smaller)
             ZStack {
                 Circle()
                     .fill(habitGradient(for: habit).opacity(0.2))
-                    .frame(width: 80, height: 80)
+                    .frame(width: 64, height: 64)
                 
                 Image(systemName: habit.icon)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(habitGradient(for: habit))
             }
             
-            // Name
+            // Name (smaller)
             Text(habit.name)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(AppColors.foreground)
             
-            // Duration
+            // Duration (smaller)
             Text("\(habit.completionDuration) minutes")
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .foregroundColor(AppColors.mutedForeground)
         }
-        .padding(AppSpacing.lg)
+        .padding(AppSpacing.md)
         .background(headerCardBackground(for: habit))
         .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
     }
@@ -106,125 +122,48 @@ struct HabitDetailView: View {
             )
     }
     
-    private func statsGrid(for habit: Habit) -> some View {
-        HStack(spacing: 12) {
-            StatBox(
-                title: "Current Streak",
-                value: "\(viewModel.getStreak(habitId: habit.id))",
-                subtitle: "days",
-                gradient: HabitGradientHelper.streakGradient
-            )
-            
-            StatBox(
-                title: "Longest Streak",
-                value: "\(viewModel.getLongestStreak(habitId: habit.id))",
-                subtitle: "days",
-                gradient: habitGradient(for: habit)
-            )
-            
-            StatBox(
-                title: "Completed",
-                value: "\(viewModel.getCompletionCount(habitId: habit.id))",
-                subtitle: "times",
-                gradient: habitGradient(for: habit)
-            )
+    private func statsScrollView(for habit: Habit) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                CompactStatCard(
+                    title: "Current Streak",
+                    value: "\(viewModel.getStreak(habitId: habit.id))",
+                    subtitle: "days",
+                    gradient: HabitGradientHelper.streakGradient,
+                    icon: "flame.fill"
+                )
+                
+                CompactStatCard(
+                    title: "Longest Streak",
+                    value: "\(viewModel.getLongestStreak(habitId: habit.id))",
+                    subtitle: "days",
+                    gradient: habitGradient(for: habit),
+                    icon: "star.fill"
+                )
+                
+                CompactStatCard(
+                    title: "Completed",
+                    value: "\(viewModel.getCompletionCount(habitId: habit.id))",
+                    subtitle: "times",
+                    gradient: habitGradient(for: habit),
+                    icon: "checkmark.circle.fill"
+                )
+            }
+            .padding(.horizontal, 20)
         }
+        .padding(.vertical, 12)
     }
     
     @ViewBuilder
     private func progressSection(for habit: Habit) -> some View {
         if let progress = viewModel.getProgress(habitId: habit.id), let target = habit.targetStreakDays {
-            VStack(alignment: .leading, spacing: 12) {
-                progressHeader(target: target, currentStreak: viewModel.getStreak(habitId: habit.id))
-                progressBar(progress: progress, habit: habit)
-                progressText(progress: progress)
-            }
-            .padding(AppSpacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.card)
+            CollapsibleProgressSection(
+                habit: habit,
+                progress: progress,
+                currentStreak: viewModel.getStreak(habitId: habit.id),
+                target: target,
+                isExpanded: $isProgressExpanded
             )
-        }
-    }
-    
-    private func progressHeader(target: Int, currentStreak: Int) -> some View {
-        HStack {
-            Text("Progress")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(AppColors.foreground)
-            
-            Spacer()
-            
-            Text("\(currentStreak)/\(target) days")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(AppColors.foreground)
-        }
-    }
-    
-    private func progressBar(progress: Double, habit: Habit) -> some View {
-        ProgressBarView(
-            progress: progress,
-            gradient: habitGradient(for: habit)
-        )
-    }
-    
-    private func progressText(progress: Double) -> some View {
-        Text("\(Int(progress * 100))% complete")
-            .font(.system(size: 14))
-            .foregroundColor(AppColors.mutedForeground)
-    }
-    
-    private func completionButton(for habit: Habit) -> some View {
-        let isCompleted = viewModel.isCompleted(habitId: habit.id)
-        return Button(action: {
-            HapticManager.success()
-            viewModel.toggleCompletion(habitId: habit.id)
-        }) {
-            HStack {
-                completionIcon(isCompleted: isCompleted, habit: habit)
-                Text(isCompleted ? "Completed Today" : "Mark as Complete")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(AppColors.foreground)
-                Spacer()
-            }
-            .padding(AppSpacing.lg)
-            .background(completionButtonBackground(isCompleted: isCompleted, habit: habit))
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func completionIcon(isCompleted: Bool, habit: Habit) -> some View {
-        Group {
-            if isCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(habitGradient(for: habit))
-            } else {
-                Image(systemName: "circle")
-                    .font(.system(size: 24))
-                    .foregroundStyle(HabitGradientHelper.mutedGradient)
-            }
-        }
-    }
-    
-    
-    private func completionButtonBackground(isCompleted: Bool, habit: Habit) -> some View {
-        Group {
-            if isCompleted {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(habitGradient(for: habit).opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(habitGradient(for: habit).opacity(0.5), lineWidth: 2)
-                    )
-            } else {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-                    )
-            }
         }
     }
     

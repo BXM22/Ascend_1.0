@@ -16,27 +16,26 @@ struct HabitsSummaryCard: View {
             HapticManager.selection()
             onTap()
         }) {
-            HStack(spacing: 16) {
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient.primaryGradient.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(LinearGradient.primaryGradient)
-                }
+            HStack(spacing: 12) {
+                // Icon (smaller)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(LinearGradient.primaryGradient)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(LinearGradient.primaryGradient.opacity(0.15))
+                    )
                 
-                // Stats
-                VStack(alignment: .leading, spacing: 4) {
+                // Compact stats
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Habits")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(AppColors.foreground)
                     
-                    HStack(spacing: 16) {
+                    HStack(spacing: 8) {
                         Text("\(viewModel.totalHabits) active")
-                            .font(.system(size: 14))
+                            .font(.system(size: 12))
                             .foregroundColor(AppColors.mutedForeground)
                         
                         if viewModel.totalHabits > 0 {
@@ -44,7 +43,7 @@ struct HabitsSummaryCard: View {
                                 .foregroundColor(AppColors.mutedForeground)
                             
                             Text("\(viewModel.todayCompletions)/\(viewModel.totalHabits) today")
-                                .font(.system(size: 14))
+                                .font(.system(size: 12))
                                 .foregroundColor(AppColors.mutedForeground)
                         }
                     }
@@ -52,20 +51,20 @@ struct HabitsSummaryCard: View {
                 
                 Spacer()
                 
-                // Completion rate indicator
+                // Completion rate (compact)
                 if viewModel.totalHabits > 0 {
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: 2) {
                         Text("\(Int(viewModel.todayCompletionRate * 100))%")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(LinearGradient.primaryGradient)
                         
                         Text("complete")
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                             .foregroundColor(AppColors.mutedForeground)
                     }
                 }
             }
-            .padding(AppSpacing.lg)
+            .padding(AppSpacing.md)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(AppColors.card)

@@ -230,68 +230,12 @@ struct HabitEditView: View {
     
     private var colorPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Color")
+            Text("Habit Color")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(AppColors.foreground)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    defaultColorButton
-                    ForEach(AppColors.templateColorPalette, id: \.hex) { colorInfo in
-                        colorButton(colorInfo: colorInfo)
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
+            TemplateColorPicker(selectedColorHex: $selectedColorHex)
         }
-    }
-    
-    private var defaultColorButton: some View {
-        Button(action: {
-            HapticManager.selection()
-            selectedColorHex = nil
-        }) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.primary)
-                    .frame(width: 50, height: 50)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(selectedColorHex == nil ? AppColors.foreground : Color.clear, lineWidth: 3)
-                    )
-                
-                if selectedColorHex == nil {
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16, weight: .bold))
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func colorButton(colorInfo: (name: String, hex: String)) -> some View {
-        Button(action: {
-            HapticManager.selection()
-            selectedColorHex = colorInfo.hex
-        }) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: colorInfo.hex))
-                    .frame(width: 50, height: 50)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(selectedColorHex == colorInfo.hex ? AppColors.foreground : Color.clear, lineWidth: 3)
-                    )
-                
-                if selectedColorHex == colorInfo.hex {
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16, weight: .bold))
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
     }
     
     @ViewBuilder

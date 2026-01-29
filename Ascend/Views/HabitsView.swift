@@ -10,6 +10,8 @@ import SwiftUI
 struct HabitsView: View {
     @StateObject private var viewModel: HabitViewModel
     @State private var selectedHabit: Habit?
+    @State private var showDetailedStats = false
+    @State private var expandedHabitIds: Set<UUID> = []
     
     init(viewModel: HabitViewModel = HabitViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -22,6 +24,7 @@ struct HabitsView: View {
                 totalHabits: viewModel.totalHabits,
                 todayCompletions: viewModel.todayCompletions,
                 completionRate: viewModel.todayCompletionRate,
+                showDetailedStats: $showDetailedStats,
                 onCreateHabit: {
                     viewModel.showCreateHabit = true
                 }
@@ -44,8 +47,24 @@ struct HabitsView: View {
                             HabitCard(
                                 habit: habit,
                                 viewModel: viewModel,
+                                isExpanded: expandedHabitIds.contains(habit.id),
                                 onTap: {
                                     selectedHabit = habit
+                                },
+                                onToggleExpand: {
+                                    if expandedHabitIds.contains(habit.id) {
+                                        expandedHabitIds.remove(habit.id)
+                                    } else {
+                                        expandedHabitIds.insert(habit.id)
+                                    }
+                                },
+                                onEdit: { habit in
+                                    viewModel.editingHabit = habit
+                                    viewModel.showEditHabit = true
+                                },
+                                onDelete: { habit in
+                                    viewModel.deleteHabit(habit)
+                                    expandedHabitIds.remove(habit.id)
                                 }
                             )
                             .padding(.horizontal, 20)
@@ -103,10 +122,12 @@ struct HabitsHeader: View {
     let totalHabits: Int
     let todayCompletions: Int
     let completionRate: Double
+    @Binding var showDetailedStats: Bool
     let onCreateHabit: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Title and Add Button Row
             HStack {
                 Text("Habits")
                     .font(AppTypography.largeTitleBold)
@@ -132,39 +153,58 @@ struct HabitsHeader: View {
                 .accessibilityLabel("Add Habit")
             }
             
-            // Stats
-            HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(totalHabits)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.foreground)
-                    
-                    Text("Total Habits")
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
+            // Compact Stats Row
+            HStack(spacing: 8) {
+                CompactStatBadge(
+                    icon: "list.bullet",
+                    value: "\(totalHabits)",
+                    label: "Total",
+                    gradient: LinearGradient.primaryGradient
+                )
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(todayCompletions)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.foreground)
-                    
-                    Text("Today")
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
+                CompactStatBadge(
+                    icon: "checkmark.circle.fill",
+                    value: "\(todayCompletions)",
+                    label: "Today",
+                    gradient: HabitGradientHelper.streakGradient
+                )
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(Int(completionRate * 100))%")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.foreground)
-                    
-                    Text("Complete")
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
+                CompactStatBadge(
+                    icon: "chart.bar.fill",
+                    value: "\(Int(completionRate * 100))%",
+                    label: "Rate",
+                    gradient: LinearGradient.primaryGradient
+                )
                 
                 Spacer()
+                
+                // Expandable Details Button (optional)
+                if totalHabits > 0 {
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            showDetailedStats.toggle()
+                        }
+                    }) {
+                        Image(systemName: showDetailedStats ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(AppColors.mutedForeground)
+                            .padding(8)
+                    }
+                    .accessibilityLabel(showDetailedStats ? "Hide detailed stats" : "Show detailed stats")
+                }
+            }
+            
+            // Expandable Detailed Stats (optional)
+            if showDetailedStats && totalHabits > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    // Additional breakdown can be added here in the future
+                    Text("Detailed statistics coming soon")
+                        .font(.system(size: 12))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }

@@ -14,6 +14,7 @@ struct ContentView: View {
     @StateObject private var themeManager: ThemeManager
     @StateObject private var settingsManager: SettingsManager
     @StateObject private var workoutViewModel: WorkoutViewModel
+    @StateObject private var habitViewModel = HabitViewModel()
     @StateObject private var onboardingManager = OnboardingManager.shared
     @State private var selectedTab: Tab = .dashboard
     @State private var showSettingsSheet = false
@@ -110,8 +111,14 @@ struct ContentView: View {
                     ProgressView(
                         viewModel: progressViewModel,
                         themeManager: themeManager,
+                        habitViewModel: habitViewModel,
                         onSettings: {
                             showSettingsSheet = true
+                        },
+                        onNavigateToHabits: {
+                            withAnimation(AppAnimations.standard) {
+                                selectedTab = .habits
+                            }
                         }
                     )
                     .id(AppColors.themeID)

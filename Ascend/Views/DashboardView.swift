@@ -170,6 +170,9 @@ struct DashboardView: View {
                     viewModel: habitViewModel,
                     onTapHabit: { habit in
                         // Could navigate to habit detail or mark complete
+                    },
+                    onViewAll: {
+                        onNavigateToHabits?()
                     }
                 )
                 .padding(.horizontal, 20)
