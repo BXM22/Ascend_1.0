@@ -1152,7 +1152,8 @@ struct RecentHabitCompletionCard: View {
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(AppColors.mutedForeground)
                     
-                    if let streak = viewModel.getStreak(habitId: habit.id), streak > 0 {
+                    let streak = viewModel.getStreak(habitId: habit.id)
+                    if streak > 0 {
                         HStack(spacing: 4) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 10))
@@ -1541,6 +1542,8 @@ struct ExercisePickerSheet: View {
     ProgressView(
         viewModel: ProgressViewModel(),
         themeManager: ThemeManager(),
-        onSettings: {}
+        habitViewModel: HabitViewModel(),
+        onSettings: {},
+        onNavigateToHabits: nil
     )
 }

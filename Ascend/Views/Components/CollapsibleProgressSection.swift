@@ -105,3 +105,4 @@ struct CollapsibleProgressSection: View {
     .background(AppColors.background)
 }
 
+

@@ -52,3 +52,4 @@ struct CompactStreakBadge: View {
     .background(AppColors.background)
 }
 
+

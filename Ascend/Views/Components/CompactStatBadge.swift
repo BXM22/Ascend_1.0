@@ -67,3 +67,4 @@ struct CompactStatBadge: View {
     .background(AppColors.background)
 }
 
+

@@ -78,3 +78,4 @@ struct CompactStatCard: View {
     .background(AppColors.background)
 }
 
+
