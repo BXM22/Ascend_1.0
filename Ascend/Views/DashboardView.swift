@@ -9,28 +9,35 @@ struct DashboardView: View {
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var themeManager: ThemeManager
-    @StateObject private var habitViewModel = HabitViewModel()
     @EnvironmentObject var colorThemeProvider: ColorThemeProvider
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
     let onNavigateToProgress: (() -> Void)?
-    let onNavigateToHabits: (() -> Void)?
     
     @State private var showWorkoutHistory = false
     @State private var selectedTab: DashboardTab = .overview
     @State private var insightsExpanded: Bool = true
     @State private var muscleChartExpanded: Bool = true
     
+    // Habits
+    @StateObject private var habitViewModel = HabitViewModel()
+    @State private var showCreateHabit = false
+    @State private var editingHabit: Habit?
+    @State private var selectedHabit: Habit?
+    @State private var expandedHabits: Set<UUID> = []
+    
     enum DashboardTab: String, CaseIterable {
         case overview = "Overview"
         case activity = "Activity"
         case analytics = "Analytics"
+        case habits = "Habits"
         
         var icon: String {
             switch self {
             case .overview: return "house.fill"
             case .activity: return "calendar"
             case .analytics: return "chart.bar.fill"
+            case .habits: return "checkmark.circle.fill"
             }
         }
     }
@@ -43,8 +50,7 @@ struct DashboardView: View {
         themeManager: ThemeManager,
         onStartWorkout: @escaping () -> Void,
         onSettings: @escaping () -> Void,
-        onNavigateToProgress: (() -> Void)? = nil,
-        onNavigateToHabits: (() -> Void)? = nil
+        onNavigateToProgress: (() -> Void)? = nil
     ) {
         self.progressViewModel = progressViewModel
         self.workoutViewModel = workoutViewModel
@@ -54,7 +60,6 @@ struct DashboardView: View {
         self.onStartWorkout = onStartWorkout
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
-        self.onNavigateToHabits = onNavigateToHabits
     }
     
     var body: some View {
@@ -136,6 +141,40 @@ struct DashboardView: View {
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
         }
+        .sheet(isPresented: $showCreateHabit) {
+            HabitEditView(
+                habit: nil,
+                onSave: { habit in
+                    habitViewModel.createHabit(habit)
+                    showCreateHabit = false
+                },
+                onCancel: {
+                    showCreateHabit = false
+                }
+            )
+        }
+        .sheet(item: $editingHabit) { habit in
+            HabitEditView(
+                habit: habit,
+                onSave: { updatedHabit in
+                    habitViewModel.updateHabit(updatedHabit)
+                    editingHabit = nil
+                },
+                onCancel: {
+                    editingHabit = nil
+                },
+                onDelete: {
+                    habitViewModel.deleteHabit(habit)
+                    editingHabit = nil
+                }
+            )
+        }
+        .sheet(item: $selectedHabit) { habit in
+            HabitDetailView(
+                habit: habit,
+                viewModel: habitViewModel
+            )
+        }
     }
     
     @ViewBuilder
@@ -147,6 +186,8 @@ struct DashboardView: View {
             activityContent
         case .analytics:
             analyticsContent
+        case .habits:
+            habitsContent
         }
     }
     
@@ -155,28 +196,6 @@ struct DashboardView: View {
             // Streak and Workout Count Card
             StreakWorkoutCard(progressViewModel: progressViewModel)
                 .padding(.horizontal, 20)
-            
-            // Habits Summary Card
-            if habitViewModel.totalHabits > 0 {
-                HabitsSummaryCard(viewModel: habitViewModel) {
-                    onNavigateToHabits?()
-                }
-                .padding(.horizontal, 20)
-            }
-            
-            // Today's Habits Card
-            if !habitViewModel.habitsDueToday.isEmpty {
-                TodayHabitsCard(
-                    viewModel: habitViewModel,
-                    onTapHabit: { habit in
-                        // Could navigate to habit detail or mark complete
-                    },
-                    onViewAll: {
-                        onNavigateToHabits?()
-                    }
-                )
-                .padding(.horizontal, 20)
-            }
             
             // Calendar View (moved from Activity section)
             WeeklyCalendarWidget(
@@ -253,6 +272,81 @@ struct DashboardView: View {
             MuscleChartSection(progressViewModel: progressViewModel)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+    
+    private var habitsContent: some View {
+        VStack(spacing: 16) {
+            if habitViewModel.activeHabits.isEmpty {
+                EmptyStateView(
+                    icon: "checkmark.circle.fill",
+                    title: "No Habits Yet",
+                    message: "Create your first habit to start building consistency.",
+                    actionTitle: "Add Habit",
+                    action: {
+                        HapticManager.impact(style: .medium)
+                        showCreateHabit = true
+                    },
+                    style: .standard
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 40)
+            } else {
+                HabitsSummaryCard(viewModel: habitViewModel)
+                    .padding(.horizontal, 20)
+                
+                LazyVStack(spacing: 12) {
+                    ForEach(habitViewModel.activeHabits) { habit in
+                        HabitCard(
+                            habit: habit,
+                            viewModel: habitViewModel,
+                            isExpanded: expandedHabits.contains(habit.id),
+                            onTap: {
+                                selectedHabit = habit
+                            },
+                            onToggleExpand: {
+                                if expandedHabits.contains(habit.id) {
+                                    expandedHabits.remove(habit.id)
+                                } else {
+                                    expandedHabits.insert(habit.id)
+                                }
+                            },
+                            onEdit: { habit in
+                                // Ensure we present the editor, not the detail sheet
+                                selectedHabit = nil
+                                editingHabit = habit
+                            },
+                            onDelete: { habit in
+                                habitViewModel.deleteHabit(habit)
+                            }
+                        )
+                        // Force refresh when completion state changes
+                        .id(habit.id.uuidString + "_\(habitViewModel.isCompleted(habitId: habit.id))")
+                        .padding(.horizontal, 20)
+                    }
+                }
+                
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    showCreateHabit = true
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("Add Habit")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(LinearGradient.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: AppColors.primary.opacity(0.3), radius: 12, x: 0, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+        }
     }
     
     private func preloadActiveProgramData() {

@@ -14,7 +14,6 @@ struct ContentView: View {
     @StateObject private var themeManager: ThemeManager
     @StateObject private var settingsManager: SettingsManager
     @StateObject private var workoutViewModel: WorkoutViewModel
-    @StateObject private var habitViewModel = HabitViewModel()
     @StateObject private var onboardingManager = OnboardingManager.shared
     @State private var selectedTab: Tab = .dashboard
     @State private var showSettingsSheet = false
@@ -56,7 +55,7 @@ struct ContentView: View {
     }
     
     enum Tab {
-        case dashboard, workout, progress, templates, sportsTimer, habits
+        case dashboard, workout, progress, templates, sportsTimer
     }
     
     var effectiveColorScheme: ColorScheme {
@@ -94,11 +93,6 @@ struct ContentView: View {
                             withAnimation(AppAnimations.standard) {
                                 selectedTab = .progress
                             }
-                        },
-                        onNavigateToHabits: {
-                            withAnimation(AppAnimations.standard) {
-                                selectedTab = .habits
-                            }
                         }
                     )
                     .id(AppColors.themeID)
@@ -111,14 +105,8 @@ struct ContentView: View {
                     ProgressView(
                         viewModel: progressViewModel,
                         themeManager: themeManager,
-                        habitViewModel: habitViewModel,
                         onSettings: {
                             showSettingsSheet = true
-                        },
-                        onNavigateToHabits: {
-                            withAnimation(AppAnimations.standard) {
-                                selectedTab = .habits
-                            }
                         }
                     )
                     .id(AppColors.themeID)
@@ -143,10 +131,6 @@ struct ContentView: View {
                     .transition(.slideFromBottom)
                 case .sportsTimer:
                     SportsTimerView()
-                        .id(AppColors.themeID)
-                        .transition(.slideFromBottom)
-                case .habits:
-                    HabitsView()
                         .id(AppColors.themeID)
                         .transition(.slideFromBottom)
                 }
@@ -308,17 +292,6 @@ struct BottomNavigationBar: View {
                 HapticManager.selection()
                 withAnimation(AppAnimations.quick) {
                     selectedTab = .sportsTimer
-                }
-            }
-            
-            NavButton(
-                icon: "checkmark.circle.fill",
-                title: "Habits",
-                isSelected: selectedTab == .habits
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .habits
                 }
             }
         }
@@ -525,7 +498,7 @@ struct ConnectedCirclesBackground: View {
             let circleDiameter = circleRadius * 2
             let totalWidth = geometry.size.width
             let totalHeight = geometry.size.height
-            let circleCount: CGFloat = 6 // 6 nav buttons
+            let circleCount: CGFloat = 5 // 5 nav buttons
             let spacing = (totalWidth - (circleCount * circleDiameter)) / (circleCount - 1)
             
             ZStack {

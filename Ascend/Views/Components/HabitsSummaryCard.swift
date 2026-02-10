@@ -9,13 +9,41 @@ import SwiftUI
 
 struct HabitsSummaryCard: View {
     @ObservedObject var viewModel: HabitViewModel
-    let onTap: () -> Void
+    let onTap: (() -> Void)?
+    
+    init(viewModel: HabitViewModel, onTap: (() -> Void)? = nil) {
+        self.viewModel = viewModel
+        self.onTap = onTap
+    }
+    
+    private var totalStreak: Int {
+        viewModel.activeHabits.reduce(0) { total, habit in
+            total + viewModel.getStreak(habitId: habit.id)
+        }
+    }
+    
+    private var averageStreak: Double {
+        guard viewModel.totalHabits > 0 else { return 0 }
+        return Double(totalStreak) / Double(viewModel.totalHabits)
+    }
     
     var body: some View {
-        Button(action: {
-            HapticManager.selection()
-            onTap()
-        }) {
+        Group {
+            if let onTap = onTap {
+                Button(action: {
+                    HapticManager.selection()
+                    onTap()
+                }) {
+                    cardContent
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                cardContent
+            }
+        }
+    }
+    
+    private var cardContent: some View {
             HStack(spacing: 12) {
                 // Icon (smaller)
                 Image(systemName: "checkmark.circle.fill")
@@ -51,16 +79,26 @@ struct HabitsSummaryCard: View {
                 
                 Spacer()
                 
-                // Completion rate (compact)
+                // Stats (compact)
                 if viewModel.totalHabits > 0 {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(Int(viewModel.todayCompletionRate * 100))%")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(LinearGradient.primaryGradient)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        // Completion rate
+                        HStack(spacing: 4) {
+                            Text("\(Int(viewModel.todayCompletionRate * 100))%")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(LinearGradient.primaryGradient)
+                        }
                         
-                        Text("complete")
-                            .font(.system(size: 10))
-                            .foregroundColor(AppColors.mutedForeground)
+                        // Average streak
+                        HStack(spacing: 4) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(HabitGradientHelper.streakGradient)
+                            
+                            Text("\(Int(averageStreak))")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(AppColors.foreground)
+                        }
                     }
                 }
             }
@@ -74,8 +112,6 @@ struct HabitsSummaryCard: View {
                     )
             )
             .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 

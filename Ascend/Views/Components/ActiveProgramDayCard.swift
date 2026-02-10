@@ -17,6 +17,7 @@ struct ActiveProgramDayCard: View {
     @State private var generatedTemplateInfo: (name: String, intensity: WorkoutIntensity)?
     @State private var cachedTemplate: WorkoutTemplate?
     @State private var hasCheckedForGeneration = false
+    @State private var showDayPicker = false
     
     private var activeProgramInfo: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)? {
         guard let active = programViewModel.activeProgram,

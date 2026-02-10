@@ -49,34 +49,28 @@ struct HabitCard: View {
     }
     
     var body: some View {
-        Button(action: {
-            HapticManager.selection()
-            onTap?()
-        }) {
-            VStack(alignment: .leading, spacing: isExpanded ? 12 : 8) {
-                // Compact Header
-                compactHeader
+        VStack(alignment: .leading, spacing: isExpanded ? 12 : 8) {
+            // Compact Header
+            compactHeader
+            
+            // Expanded Content
+            if isExpanded {
+                Divider()
+                    .background(AppColors.border.opacity(0.3))
                 
-                // Expanded Content
-                if isExpanded {
-                    Divider()
-                        .background(AppColors.border.opacity(0.3))
-                    
-                    expandedContent
-                }
+                expandedContent
             }
-            .padding(AppSpacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(habitGradient.opacity(0.3), lineWidth: 2)
-                    )
-            )
-            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding(AppSpacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(AppColors.card)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(habitGradient.opacity(0.3), lineWidth: 2)
+                )
+        )
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             // Swipe right to complete/incomplete
             Button {
@@ -151,33 +145,41 @@ struct HabitCard: View {
     // MARK: - Compact Header
     private var compactHeader: some View {
         HStack(spacing: 12) {
-            // Icon (smaller in compact mode)
-            ZStack {
-                Circle()
-                    .fill(habitGradient.opacity(0.2))
-                    .frame(width: isExpanded ? 48 : 40, height: isExpanded ? 48 : 40)
-                
-                Image(systemName: habit.icon)
-                    .font(.system(size: isExpanded ? 20 : 18, weight: .semibold))
-                    .foregroundStyle(habitGradient)
-            }
-            
-            // Name and duration (single line in compact mode)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(habit.name)
-                    .font(.system(size: isExpanded ? 18 : 16, weight: .bold))
-                    .foregroundColor(AppColors.foreground)
-                    .lineLimit(1)
-                
-                if isExpanded {
-                    Text("\(habit.completionDuration) min")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                } else {
-                    Text("\(habit.completionDuration) min")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
+            // Icon and name area - tappable for detail view
+            HStack(spacing: 12) {
+                // Icon (smaller in compact mode)
+                ZStack {
+                    Circle()
+                        .fill(habitGradient.opacity(0.2))
+                        .frame(width: isExpanded ? 48 : 40, height: isExpanded ? 48 : 40)
+                    
+                    Image(systemName: habit.icon)
+                        .font(.system(size: isExpanded ? 20 : 18, weight: .semibold))
+                        .foregroundStyle(habitGradient)
                 }
+                
+                // Name and duration (single line in compact mode)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(habit.name)
+                        .font(.system(size: isExpanded ? 18 : 16, weight: .bold))
+                        .foregroundColor(AppColors.foreground)
+                        .lineLimit(1)
+                    
+                    if isExpanded {
+                        Text("\(habit.completionDuration) min")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    } else {
+                        Text("\(habit.completionDuration) min")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppColors.mutedForeground)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                HapticManager.selection()
+                onTap?()
             }
             
             Spacer()
@@ -190,35 +192,53 @@ struct HabitCard: View {
                 )
             }
             
-            // Quick completion button
-            Button(action: {
-                HapticManager.success()
-                viewModel.toggleCompletion(habitId: habit.id)
-            }) {
-                Image(systemName: isCompletedToday ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(
-                        isCompletedToday
-                            ? habitGradient
-                            : HabitGradientHelper.mutedGradient
-                    )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .accessibilityLabel(isCompletedToday ? "Mark habit as incomplete" : "Mark habit as complete")
-            
-            // Expand/collapse indicator
-            Button(action: {
-                HapticManager.impact(style: .light)
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    onToggleExpand()
+            // Button container to prevent parent tap
+            HStack(spacing: 8) {
+                // Edit button (if enabled)
+                if let onEdit = onEdit {
+                    Button(action: {
+                        HapticManager.impact(style: .light)
+                        onEdit(habit)
+                    }) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.accent)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("Edit habit")
                 }
-            }) {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(AppColors.mutedForeground)
+                
+                // Quick completion button
+                Button(action: {
+                    HapticManager.success()
+                    viewModel.toggleCompletion(habitId: habit.id)
+                }) {
+                    Image(systemName: isCompletedToday ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(
+                            isCompletedToday
+                                ? habitGradient
+                                : HabitGradientHelper.mutedGradient
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel(isCompletedToday ? "Mark habit as incomplete" : "Mark habit as complete")
+                
+                // Expand/collapse indicator
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        onToggleExpand()
+                    }
+                }) {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppColors.mutedForeground)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel(isExpanded ? "Collapse habit details" : "Expand habit details")
             }
-            .buttonStyle(PlainButtonStyle())
-            .accessibilityLabel(isExpanded ? "Collapse habit details" : "Expand habit details")
+            .contentShape(Rectangle())
         }
     }
     

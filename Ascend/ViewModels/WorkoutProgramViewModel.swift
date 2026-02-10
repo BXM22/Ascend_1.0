@@ -115,6 +115,22 @@ class WorkoutProgramViewModel: ObservableObject {
         return program.days[currentIndex]
     }
     
+    func setCurrentDay(_ dayIndex: Int, for program: WorkoutProgram) {
+        guard let active = activeProgram,
+              active.programId == program.id,
+              dayIndex >= 0,
+              dayIndex < program.days.count else { return }
+        
+        var updated = active
+        updated.currentDayIndex = dayIndex
+        // Update start date to reflect the new day
+        let daysToSubtract = active.getCurrentDayIndex(totalDays: program.days.count) - dayIndex
+        if let newStartDate = Calendar.current.date(byAdding: .day, value: daysToSubtract, to: active.startDate) {
+            updated.startDate = newStartDate
+        }
+        activeProgram = updated
+    }
+    
     func advanceToNextDay(for program: WorkoutProgram) {
         guard let active = activeProgram,
               active.programId == program.id else { return }

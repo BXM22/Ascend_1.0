@@ -25,6 +25,15 @@ class HabitViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+        
+        // Observe completion changes to trigger immediate view updates
+        habitManager.$completions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                // Trigger view update when completions change
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Computed Properties
@@ -118,6 +127,8 @@ class HabitViewModel: ObservableObject {
             habitManager.markComplete(habitId: habitId, date: date)
             HapticManager.success()
         }
+        // Trigger immediate view update
+        objectWillChange.send()
     }
     
     // MARK: - Delegated Methods (DRY - avoid duplication)

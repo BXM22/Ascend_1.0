@@ -57,13 +57,22 @@ struct HabitDetailView: View {
                         }
                         
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Edit") {
-                                showEditSheet = true
+                            HStack(spacing: 16) {
+                                Button("Edit") {
+                                    showEditSheet = true
+                                }
+                                .foregroundColor(AppColors.primary)
+                                
+                                Button("Done") {
+                                    dismiss()
+                                }
+                                .foregroundColor(AppColors.primary)
                             }
-                            .foregroundColor(AppColors.primary)
                         }
                     }
                 }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
                 .sheet(isPresented: $showEditSheet) {
                     editSheet(for: habit)
                 }
