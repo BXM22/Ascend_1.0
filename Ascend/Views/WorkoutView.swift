@@ -19,7 +19,20 @@ struct WorkoutView: View {
     @State private var calisthenicsWeight: String = "0"
     @State private var holdDuration: String = "30"
     @State private var isVerticalLayout: Bool = false
-    
+    @State private var selectedSegment: WorkoutTimerSegment = .workout
+
+    enum WorkoutTimerSegment: String, CaseIterable {
+        case workout = "Workout"
+        case timer = "Timer"
+
+        var icon: String {
+            switch self {
+            case .workout: return "dumbbell.fill"
+            case .timer: return "timer"
+            }
+        }
+    }
+
     private var completedExercises: Int {
         guard let workout = viewModel.currentWorkout else { return 0 }
         return workout.exercises.filter { $0.sets.count >= $0.targetSets }.count
@@ -30,47 +43,105 @@ struct WorkoutView: View {
     }
     
     var body: some View {
+        VStack(spacing: 0) {
+            // Hero section — only shown in workout mode
+            if selectedSegment == .workout {
+                workoutHeader
+            }
+            // Segment switcher sits below the hero
+            WorkoutTimerSegmentBar(selectedSegment: $selectedSegment)
+            // Content area
+            if selectedSegment == .workout {
+                exercisesScrollContent
+            } else {
+                SportsTimerView(isEmbedded: true)
+            }
+        }
+        .background(AppColors.background)
+        .id(AppColors.themeID)
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .alert("Finish Workout?", isPresented: $showFinishConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Finish", role: .destructive) { viewModel.finishWorkout() }
+        } message: {
+            Text("Are you sure you want to finish this workout? This action cannot be undone.")
+        }
+        .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
+            Button("Keep Going", role: .cancel) { }
+            Button("Cancel Workout", role: .destructive) { viewModel.cancelWorkout() }
+        } message: {
+            Text("Are you sure you want to cancel this workout? All progress will be lost.")
+        }
+        .sheet(isPresented: $viewModel.showAddExerciseSheet) {
+            AddExerciseView(
+                onAdd: { name, sets, type, holdDuration in
+                    let duration: Int? = (type == .hold) ? holdDuration : nil
+                    viewModel.addExercise(name: name, targetSets: sets, type: type, holdDuration: duration)
+                    viewModel.showAddExerciseSheet = false
+                },
+                onCancel: { viewModel.showAddExerciseSheet = false }
+            )
+        }
+        .sheet(isPresented: $viewModel.showExerciseHistory) {
+            if let exerciseName = viewModel.currentExercise?.name,
+               let progressViewModel = viewModel.progressViewModel {
+                ExerciseHistoryView(exerciseName: exerciseName, progressViewModel: progressViewModel)
+            }
+        }
+        .sheet(isPresented: $viewModel.showSettingsSheet) {
+            if let progressViewModel = viewModel.progressViewModel,
+               let templatesViewModel = viewModel.templatesViewModel,
+               let programViewModel = viewModel.programViewModel,
+               let themeManager = viewModel.themeManager {
+                SettingsView(
+                    settingsManager: viewModel.settingsManager,
+                    progressViewModel: progressViewModel,
+                    templatesViewModel: templatesViewModel,
+                    programViewModel: programViewModel,
+                    themeManager: themeManager
+                )
+            }
+        }
+        .sheet(isPresented: $showHelpSheet) {
+            PageFeaturesView(pageType: .workout)
+        }
+    }
+
+    // Workout hero header — extracted from scroll so it stays sticky above segment bar.
+    private var workoutHeader: some View {
+        RedesignedWorkoutHeader(
+            workoutName: viewModel.currentWorkout?.name ?? "Workout",
+            totalVolume: viewModel.totalWorkoutVolume,
+            elapsedTime: TimeInterval(viewModel.elapsedTime),
+            timerPaused: viewModel.isTimerPausedDuringRest,
+            autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
+            completedExercises: completedExercises,
+            totalExercises: totalExercises,
+            onTogglePause: { viewModel.pauseWorkout() },
+            onFinish: { showFinishConfirmation = true },
+            onSettings: { viewModel.showSettingsSheet = true },
+            onHelp: { showHelpSheet = true },
+            onCancel: { showCancelConfirmation = true },
+            isVerticalLayout: isVerticalLayout,
+            onToggleLayout: { isVerticalLayout.toggle() },
+            autoAdvanceToggle: $autoAdvanceToggle
+        )
+        .onChange(of: autoAdvanceToggle) { _, _ in
+            viewModel.toggleAutoAdvance()
+        }
+        .onAppear {
+            autoAdvanceToggle = viewModel.autoAdvanceEnabled
+        }
+        .padding(.top, 8)
+    }
+
+    // Scrollable exercises area — the header has been extracted above.
+    private var exercisesScrollContent: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    // Redesigned Header
-                    RedesignedWorkoutHeader(
-                        workoutName: viewModel.currentWorkout?.name ?? "Workout",
-                        totalVolume: viewModel.totalWorkoutVolume,
-                        elapsedTime: TimeInterval(viewModel.elapsedTime),
-                        timerPaused: viewModel.isTimerPausedDuringRest,
-                        autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
-                        completedExercises: completedExercises,
-                        totalExercises: totalExercises,
-                        onTogglePause: {
-                            viewModel.pauseWorkout()
-                        },
-                        onFinish: {
-                            showFinishConfirmation = true
-                        },
-                        onSettings: {
-                            viewModel.showSettingsSheet = true
-                        },
-                        onHelp: {
-                            showHelpSheet = true
-                        },
-                        onCancel: {
-                            showCancelConfirmation = true
-                        },
-                        isVerticalLayout: isVerticalLayout,
-                        onToggleLayout: {
-                            isVerticalLayout.toggle()
-                        },
-                        autoAdvanceToggle: $autoAdvanceToggle
-                    )
-                    .onChange(of: autoAdvanceToggle) { _, _ in
-                        viewModel.toggleAutoAdvance()
-                    }
-                    .onAppear {
-                        autoAdvanceToggle = viewModel.autoAdvanceEnabled
-                    }
-                    .padding(.top, 8)
-                    
                     // Rest Timer Banner (when active)
                     if viewModel.restTimerActive {
                         EnhancedRestTimerBanner(
@@ -272,64 +343,8 @@ struct WorkoutView: View {
                 }
             }
         }
-        .background(AppColors.background)
-        .id(AppColors.themeID)
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        }
-        .alert("Finish Workout?", isPresented: $showFinishConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Finish", role: .destructive) {
-                viewModel.finishWorkout()
-            }
-        } message: {
-            Text("Are you sure you want to finish this workout? This action cannot be undone.")
-        }
-        .alert("Cancel Workout?", isPresented: $showCancelConfirmation) {
-            Button("Keep Going", role: .cancel) { }
-            Button("Cancel Workout", role: .destructive) {
-                viewModel.cancelWorkout()
-            }
-        } message: {
-            Text("Are you sure you want to cancel this workout? All progress will be lost.")
-        }
-        .sheet(isPresented: $viewModel.showAddExerciseSheet) {
-            AddExerciseView(
-                onAdd: { name, sets, type, holdDuration in
-                    let duration: Int? = (type == .hold) ? holdDuration : nil
-                    viewModel.addExercise(name: name, targetSets: sets, type: type, holdDuration: duration)
-                    viewModel.showAddExerciseSheet = false
-                },
-                onCancel: {
-                    viewModel.showAddExerciseSheet = false
-                }
-            )
-        }
-        .sheet(isPresented: $viewModel.showExerciseHistory) {
-            if let exerciseName = viewModel.currentExercise?.name,
-               let progressViewModel = viewModel.progressViewModel {
-                ExerciseHistoryView(exerciseName: exerciseName, progressViewModel: progressViewModel)
-            }
-        }
-        .sheet(isPresented: $viewModel.showSettingsSheet) {
-            if let progressViewModel = viewModel.progressViewModel,
-               let templatesViewModel = viewModel.templatesViewModel,
-               let programViewModel = viewModel.programViewModel,
-               let themeManager = viewModel.themeManager {
-                SettingsView(
-                    settingsManager: viewModel.settingsManager,
-                    progressViewModel: progressViewModel,
-                    templatesViewModel: templatesViewModel,
-                    programViewModel: programViewModel,
-                    themeManager: themeManager
-                )
-            }
-        }
-        .sheet(isPresented: $showHelpSheet) {
-            PageFeaturesView(pageType: .workout)
-        }
     }
-    
+
     @ViewBuilder
     private func exerciseCardView(for exercise: Exercise) -> some View {
         let sectionType = viewModel.getSectionType(for: exercise)
@@ -472,6 +487,46 @@ struct WorkoutView: View {
                 exercise: exercise
             )
             .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Workout / Timer Segment Bar
+
+private struct WorkoutTimerSegmentBar: View {
+    @Binding var selectedSegment: WorkoutView.WorkoutTimerSegment
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(WorkoutView.WorkoutTimerSegment.allCases, id: \.self) { segment in
+                Button(action: {
+                    HapticManager.selection()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedSegment = segment
+                    }
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: segment.icon)
+                            .font(.system(size: 16, weight: selectedSegment == segment ? .semibold : .regular))
+                            .foregroundColor(selectedSegment == segment ? AppColors.primary : AppColors.mutedForeground)
+                        Text(segment.rawValue)
+                            .font(.system(size: 11, weight: selectedSegment == segment ? .semibold : .regular))
+                            .foregroundColor(selectedSegment == segment ? AppColors.primary : AppColors.mutedForeground)
+                        Rectangle()
+                            .fill(selectedSegment == segment ? AppColors.primary : Color.clear)
+                            .frame(height: 2)
+                            .clipShape(Capsule())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(.horizontal, 20)
+        .background(AppColors.background)
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 }

@@ -4,6 +4,7 @@ struct ProgramDayTracker: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
+    @ObservedObject var progressViewModel: ProgressViewModel
     let onStartWorkout: () -> Void
     
     @State private var showGeneratedAlert = false
@@ -31,6 +32,33 @@ struct ProgramDayTracker: View {
                         .font(AppTypography.heading3)
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
+                }
+                
+                if programViewModel.shouldOfferRestartForNewWeek() {
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        Text("New week — align your split from Day 1?")
+                            .font(AppTypography.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                        Button(action: {
+                            HapticManager.impact(style: .medium)
+                            programViewModel.restartProgramWeekFromToday()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                Text("Start week over from Day 1")
+                            }
+                            .font(AppTypography.captionMedium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(LinearGradient.primaryGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    .padding(AppSpacing.sm)
+                    .background(AppColors.primary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 
                 // Program Info
@@ -82,14 +110,42 @@ struct ProgramDayTracker: View {
                 
                 // Current Day Info
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    if info.currentDay.isRestDay {
-                        HStack {
-                            Image(systemName: "moon.zzz.fill")
-                                .foregroundColor(AppColors.textSecondary)
-                            Text("Rest Day")
-                                .font(AppTypography.bodyMedium)
-                                .foregroundColor(AppColors.textSecondary)
-                                .italic()
+                    if info.currentDay.isRestDay || info.currentDay.name.lowercased().contains("rest") {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            HStack {
+                                Image(systemName: "moon.zzz.fill")
+                                    .foregroundColor(AppColors.textSecondary)
+                                Text("Rest day")
+                                    .font(AppTypography.bodyMedium)
+                                    .foregroundColor(AppColors.textSecondary)
+                                    .italic()
+                            }
+                            if progressViewModel.isRestDay {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(AppColors.accent)
+                                    Text("Logged as rest today")
+                                        .font(AppTypography.captionMedium)
+                                        .foregroundColor(AppColors.textPrimary)
+                                }
+                            } else {
+                                Button(action: {
+                                    HapticManager.impact(style: .light)
+                                    progressViewModel.markRestDay()
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "bed.double.fill")
+                                        Text("Mark as rest")
+                                    }
+                                    .font(AppTypography.captionMedium)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(AppColors.primary.opacity(0.9))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
                         }
                     } else {
                         HStack {

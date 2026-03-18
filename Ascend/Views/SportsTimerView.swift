@@ -20,7 +20,11 @@ struct SportsTimerView: View {
     @State private var sessionStartTime: Date?
     @State private var soundEnabled: Bool = AudioManager.shared.soundEnabled
     
-    init(sport: SportType = .boxing, customSport: CustomSport? = nil) {
+    /// When true the NavigationView wrapper is omitted — used when embedded inside another view.
+    let isEmbedded: Bool
+    
+    init(sport: SportType = .boxing, customSport: CustomSport? = nil, isEmbedded: Bool = false) {
+        self.isEmbedded = isEmbedded
         if let custom = customSport {
             _viewModel = StateObject(wrappedValue: SportsTimerViewModel(customSport: custom))
         } else {
@@ -112,13 +116,12 @@ struct SportsTimerView: View {
     }
     
     
-    var body: some View {
-        NavigationView {
-            ZStack {
-                // Dynamic background color
-                backgroundColor
-                    .ignoresSafeArea()
-                    .animation(.easeInOut(duration: 0.3), value: viewModel.currentPhase)
+    // The core timer ZStack, shared between embedded and standalone modes.
+    private var timerCore: some View {
+        ZStack {
+            backgroundColor
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 0.3), value: viewModel.currentPhase)
                 
                 VStack(spacing: 0) {
                     // Sport Selection (only when not active)
@@ -464,7 +467,6 @@ struct SportsTimerView: View {
                 )
             }
             .onDisappear {
-                // Clean up long press timer
                 cancelHoldToStop()
             }
             .sheet(isPresented: $showCompletionScreen) {
@@ -485,6 +487,15 @@ struct SportsTimerView: View {
                         }
                     }
                 )
+            }
+    }
+
+    var body: some View {
+        if isEmbedded {
+            timerCore
+        } else {
+            NavigationView {
+                timerCore
             }
         }
     }

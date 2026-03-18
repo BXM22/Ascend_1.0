@@ -28,14 +28,12 @@ struct DashboardView: View {
     
     enum DashboardTab: String, CaseIterable {
         case overview = "Overview"
-        case activity = "Activity"
         case analytics = "Analytics"
         case habits = "Habits"
         
         var icon: String {
             switch self {
             case .overview: return "house.fill"
-            case .activity: return "calendar"
             case .analytics: return "chart.bar.fill"
             case .habits: return "checkmark.circle.fill"
             }
@@ -78,16 +76,11 @@ struct DashboardView: View {
             .background(AppColors.background)
             
             // Tab Selector
-            Picker("Dashboard Tab", selection: $selectedTab) {
-                ForEach(DashboardTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tab.icon)
-                        .tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(AppColors.background)
+            DashboardTabBar(selectedTab: $selectedTab)
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+                .background(AppColors.background)
             
             // Tab Content
             ScrollView {
@@ -182,8 +175,6 @@ struct DashboardView: View {
         switch selectedTab {
         case .overview:
             overviewContent
-        case .activity:
-            activityContent
         case .analytics:
             analyticsContent
         case .habits:
@@ -210,6 +201,7 @@ struct DashboardView: View {
                     programViewModel: programViewModel,
                     templatesViewModel: templatesViewModel,
                     workoutViewModel: workoutViewModel,
+                    progressViewModel: progressViewModel,
                     onStartWorkout: onStartWorkout
                 )
                 .padding(.horizontal, 20)
@@ -235,30 +227,13 @@ struct DashboardView: View {
                     programViewModel: programViewModel,
                     onStartWorkout: onStartWorkout
                 )
-            } else {
-                // Program Progress Tracker (when program is active)
-                ProgramDayTracker(
-                    programViewModel: programViewModel,
-                    templatesViewModel: templatesViewModel,
-                    workoutViewModel: workoutViewModel,
-                    onStartWorkout: onStartWorkout
-                )
-                .padding(.horizontal, 20)
             }
             
-            // Rest Day Button
-            RestDayButton(progressViewModel: progressViewModel)
-                .padding(.horizontal, 20)
-        }
-    }
-    
-    private var activityContent: some View {
-        VStack(spacing: 16) {
-            // Activity Section (includes insights)
-            ActivitySection(
-                progressViewModel: progressViewModel,
-                programViewModel: programViewModel
-            )
+            // Rest Day Button — only when no active program and today not already logged
+            if programViewModel.activeProgram == nil && !progressViewModel.isRestDay {
+                RestDayButton(progressViewModel: progressViewModel)
+                    .padding(.horizontal, 20)
+            }
         }
     }
     
@@ -373,6 +348,41 @@ struct DashboardView: View {
     }
 }
 
+// MARK: - Dashboard Tab Bar
+
+private struct DashboardTabBar: View {
+    @Binding var selectedTab: DashboardView.DashboardTab
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(DashboardView.DashboardTab.allCases, id: \.self) { tab in
+                Button(action: {
+                    HapticManager.selection()
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        selectedTab = tab
+                    }
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 18, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundColor(selectedTab == tab ? AppColors.primary : AppColors.mutedForeground)
+                            .frame(height: 22)
+                        
+                        Rectangle()
+                            .fill(selectedTab == tab ? AppColors.primary : Color.clear)
+                            .frame(height: 2)
+                            .clipShape(Capsule())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel(tab.rawValue)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+}
+
 // MARK: - Dashboard Header
 
 struct DashboardHeader: View {
@@ -386,136 +396,55 @@ struct DashboardHeader: View {
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 0..<12:
-            return "Good Morning"
-        case 12..<17:
-            return "Good Afternoon"
-        default:
-            return "Good Evening"
+        case 0..<12: return "Good Morning"
+        case 12..<17: return "Good Afternoon"
+        default:      return "Good Evening"
         }
-    }
-    
-    private var currentStreak: Int {
-        progressViewModel.currentStreak
-    }
-    
-    private var encouragingQuote: String {
-        let streak = currentStreak
-        let workoutCount = progressViewModel.workoutCount
-        let daysSinceLastWorkout = progressViewModel.daysSinceLastWorkout
-        
-        // Streak-based quotes
-        if streak >= 30 {
-            return "🔥 You're on fire! \(streak) days strong!"
-        } else if streak >= 14 {
-            return "💪 Two weeks strong! Keep the momentum going!"
-        } else if streak >= 7 {
-            return "🌟 A week of consistency! You're building something great!"
-        } else if streak >= 3 {
-            return "✨ Building a habit! Every day counts!"
-        } else if streak > 0 {
-            return "🎯 Great start! Keep it going!"
-        }
-        
-        // Adaptive quotes based on workout patterns
-        if workoutCount == 0 {
-            return "🚀 Ready to start your fitness journey?"
-        } else if daysSinceLastWorkout == 0 {
-            return "💯 You crushed it today! Rest and recover."
-        } else if daysSinceLastWorkout == 1 {
-            return "💪 Time to get back at it! You've got this!"
-        } else if daysSinceLastWorkout >= 3 {
-            return "🔥 Let's get back on track! Your future self will thank you."
-        } else if workoutCount >= 50 {
-            return "🏆 \(workoutCount) workouts completed! You're a champion!"
-        } else if workoutCount >= 20 {
-            return "⭐ You're making real progress! Keep pushing!"
-        }
-        
-        // Default encouraging quote
-        return "💪 Every workout makes you stronger!"
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Dashboard Title Row
-            HStack {
-                Text("Dashboard")
-                    .font(AppTypography.largeTitleBold)
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                
-                Spacer()
-                
-                HStack(spacing: 12) {
-                    HelpButton(pageType: .dashboard)
-                    
-                    // Theme Toggle
-                    HeaderThemeToggle(themeManager: themeManager)
-                    
-                    // Workout History Button
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        onShowHistory()
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(AppColors.card)
-                                .frame(width: 40, height: 40)
-                            
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 18))
-                                .foregroundColor(AppColors.foreground)
-                        }
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .accessibilityLabel("Workout History")
-                    
-                    // Settings Button
-                    Button(action: {
-                        HapticManager.impact(style: .light)
-                        onSettings()
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(AppColors.card)
-                                .frame(width: 40, height: 40)
-                            
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(AppColors.foreground)
-                        }
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .accessibilityLabel("Settings")
-                }
-            }
+        HStack {
+            Text("Dashboard")
+                .font(AppTypography.largeTitleBold)
+                .foregroundStyle(LinearGradient.primaryGradient)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             
-            // Greeting Card
-            VStack(alignment: .leading, spacing: 8) {
-                Text(greeting)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(AppColors.foreground)
-                    .lineLimit(1)
+            Spacer()
+            
+            HStack(spacing: 12) {
+                HelpButton(pageType: .dashboard)
                 
-                Text(encouragingQuote)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppColors.foreground.opacity(0.8))
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                HeaderThemeToggle(themeManager: themeManager)
+                
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onShowHistory()
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 18))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Workout History")
+                
+                Button(action: {
+                    HapticManager.impact(style: .light)
+                    onSettings()
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColors.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("Settings")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-                    )
-            )
-            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -523,83 +452,6 @@ struct DashboardHeader: View {
     }
 }
 
-// MARK: - Greeting Quote Card
-
-struct GreetingQuoteCard: View {
-    @ObservedObject var progressViewModel: ProgressViewModel
-    @ObservedObject var programViewModel: WorkoutProgramViewModel
-    
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 0..<12:
-            return "Good Morning"
-        case 12..<17:
-            return "Good Afternoon"
-        default:
-            return "Good Evening"
-        }
-    }
-    
-    private var currentStreak: Int {
-        progressViewModel.currentStreak
-    }
-    
-    private var encouragingQuote: String {
-        let streak = currentStreak
-        let workoutCount = progressViewModel.workoutCount
-        let daysSinceLastWorkout = progressViewModel.daysSinceLastWorkout
-        
-        // Streak-based quotes
-        if streak >= 30 {
-            return "🔥 You're on fire! \(streak) days strong!"
-        } else if streak >= 14 {
-            return "💪 Two weeks strong! Keep the momentum going!"
-        } else if streak >= 7 {
-            return "🌟 A week of consistency! You're building something great!"
-        } else if streak >= 3 {
-            return "✨ Building a habit! Every day counts!"
-        } else if streak > 0 {
-            return "🎯 Great start! Keep it going!"
-        }
-        
-        // Adaptive quotes based on workout patterns
-        if workoutCount == 0 {
-            return "🚀 Ready to start your fitness journey?"
-        } else if daysSinceLastWorkout == 0 {
-            return "💯 You crushed it today! Rest and recover."
-        } else if daysSinceLastWorkout == 1 {
-            return "💪 Time to get back at it! You've got this!"
-        } else if daysSinceLastWorkout >= 3 {
-            return "🔥 Let's get back on track! Your future self will thank you."
-        } else if workoutCount >= 50 {
-            return "🏆 \(workoutCount) workouts completed! You're a champion!"
-        } else if workoutCount >= 20 {
-            return "⭐ You're making real progress! Keep pushing!"
-        }
-        
-        // Default encouraging quote
-        return "💪 Every workout makes you stronger!"
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Greeting
-            Text(greeting)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(AppColors.foreground)
-            
-            // Encouraging Quote
-            Text(encouragingQuote)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-    }
-}
 
 // MARK: - Settings Button
 
@@ -948,27 +800,26 @@ struct RestDayButton: View {
             HapticManager.impact(style: .medium)
             showConfirmation = true
         }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppColors.accent)
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Rest Day")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppColors.foreground)
-                    
-                    Text("Mark today as rest day")
-                        .font(.system(size: 13))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
+                Text("Mark today as rest day")
+                    .font(AppTypography.bodySmallMedium)
+                    .foregroundColor(AppColors.foreground)
                 
                 Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppColors.mutedForeground)
             }
-            .padding(16)
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, 12)
             .background(AppColors.card)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 3)
         }
         .buttonStyle(ScaleButtonStyle())
         .alert("Mark Rest Day", isPresented: $showConfirmation) {
@@ -978,7 +829,7 @@ struct RestDayButton: View {
                 HapticManager.success()
             }
         } message: {
-            Text("This will mark today as a rest day and increment your streak. You can still work out later today if needed.")
+            Text("Marks today as rest and keeps your streak going.")
         }
     }
 }

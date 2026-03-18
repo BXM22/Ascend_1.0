@@ -135,28 +135,24 @@ struct SpotlightBackground: View {
 private func calculateButtonFrame(element: TutorialElement, size: CGSize) -> CGRect {
     switch element {
     case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
-        // Navigation bar layout: HStack with 5 NavButtons
-        // Each NavButton uses .frame(maxWidth: .infinity), so they share space equally
-        let horizontalPadding: CGFloat = 24 // AppSpacing.lg
-        let verticalPadding: CGFloat = 16 // AppSpacing.md
+        // Navigation bar layout: HStack with 4 NavButtons (Timer merged into Workout)
+        let horizontalPadding: CGFloat = 24
+        let verticalPadding: CGFloat = 16
         
-        // Calculate available width for navigation buttons
         let totalAvailableWidth = size.width - (2 * horizontalPadding)
-        // Each of the 5 NavButtons gets equal space
-        let buttonAreaWidth = totalAvailableWidth / 5
+        let buttonAreaWidth = totalAvailableWidth / 4
         
-        // Button dimensions - NavButton uses VStack with icon, text, and indicator
-        let buttonHeight: CGFloat = 60 // Approximate height of NavButton content
-        let buttonWidth: CGFloat = buttonAreaWidth // NavButton expands to fill its area
+        let buttonHeight: CGFloat = 60
+        let buttonWidth: CGFloat = buttonAreaWidth
         
-        // Button index (0-4)
+        // Button index (0-3)
         let buttonIndex: Int
         switch element {
         case .dashboardTab: buttonIndex = 0
         case .workoutTab: buttonIndex = 1
+        case .sportsTimerTab: buttonIndex = 1 // Timer is now inside Workout tab
         case .progressTab: buttonIndex = 2
         case .templatesTab: buttonIndex = 3
-        case .sportsTimerTab: buttonIndex = 4
         default: buttonIndex = 0
         }
         
@@ -342,7 +338,8 @@ struct InteractiveCalloutCard: View {
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
         case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
-            let buttonWidth: CGFloat = size.width / 5
+            // 4 tabs after merging Timer into Workout
+            let buttonWidth: CGFloat = size.width / 4
             let buttonHeight: CGFloat = 60
             let yPosition = size.height - buttonHeight / 2 - 20
             
@@ -350,9 +347,9 @@ struct InteractiveCalloutCard: View {
             switch element {
             case .dashboardTab: index = 0.5
             case .workoutTab: index = 1.5
+            case .sportsTimerTab: index = 1.5 // Timer is now inside Workout tab
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
-            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             

@@ -101,7 +101,7 @@ enum TutorialStep: Int, CaseIterable {
         case .templates:
             return "Create custom workouts or quickly generate new ones. Organize templates, edit them, and start a session in just a few taps."
         case .sportsTimer:
-            return "Perfect for boxing, MMA, wrestling, and more! Configure round and rest times, customize sounds, and track your training sessions."
+            return "The Workout tab also includes a built-in Sports Timer. Switch to the Timer segment inside the Workout tab to configure round/rest times for boxing, MMA, and more."
         case .complete:
             return "You’re ready to go. Use the tabs to switch between Dashboard, Workouts, Progress, and Templates, and revisit this tutorial any time from Settings."
         }
@@ -184,7 +184,7 @@ enum TutorialStep: Int, CaseIterable {
         case .templates:
             return .templates
         case .sportsTimer:
-            return .sportsTimer
+            return .workout
         default:
             return nil
         }
@@ -201,7 +201,7 @@ enum TutorialStep: Int, CaseIterable {
         case .templates:
             return .templatesTab
         case .sportsTimer:
-            return .sportsTimerTab
+            return .workoutTab
         case .welcome:
             return nil
         case .complete:

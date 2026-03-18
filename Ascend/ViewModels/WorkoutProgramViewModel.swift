@@ -106,6 +106,26 @@ class WorkoutProgramViewModel: ObservableObject {
         activeProgram = nil
     }
     
+    /// Whether the active program began in a different calendar week than today (user can align to Day 1 for the new week).
+    func shouldOfferRestartForNewWeek() -> Bool {
+        guard let active = activeProgram else { return false }
+        let cal = Calendar.current
+        let y1 = cal.component(.yearForWeekOfYear, from: active.startDate)
+        let w1 = cal.component(.weekOfYear, from: active.startDate)
+        let y2 = cal.component(.yearForWeekOfYear, from: Date())
+        let w2 = cal.component(.weekOfYear, from: Date())
+        return y1 != y2 || w1 != w2
+    }
+    
+    /// Reset program tracking so today is Day 1 of the split (new week fresh start).
+    func restartProgramWeekFromToday() {
+        guard var active = activeProgram else { return }
+        active.startDate = Calendar.current.startOfDay(for: Date())
+        active.completedDays = []
+        active.lastWorkoutDate = nil
+        activeProgram = active
+    }
+    
     func getCurrentDay(for program: WorkoutProgram) -> WorkoutDay? {
         guard let active = activeProgram,
               active.programId == program.id else { return nil }

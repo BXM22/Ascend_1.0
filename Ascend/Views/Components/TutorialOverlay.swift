@@ -84,8 +84,8 @@ struct SpotlightMask: View {
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
         case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
-            // Bottom navigation bar buttons
-            let buttonWidth: CGFloat = size.width / 5
+            // Bottom navigation bar buttons (4 tabs)
+            let buttonWidth: CGFloat = size.width / 4
             let buttonHeight: CGFloat = 60
             let yPosition = size.height - buttonHeight / 2 - 20
             
@@ -93,9 +93,9 @@ struct SpotlightMask: View {
             switch element {
             case .dashboardTab: index = 0.5
             case .workoutTab: index = 1.5
+            case .sportsTimerTab: index = 1.5 // Timer is now inside Workout tab
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
-            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             
@@ -191,7 +191,8 @@ struct TutorialCalloutView: View {
     private func frameForElement(_ element: TutorialElement, in size: CGSize) -> CGRect {
         switch element {
         case .dashboardTab, .workoutTab, .progressTab, .templatesTab, .sportsTimerTab:
-            let buttonWidth: CGFloat = size.width / 5
+            // 4 tabs after merging Timer into Workout
+            let buttonWidth: CGFloat = size.width / 4
             let buttonHeight: CGFloat = 60
             let yPosition = size.height - buttonHeight / 2 - 20
             
@@ -199,9 +200,9 @@ struct TutorialCalloutView: View {
             switch element {
             case .dashboardTab: index = 0.5
             case .workoutTab: index = 1.5
+            case .sportsTimerTab: index = 1.5 // Timer is now inside Workout tab
             case .progressTab: index = 2.5
             case .templatesTab: index = 3.5
-            case .sportsTimerTab: index = 4.5
             default: index = 0.5
             }
             

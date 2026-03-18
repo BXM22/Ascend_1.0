@@ -84,125 +84,58 @@ struct QuickActionsSection: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Section Title
-            Text("Quick Actions")
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.foreground)
-                .padding(.horizontal, 20)
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            // Primary Action Button
+            Button(action: {
+                HapticManager.impact(style: .medium)
+                if programViewModel.activeProgram != nil {
+                    if let nextTemplate = programViewModel.nextProgramWorkout() {
+                        workoutViewModel.startWorkoutFromTemplate(nextTemplate)
+                        onStartWorkout()
+                    }
+                } else {
+                    showGenerateTypeDialog = true
+                }
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: primaryActionIcon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text(primaryActionTitle)
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.md)
+                .background(LinearGradient.primaryGradient)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .accessibilityLabel(primaryActionTitle)
+            .padding(.horizontal, 20)
             
-            VStack(spacing: AppSpacing.md) {
-                // Primary Action Button
-                VStack(spacing: 0) {
-                    Button(action: {
-                        HapticManager.impact(style: .medium)
-                        if programViewModel.activeProgram != nil {
-                            // Start next program workout
-                            if let nextTemplate = programViewModel.nextProgramWorkout() {
-                                workoutViewModel.startWorkoutFromTemplate(nextTemplate)
+            // Quick Templates
+            if !favoriteTemplates.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(favoriteTemplates) { template in
+                            QuickTemplateCard(template: template) {
+                                HapticManager.impact(style: .light)
+                                templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
                                 onStartWorkout()
                             }
-                        } else {
-                            // Show generate dialog
-                            showGenerateTypeDialog = true
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: primaryActionIcon)
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.white)
-                            
-                            Text(primaryActionTitle)
-                                .font(AppTypography.bodyBold)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.vertical, AppSpacing.lg)
-                        .background(
-                            LinearGradient.primaryGradient
-                        )
-                        .cornerRadius(16)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel(primaryActionTitle)
-                .padding(.horizontal, 20)
-                
-                // Next Workout Preview (if program active)
-                    if let preview = nextWorkoutPreview, !preview.exercises.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(AppColors.textSecondary)
-                                
-                                Text("Next: \(preview.dayName)")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-                            
-                            HStack(spacing: 4) {
-                                ForEach(preview.exercises.prefix(3), id: \.self) { exercise in
-                                    Text(exercise)
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.textSecondary)
-                                        .lineLimit(1)
-                                    
-                                    if exercise != preview.exercises.last {
-                                        Text("•")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
-                                    }
-                                }
-                                
-                                if preview.exercises.count > 3 {
-                                    Text("+\(preview.exercises.count - 3) more")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.textSecondary.opacity(0.7))
-                                }
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.top, AppSpacing.sm)
-                        .padding(.bottom, AppSpacing.md)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(AppColors.secondary.opacity(0.3))
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.top, AppSpacing.xs)
-                    }
-                }
-                
-                // Favorite Templates (Horizontal Scroll)
-                if !favoriteTemplates.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Quick Templates")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.foreground.opacity(0.7))
-                            .padding(.horizontal, 20)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(favoriteTemplates) { template in
-                                    QuickTemplateCard(template: template) {
-                                        HapticManager.impact(style: .light)
-                                        templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
-                                        onStartWorkout()
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
                         }
                     }
-                    .padding(.top, AppSpacing.sm)
+                    .padding(.horizontal, 20)
                 }
+                .padding(.top, AppSpacing.xs)
             }
         }
         .confirmationDialog("Generate workout", isPresented: $showGenerateTypeDialog, titleVisibility: .visible) {
@@ -261,61 +194,40 @@ struct QuickTemplateCard: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Icon with gradient background
+            VStack(alignment: .leading, spacing: 10) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(templateGradient.opacity(0.15))
-                        .frame(width: 56, height: 56)
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(templateGradient.opacity(0.12))
+                        .frame(width: 44, height: 44)
                     
                     Image(systemName: templateIcon)
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(templateGradient)
                 }
-                .frame(height: 56)
                 
-                // Template Name - fixed height to ensure consistency
                 Text(template.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(AppTypography.bodySmallMedium)
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .frame(height: 40, alignment: .top)
-                    .fixedSize(horizontal: false, vertical: false)
+                    .frame(minHeight: 32, alignment: .top)
                 
-                // Exercise Count and Duration
-                HStack(spacing: 6) {
-                    Label("\(template.exercises.count)", systemImage: "list.bullet")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.textSecondary)
-                    
-                    if template.estimatedDuration > 0 {
-                        Text("•")
-                            .font(.system(size: 10))
-                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
-                        
-                        Label("\(template.estimatedDuration)min", systemImage: "clock")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppColors.textSecondary)
-                    } else {
-                        // Spacer to maintain consistent height even without duration
-                        Spacer()
-                            .frame(width: 0)
-                    }
+                HStack(spacing: 4) {
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppColors.mutedForeground)
+                    Text("\(template.exercises.count)")
+                        .font(AppTypography.caption)
+                        .foregroundColor(AppColors.mutedForeground)
                 }
-                .frame(height: 18)
             }
-            .frame(width: 140, height: 142, alignment: .top)
-            .padding(16)
+            .frame(width: 120, alignment: .topLeading)
+            .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(AppColors.card)
-                    .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 2)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(templateGradient.opacity(0.2), lineWidth: 1)
-            )
+            .shadow(color: AppColors.foreground.opacity(0.06), radius: 6, x: 0, y: 2)
         }
         .buttonStyle(ScaleButtonStyle())
         .accessibilityLabel("\(template.name), \(template.exercises.count) exercises")

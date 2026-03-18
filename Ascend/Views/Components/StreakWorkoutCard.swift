@@ -20,72 +20,60 @@ struct StreakWorkoutCard: View {
     }
     
     var body: some View {
-        HStack(spacing: 20) {
+        HStack(spacing: 0) {
             // Streak Section
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.orange, .red],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+            HStack(spacing: 10) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.orange, .red],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                    
-                    Text("Streak")
+                    )
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(currentStreak)")
+                        .font(AppTypography.numberInput)
+                        .foregroundColor(AppColors.foreground)
+                    Text("day streak")
                         .font(AppTypography.caption)
-                        .foregroundColor(AppColors.foreground.opacity(0.7))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
-                
-                Text("\(currentStreak)")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(AppColors.foreground)
-                
-                Text("days")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.foreground.opacity(0.7))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             // Divider
             Rectangle()
                 .fill(AppColors.border.opacity(0.3))
-                .frame(width: 1)
-                .frame(maxHeight: .infinity)
+                .frame(width: 1, height: 36)
             
             // Workout Count Section
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppColors.accent)
-                    
-                    Text("Workouts")
+            HStack(spacing: 10) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppColors.accent)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(workoutCount)")
+                        .font(AppTypography.numberInput)
+                        .foregroundColor(AppColors.foreground)
+                    Text("workouts")
                         .font(AppTypography.caption)
-                        .foregroundColor(AppColors.foreground.opacity(0.7))
+                        .foregroundColor(AppColors.mutedForeground)
                 }
-                
-                Text("\(workoutCount)")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(AppColors.foreground)
-                
-                Text("total")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.foreground.opacity(0.7))
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, AppSpacing.lg)
         }
-        .padding(AppSpacing.lg)
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(AppColors.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-                )
         )
+        .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 3)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(currentStreak) day streak, \(workoutCount) total workouts")
     }

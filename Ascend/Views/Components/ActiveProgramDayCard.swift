@@ -12,6 +12,7 @@ struct ActiveProgramDayCard: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
+    @ObservedObject var progressViewModel: ProgressViewModel
     let onStartWorkout: () -> Void
     @State private var showGeneratePrompt = false
     @State private var generatedTemplateInfo: (name: String, intensity: WorkoutIntensity)?
@@ -44,16 +45,25 @@ struct ActiveProgramDayCard: View {
         }
     }
     
+    private func isRestProgramDay(_ day: WorkoutDay) -> Bool {
+        day.isRestDay || day.name.lowercased().contains("rest")
+    }
+    
     @ViewBuilder
     private func cardContent(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) -> some View {
-        let baseContent = VStack(alignment: .leading, spacing: 16) {
+        let baseContent = VStack(alignment: .leading, spacing: 14) {
             cardHeader(for: info)
-            exercisesPreview(for: info.currentDay)
-            startButton(for: info)
+            weekDotsRow(for: info)
+            if isRestProgramDay(info.currentDay) {
+                restDayContent
+            } else {
+                exercisesPreview(for: info.currentDay)
+                startButton(for: info)
+            }
         }
-        .padding(20)
+        .padding(16)
         .background(cardBackground)
-        .shadow(color: AppColors.foreground.opacity(0.1), radius: 8, x: 0, y: 4)
+        .shadow(color: AppColors.foreground.opacity(0.08), radius: 8, x: 0, y: 3)
         
         baseContent
             .onAppear {
@@ -85,42 +95,37 @@ struct ActiveProgramDayCard: View {
     
     @ViewBuilder
     private func cardHeader(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Today's Workout")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.foreground.opacity(0.7))
-                
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(info.currentDay.name)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTypography.heading3)
                     .foregroundColor(AppColors.foreground)
                 
                 Text(info.program.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(AppColors.foreground.opacity(0.7))
+                    .font(AppTypography.caption)
+                    .foregroundColor(AppColors.mutedForeground)
             }
             
             Spacer()
-            
-            dayIndicator(dayIndex: info.dayIndex)
         }
     }
     
     @ViewBuilder
-    private func dayIndicator(dayIndex: Int) -> some View {
-        VStack(spacing: 4) {
-            Text("Day")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(AppColors.foreground.opacity(0.7))
-            
-            Text("\(dayIndex + 1)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(AppColors.primary)
+    private func weekDotsRow(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) -> some View {
+        if info.program.days.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Array(info.program.days.enumerated()), id: \.element.id) { index, day in
+                        DayIndicator(
+                            day: day,
+                            dayNumber: index + 1,
+                            isCurrent: index == info.dayIndex,
+                            isCompleted: programViewModel.isDayCompleted(index, inProgram: info.program.id)
+                        )
+                    }
+                }
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(AppColors.primary.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
     @ViewBuilder
@@ -163,6 +168,42 @@ struct ActiveProgramDayCard: View {
             Text("\(exercise.sets) sets")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(AppColors.foreground.opacity(0.7))
+        }
+    }
+    
+    private var restDayContent: some View {
+        Group {
+            if progressViewModel.isRestDay {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(AppColors.accent)
+                    Text("Logged as rest today")
+                        .font(AppTypography.bodySmallMedium)
+                        .foregroundColor(AppColors.foreground)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(AppColors.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                Button(action: {
+                    HapticManager.impact(style: .medium)
+                    progressViewModel.markRestDay()
+                }) {
+                    HStack {
+                        Image(systemName: "bed.double.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Mark as rest")
+                            .font(AppTypography.buttonBold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(LinearGradient.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
         }
     }
     
@@ -233,10 +274,6 @@ struct ActiveProgramDayCard: View {
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 16)
             .fill(AppColors.card)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(AppColors.border.opacity(0.5), lineWidth: 1.5)
-            )
     }
     
     private var generateWorkoutMessage: Text {
@@ -356,7 +393,7 @@ struct ActiveProgramDayCard: View {
     private func checkAndPromptForGeneration() {
         guard let info = activeProgramInfo,
               !hasCheckedForGeneration,
-              !info.currentDay.isRestDay else {
+              !isRestProgramDay(info.currentDay) else {
             return
         }
         

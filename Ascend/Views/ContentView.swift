@@ -55,7 +55,7 @@ struct ContentView: View {
     }
     
     enum Tab {
-        case dashboard, workout, progress, templates, sportsTimer
+        case dashboard, workout, progress, templates
     }
     
     var effectiveColorScheme: ColorScheme {
@@ -129,10 +129,6 @@ struct ContentView: View {
                     )
                     .id(AppColors.themeID)
                     .transition(.slideFromBottom)
-                case .sportsTimer:
-                    SportsTimerView()
-                        .id(AppColors.themeID)
-                        .transition(.slideFromBottom)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -284,16 +280,6 @@ struct BottomNavigationBar: View {
                 }
             }
             
-            NavButton(
-                icon: "timer",
-                title: "Timer",
-                isSelected: selectedTab == .sportsTimer
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .sportsTimer
-                }
-            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
