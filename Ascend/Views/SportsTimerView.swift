@@ -819,7 +819,7 @@ struct SportSelectorDropdownView: View {
             if isExpanded {
                 VStack(spacing: 0) {
                     // Built-in Sports
-                    ForEach(SportType.allCases) { sport in
+                    ForEach(SportType.presetCases) { sport in
                         SportMenuItem(
                             name: sport.rawValue,
                             icon: sport.icon,

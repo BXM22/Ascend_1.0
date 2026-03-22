@@ -10,7 +10,7 @@ import SwiftUI
 import Combine
 
 class ThemeManager: ObservableObject {
-    @Published var colorScheme: ColorScheme? = nil // nil = system, .light = light, .dark = dark
+    @Published var colorScheme: ColorScheme? = nil // set by updateColorScheme(); default mode is .dark
     
     enum ThemeMode: String, CaseIterable {
         case system = "System"
@@ -18,7 +18,8 @@ class ThemeManager: ObservableObject {
         case dark = "Dark"
     }
     
-    @Published var themeMode: ThemeMode = .system {
+    /// Defaults to **Dark** so the charcoal palette and contrast tokens apply until the user changes appearance.
+    @Published var themeMode: ThemeMode = .dark {
         didSet {
             updateColorScheme()
             saveThemePreference()
@@ -48,6 +49,8 @@ class ThemeManager: ObservableObject {
         if let saved = UserDefaults.standard.string(forKey: AppConstants.UserDefaultsKeys.themeMode),
            let mode = ThemeMode(rawValue: saved) {
             themeMode = mode
+        } else {
+            themeMode = .dark
         }
         updateColorScheme()
     }

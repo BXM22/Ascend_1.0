@@ -63,7 +63,7 @@ struct HabitEditView: View {
                 formContent
                     .padding(20)
             }
-            .background(AppColors.background)
+            .background(AppColors.surface)
             .navigationTitle(habit == nil ? "New Habit" : "Edit Habit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -72,14 +72,14 @@ struct HabitEditView: View {
                         onCancel()
                         dismiss()
                     }
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(AppColors.onSurfaceVariant)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         HapticManager.impact(style: .medium)
                         saveHabit()
                     }
-                    .foregroundColor(AppColors.primary)
+                    .foregroundColor(AppColors.primaryContainer)
                     .disabled(name.isEmpty)
                 }
             }

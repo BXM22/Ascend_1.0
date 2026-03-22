@@ -57,8 +57,11 @@ class CalisthenicsSkillManager: ObservableObject {
     static let shared = CalisthenicsSkillManager()
     
     @Published var skills: [CalisthenicsSkill] = []
+    /// Focus skill for **Skills** UI: shown as current objective and listed first in `displayOrderedSkills`.
+    @Published private(set) var activeSkillId: UUID?
     
     private let customSkillsKey = "customCalisthenicsSkills"
+    private let activeSkillIdKey = "calisthenicsActiveSkillId"
     
     private let builtInSkills: [CalisthenicsSkill] = [
         CalisthenicsSkill(
@@ -189,6 +192,33 @@ class CalisthenicsSkillManager: ObservableObject {
         }
         
         skills = allSkills
+        reconcileActiveSkill()
+    }
+    
+    private func loadActiveSkillId() {
+        if let s = UserDefaults.standard.string(forKey: activeSkillIdKey),
+           let u = UUID(uuidString: s) {
+            activeSkillId = u
+        } else {
+            activeSkillId = nil
+        }
+    }
+    
+    private func saveActiveSkillId() {
+        if let id = activeSkillId {
+            UserDefaults.standard.set(id.uuidString, forKey: activeSkillIdKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: activeSkillIdKey)
+        }
+    }
+    
+    /// Drops active id if that skill no longer exists.
+    private func reconcileActiveSkill() {
+        loadActiveSkillId()
+        if let id = activeSkillId, !skills.contains(where: { $0.id == id }) {
+            activeSkillId = nil
+            saveActiveSkillId()
+        }
     }
     
     private func saveCustomSkills() {
@@ -220,8 +250,36 @@ class CalisthenicsSkillManager: ObservableObject {
     
     func deleteCustomSkill(_ skill: CalisthenicsSkill) {
         guard skill.isCustom else { return }
+        if skill.id == activeSkillId {
+            activeSkillId = nil
+            saveActiveSkillId()
+        }
         skills.removeAll { $0.id == skill.id }
         saveCustomSkills()
+    }
+    
+    /// `nil` clears the active objective; order in **Skills** reverts to default.
+    func setActiveSkill(_ skill: CalisthenicsSkill?) {
+        if let skill {
+            guard skills.contains(where: { $0.id == skill.id }) else { return }
+            activeSkillId = skill.id
+        } else {
+            activeSkillId = nil
+        }
+        saveActiveSkillId()
+    }
+    
+    var activeSkill: CalisthenicsSkill? {
+        guard let id = activeSkillId else { return nil }
+        return skills.first { $0.id == id }
+    }
+    
+    /// Active skill first, then all others in their original order.
+    var displayOrderedSkills: [CalisthenicsSkill] {
+        guard let id = activeSkillId, let active = skills.first(where: { $0.id == id }) else {
+            return skills
+        }
+        return [active] + skills.filter { $0.id != id }
     }
     
     func getSkill(named name: String) -> CalisthenicsSkill? {

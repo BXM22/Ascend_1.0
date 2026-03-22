@@ -5,6 +5,7 @@ struct CalisthenicsSkillView: View {
     @State private var selectedLevel: Int = 1
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var templatesViewModel: TemplatesViewModel
+    @ObservedObject private var skillManager = CalisthenicsSkillManager.shared
     @Environment(\.dismiss) var dismiss
     @State private var showTemplateSelector = false
     
@@ -85,6 +86,32 @@ struct CalisthenicsSkillView: View {
             }
         }
         .background(AppColors.background)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    if skillManager.activeSkillId == skill.id {
+                        Button {
+                            skillManager.setActiveSkill(nil)
+                            HapticManager.selection()
+                        } label: {
+                            Label("Clear active objective", systemImage: "circle.slash")
+                        }
+                    } else {
+                        Button {
+                            skillManager.setActiveSkill(skill)
+                            HapticManager.success()
+                        } label: {
+                            Label("Set as active objective", systemImage: "target")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "target")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(AppColors.primary)
+                }
+                .accessibilityLabel("Active objective")
+            }
+        }
         .sheet(isPresented: $showTemplateSelector) {
             TemplateSelectionSheet(
                 templates: templatesViewModel.templates.filter { !$0.name.contains("Progression") },

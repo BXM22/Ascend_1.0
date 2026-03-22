@@ -1,245 +1,52 @@
 import SwiftUI
 
+// MARK: - Generation Settings (Kinetic Atelier)
+
 struct WorkoutGenerationSettingsView: View {
     @Binding var settings: WorkoutGenerationSettings
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    private let exerciseTotalBounds = 3...15
+    private let restBounds = 30...300
+    private let rirBounds = 0...5
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    // Header Section
-                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                        Text("Generation Settings")
-                            .font(AppTypography.largeTitleBold)
-                            .foregroundStyle(LinearGradient.primaryGradient)
-                        
-                        Text("Training guidelines and recommendations")
-                            .font(AppTypography.body)
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.top, AppSpacing.md)
+                VStack(alignment: .leading, spacing: AppSpacing.sectionGapXL) {
+                    headerIntro
                     
-                    // Core Rules Section
-                    CoreRulesSection()
-                        .padding(.horizontal, AppSpacing.lg)
+                    GenerationSettingsPhaseHero(settings: $settings)
                     
-                    // Bulking Phase Section
-                    PhaseGuidelinesSection(
-                        phase: .bulking,
-                        settings: settings
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    
-                    // Cutting Phase Section
-                    PhaseGuidelinesSection(
-                        phase: .cutting,
-                        settings: settings
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    
-                    // Endurance Phase Section
-                    PhaseGuidelinesSection(
-                        phase: .endurance,
-                        settings: settings
-                    )
-                    .padding(.horizontal, AppSpacing.lg)
-                    
-                    // Equipment Preferences Section
-                    VStack(alignment: .leading, spacing: AppSpacing.md) {
-                        Text("Preferred Equipment")
-                            .font(AppTypography.heading2)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        let equipmentOptions = ["Bodyweight", "Dumbbells", "Barbell", "Cable", "Machine"]
-                        
-                        VStack(spacing: AppSpacing.sm) {
-                            ForEach(equipmentOptions, id: \.self) { equipment in
-                                Toggle(isOn: Binding(
-                                    get: { settings.preferredEquipment.contains(equipment) },
-                                    set: { isOn in
-                                        HapticManager.impact(style: .light)
-                                        if isOn {
-                                            if !settings.preferredEquipment.contains(equipment) {
-                                                settings.preferredEquipment.append(equipment)
-                                            }
-                                        } else {
-                                            settings.preferredEquipment.removeAll { $0 == equipment }
-                                        }
-                                    }
-                                )) {
-                                    Text(equipment)
-                                        .font(AppTypography.bodyMedium)
-                                        .foregroundColor(AppColors.textPrimary)
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                                .padding(.vertical, AppSpacing.sm)
-                                .background(AppColors.secondary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
+                    if horizontalSizeClass == .regular {
+                        HStack(alignment: .top, spacing: AppSpacing.lg) {
+                            leftColumn
+                            rightColumn
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: AppSpacing.spacing8) {
+                            leftColumn
+                            rightColumn
                         }
                     }
-                    .padding(AppSpacing.md)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border, lineWidth: 1)
-                    )
-                    .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
-                    .padding(.horizontal, AppSpacing.lg)
                     
-                    // Additional Options Section
-                    VStack(alignment: .leading, spacing: AppSpacing.md) {
-                        Text("Additional Options")
-                            .font(AppTypography.heading2)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        VStack(spacing: AppSpacing.sm) {
-                            Toggle(isOn: Binding(
-                                get: { settings.includeCalisthenics },
-                                set: { 
-                                    HapticManager.impact(style: .light)
-                                    settings.includeCalisthenics = $0 
-                                }
-                            )) {
-                                Text("Include Calisthenics")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            Toggle(isOn: Binding(
-                                get: { settings.includeCardio },
-                                set: { 
-                                    HapticManager.impact(style: .light)
-                                    settings.includeCardio = $0 
-                                }
-                            )) {
-                                Text("Include Cardio")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            Toggle(isOn: Binding(
-                                get: { settings.includeWarmup },
-                                set: { 
-                                    HapticManager.impact(style: .light)
-                                    settings.includeWarmup = $0 
-                                }
-                            )) {
-                                Text("Include Warmup")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            Toggle(isOn: Binding(
-                                get: { settings.includeStretch },
-                                set: { 
-                                    HapticManager.impact(style: .light)
-                                    settings.includeStretch = $0 
-                                }
-                            )) {
-                                Text("Include Stretch")
-                                    .font(AppTypography.bodyMedium)
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            // Warmup/Stretch count
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Warmup & Stretch Exercises")
-                                        .font(AppTypography.bodyMedium)
-                                        .foregroundColor(AppColors.textPrimary)
-                                    Text("Max number per workout (0–5)")
-                                        .font(AppTypography.caption)
-                                        .foregroundColor(AppColors.textSecondary)
-                                }
-                                Spacer()
-                                Stepper(
-                                    value: Binding(
-                                        get: { settings.maxWarmupStretchExercises },
-                                        set: {
-                                            HapticManager.selection()
-                                            settings.maxWarmupStretchExercises = max(0, min(5, $0))
-                                        }
-                                    ),
-                                    in: 0...5
-                                ) {
-                                    Text("\(settings.maxWarmupStretchExercises)")
-                                        .font(AppTypography.bodyMedium)
-                                        .foregroundColor(AppColors.textPrimary)
-                                }
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            // Cardio count
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Cardio Exercises")
-                                        .font(AppTypography.bodyMedium)
-                                        .foregroundColor(AppColors.textPrimary)
-                                    Text("Max number per workout (0–3)")
-                                        .font(AppTypography.caption)
-                                        .foregroundColor(AppColors.textSecondary)
-                                }
-                                Spacer()
-                                Stepper(
-                                    value: Binding(
-                                        get: { settings.maxCardioExercises },
-                                        set: {
-                                            HapticManager.selection()
-                                            settings.maxCardioExercises = max(0, min(3, $0))
-                                        }
-                                    ),
-                                    in: 0...3
-                                ) {
-                                    Text("\(settings.maxCardioExercises)")
-                                        .font(AppTypography.bodyMedium)
-                                        .foregroundColor(AppColors.textPrimary)
-                                }
-                            }
-                            .padding(.horizontal, AppSpacing.md)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding(AppSpacing.md)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border, lineWidth: 1)
-                    )
-                    .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.bottom, AppSpacing.xl)
+                    applyPresetCTA
+                    
+                    referenceDisclosure
                 }
+                .padding(.horizontal, AppSpacing.contentPadLG)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.xl)
             }
-            .background(AppColors.background)
+            .background(AppColors.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("GENERATION SETTINGS")
+                        .font(AppTypography.labelSmallUppercase)
+                        .foregroundColor(AppColors.primary)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
@@ -247,9 +54,633 @@ struct WorkoutGenerationSettingsView: View {
                     .foregroundColor(AppColors.primary)
                 }
             }
+            .toolbarBackground(AppColors.surface.opacity(0.78), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+    
+    private var headerIntro: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text("Training guidelines")
+                .font(AppTypography.body)
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+    
+    private var leftColumn: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.spacing8) {
+            GenerationVolumeSection(
+                settings: $settings,
+                exerciseTotalBounds: exerciseTotalBounds
+            )
+            GenerationContentLogicSection(settings: $settings)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var rightColumn: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.spacing8) {
+            GenerationEquipmentSection(settings: $settings)
+            GenerationPerformanceSection(
+                settings: $settings,
+                restBounds: restBounds,
+                rirBounds: rirBounds
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var applyPresetCTA: some View {
+        VStack(spacing: AppSpacing.md) {
+            Button {
+                HapticManager.impact(style: .medium)
+                settings.applyPhasePreset()
+            } label: {
+                Text("Apply recommended defaults")
+                    .font(AppTypography.heading3)
+                    .foregroundColor(AppColors.onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColors.primaryContainer, AppColors.primary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(Capsule())
+                    .shadow(color: AppColors.primary.opacity(0.12), radius: 24, x: 0, y: 8)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            Text("Applying Kinetic Atelier generation logic")
+                .font(AppTypography.caption)
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.15)
+                .textCase(.uppercase)
+                .frame(maxWidth: .infinity)
+        }
+    }
+    
+    private var referenceDisclosure: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                CoreRulesSection()
+                PhaseGuidelinesSection(
+                    phase: settings.resolvedTrainingPhase,
+                    settings: settings
+                )
+            }
+            .padding(.top, AppSpacing.sm)
+        } label: {
+            Text("Phase & training reference")
+                .font(AppTypography.heading3)
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .tint(AppColors.primary)
+    }
+}
+
+// MARK: - Hero
+
+private struct GenerationSettingsPhaseHero: View {
+    @Binding var settings: WorkoutGenerationSettings
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("Current phase")
+                .font(AppTypography.caption)
+                .fontWeight(.bold)
+                .tracking(2)
+                .foregroundColor(AppColors.primary)
+                .textCase(.uppercase)
+            
+            Text(settings.phaseDisplayTitle)
+                .font(AppTypography.largeTitleBold)
+                .foregroundColor(AppColors.textPrimary)
+            
+            HStack(spacing: AppSpacing.sm) {
+                phasePill(icon: "dial.high", text: settings.phaseFocusLabel)
+                phasePill(icon: "timer", text: restSummary)
+                phasePill(icon: "waveform.path.ecg", text: rirSummary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            
+            GoalSelectionSection(
+                trainingType: $settings.trainingType,
+                trainingGoal: $settings.trainingGoal,
+                onTypeChange: {
+                    HapticManager.impact(style: .light)
+                    settings.applyPhasePreset()
+                },
+                onGoalChange: {
+                    HapticManager.impact(style: .light)
+                    settings.applyPhasePreset()
+                }
+            )
+            .padding(.top, AppSpacing.sm)
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(
+            LinearGradient(
+                colors: [AppColors.secondaryContainer.opacity(0.45), AppColors.surfaceContainerHighest.opacity(0.9)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusXL, style: .continuous))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: AppSpacing.radiusXL, style: .continuous)
+                .fill(AppColors.primary)
+                .frame(width: 4)
+        }
+        .overlay(alignment: .topTrailing) {
+            Image(systemName: "square.grid.3x3.topleft.filled")
+                .font(.system(size: 72))
+                .foregroundColor(AppColors.primary.opacity(0.08))
+                .padding()
+        }
+    }
+    
+    private var restSummary: String {
+        let a = settings.restTimeMin
+        let b = settings.restTimeMax
+        if a == b { return "\(a)s" + " Rest" }
+        return "\(a)s–\(b)s" + " Rest"
+    }
+    
+    private var rirSummary: String {
+        "\(settings.rirMin)–\(settings.rirMax)" + " RIR"
+    }
+    
+    private func phasePill(icon: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(AppColors.primary)
+            Text(text)
+                .font(AppTypography.caption)
+                .foregroundColor(AppColors.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.xs)
+        .background(AppColors.surfaceContainerHigh.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
+    }
+}
+
+// MARK: - Volume
+
+private struct GenerationVolumeSection: View {
+    @Binding var settings: WorkoutGenerationSettings
+    let exerciseTotalBounds: ClosedRange<Int>
+    
+    private var averageMuscle: Int {
+        let vals = settings.exercisesPerMuscleGroup.values.filter { $0 > 0 }
+        guard !vals.isEmpty else { return 2 }
+        return vals.reduce(0, +) / vals.count
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Volume tuning")
+                    .font(AppTypography.heading2)
+                    .foregroundColor(AppColors.textPrimary)
+                Spacer()
+                Image(systemName: "chart.bar.xaxis")
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                volumeRow(
+                    title: "Total exercises",
+                    value: "\(settings.minExercises) — \(settings.maxExercises)"
+                ) {
+                    ExerciseCountRangeBar(
+                        min: settings.minExercises,
+                        max: settings.maxExercises,
+                        in: exerciseTotalBounds
+                    )
+                }
+                dualIntSliders(
+                    low: $settings.minExercises,
+                    high: $settings.maxExercises,
+                    range: exerciseTotalBounds,
+                    onChange: {
+                        if settings.minExercises > settings.maxExercises {
+                            settings.maxExercises = settings.minExercises
+                        }
+                        HapticManager.selection()
+                    }
+                )
+                
+                volumeRow(
+                    title: "Exercises per muscle",
+                    value: "\(averageMuscle) (uniform target)"
+                ) {
+                    ExerciseCountRangeBar(
+                        min: averageMuscle,
+                        max: averageMuscle,
+                        in: 1...4
+                    )
+                }
+                Slider(
+                    value: Binding(
+                        get: { Double(averageMuscle) },
+                        set: { new in
+                            HapticManager.selection()
+                            settings.setUniformMuscleExerciseCount(Int(new.rounded()))
+                        }
+                    ),
+                    in: 1...4,
+                    step: 1
+                )
+                .tint(AppColors.primary)
+                
+                Text("Scales every muscle group to the same count. Combine with presets below.")
+                    .font(AppTypography.caption)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(AppColors.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
+    }
+    
+    private func volumeRow<Bar: View>(title: String, value: String, @ViewBuilder bar: () -> Bar) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(alignment: .bottom) {
+                Text(title)
+                    .font(AppTypography.bodyMedium)
+                    .foregroundColor(AppColors.textSecondary)
+                Spacer()
+                Text(value)
+                    .font(AppTypography.numberInput)
+                    .foregroundColor(AppColors.primary)
+            }
+            bar()
+        }
+    }
+    
+    private func dualIntSliders(
+        low: Binding<Int>,
+        high: Binding<Int>,
+        range: ClosedRange<Int>,
+        onChange: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Min")
+                    .font(AppTypography.caption)
+                    .foregroundColor(AppColors.textSecondary)
+                Spacer()
+                Text("\(low.wrappedValue)")
+                    .font(AppTypography.bodyBold)
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            Slider(
+                value: Binding(
+                    get: { Double(low.wrappedValue) },
+                    set: {
+                        low.wrappedValue = Int($0.rounded())
+                        onChange()
+                    }
+                ),
+                in: Double(range.lowerBound)...Double(range.upperBound),
+                step: 1
+            )
+            .tint(AppColors.primary)
+            
+            HStack {
+                Text("Max")
+                    .font(AppTypography.caption)
+                    .foregroundColor(AppColors.textSecondary)
+                Spacer()
+                Text("\(high.wrappedValue)")
+                    .font(AppTypography.bodyBold)
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            Slider(
+                value: Binding(
+                    get: { Double(high.wrappedValue) },
+                    set: {
+                        high.wrappedValue = Int($0.rounded())
+                        onChange()
+                    }
+                ),
+                in: Double(range.lowerBound)...Double(range.upperBound),
+                step: 1
+            )
+            .tint(AppColors.primary)
         }
     }
 }
+
+struct ExerciseCountRangeBar: View {
+    let min: Int
+    let max: Int
+    let `in`: ClosedRange<Int>
+    
+    var body: some View {
+        GeometryReader { geo in
+            let span = CGFloat(`in`.upperBound - `in`.lowerBound)
+            let start = CGFloat(min - `in`.lowerBound) / span
+            let end = CGFloat(max - `in`.lowerBound) / span
+            let w = geo.size.width
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(AppColors.surfaceContainerHighest)
+                Capsule()
+                    .fill(AppColors.primary)
+                    .shadow(color: AppColors.primary.opacity(0.35), radius: 8, x: 0, y: 0)
+                    .frame(width: Swift.max(6, (end - start) * w))
+                    .offset(x: start * w)
+            }
+        }
+        .frame(height: 8)
+    }
+}
+
+// MARK: - Content toggles
+
+private struct GenerationContentLogicSection: View {
+    @Binding var settings: WorkoutGenerationSettings
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("Content logic")
+                .font(AppTypography.heading2)
+                .foregroundColor(AppColors.textPrimary)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.spacing3) {
+                kineticToggle("Include cardio", isOn: $settings.includeCardio)
+                kineticToggle("Calisthenics", isOn: $settings.includeCalisthenics)
+                kineticToggle("Warmup routine", isOn: $settings.includeWarmup)
+                kineticToggle("Cool down / stretch", isOn: $settings.includeStretch)
+            }
+            
+            VStack(spacing: AppSpacing.spacing3) {
+                stepperRow(
+                    title: "Warmup & stretch cap",
+                    subtitle: "Max per workout (0–5)",
+                    value: $settings.maxWarmupStretchExercises,
+                    range: 0...5
+                )
+                stepperRow(
+                    title: "Cardio cap",
+                    subtitle: "Max per workout (0–3)",
+                    value: $settings.maxCardioExercises,
+                    range: 0...3
+                )
+            }
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(AppColors.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
+    }
+    
+    private func kineticToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            Text(title)
+                .font(AppTypography.bodyMedium)
+                .foregroundColor(AppColors.textPrimary)
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { isOn.wrappedValue },
+                set: {
+                    HapticManager.impact(style: .light)
+                    isOn.wrappedValue = $0
+                }
+            ))
+            .labelsHidden()
+            .tint(AppColors.primaryContainer)
+        }
+        .padding(AppSpacing.md)
+        .background(AppColors.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
+    }
+    
+    private func stepperRow(title: String, subtitle: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.bodyMedium)
+                    .foregroundColor(AppColors.textPrimary)
+                Text(subtitle)
+                    .font(AppTypography.caption)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            Spacer()
+            Stepper(
+                value: Binding(
+                    get: { value.wrappedValue },
+                    set: {
+                        HapticManager.selection()
+                        value.wrappedValue = $0
+                    }
+                ),
+                in: range
+            ) {
+                Text("\(value.wrappedValue)")
+                    .font(AppTypography.bodyBold)
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(minWidth: 24)
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(AppColors.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
+    }
+}
+
+// MARK: - Equipment
+
+private struct GenerationEquipmentSection: View {
+    @Binding var settings: WorkoutGenerationSettings
+    
+    private let options: [(id: String, label: String)] = [
+        ("Barbell", "Barbell"),
+        ("Dumbbells", "Dumbbell"),
+        ("Machine", "Machine"),
+        ("Cable", "Cable"),
+        ("Bodyweight", "Bodyweight")
+    ]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("Equipment inventory")
+                .font(AppTypography.heading2)
+                .foregroundColor(AppColors.textPrimary)
+            
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: AppSpacing.sm)], spacing: AppSpacing.sm) {
+                ForEach(options, id: \.id) { item in
+                    let isOn = settings.preferredEquipment.contains(item.id)
+                    Button {
+                        HapticManager.impact(style: .light)
+                        if isOn {
+                            settings.preferredEquipment.removeAll { $0 == item.id }
+                        } else {
+                            if !settings.preferredEquipment.contains(item.id) {
+                                settings.preferredEquipment.append(item.id)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isOn {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                            }
+                            Text(item.label)
+                                .font(AppTypography.bodyMedium)
+                        }
+                        .foregroundColor(isOn ? AppColors.primary : AppColors.textSecondary)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.sm)
+                        .frame(maxWidth: .infinity)
+                        .background( isOn ? AppColors.primary.opacity(0.12) : AppColors.surfaceContainerHighest)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(isOn ? AppColors.primary : Color.clear, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(AppColors.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
+    }
+}
+
+// MARK: - Performance
+
+private struct GenerationPerformanceSection: View {
+    @Binding var settings: WorkoutGenerationSettings
+    let restBounds: ClosedRange<Int>
+    let rirBounds: ClosedRange<Int>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+            Text("Performance thresholds")
+                .font(AppTypography.heading2)
+                .foregroundColor(AppColors.textPrimary)
+            
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                HStack {
+                    Text("Rest duration")
+                        .font(AppTypography.bodyMedium)
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text("\(settings.restTimeMin)s – \(settings.restTimeMax)s")
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(AppColors.accent)
+                }
+                Slider(
+                    value: Binding(
+                        get: { Double(settings.restTimeMin) },
+                        set: { new in
+                            HapticManager.selection()
+                            settings.restTimeMin = Int(new.rounded())
+                            if settings.restTimeMin > settings.restTimeMax {
+                                settings.restTimeMax = settings.restTimeMin
+                            }
+                        }
+                    ),
+                    in: Double(restBounds.lowerBound)...Double(restBounds.upperBound),
+                    step: 5
+                )
+                .tint(AppColors.accent)
+                Slider(
+                    value: Binding(
+                        get: { Double(settings.restTimeMax) },
+                        set: { new in
+                            HapticManager.selection()
+                            settings.restTimeMax = Int(new.rounded())
+                            if settings.restTimeMax < settings.restTimeMin {
+                                settings.restTimeMin = settings.restTimeMax
+                            }
+                        }
+                    ),
+                    in: Double(restBounds.lowerBound)...Double(restBounds.upperBound),
+                    step: 5
+                )
+                .tint(AppColors.accent)
+                HStack {
+                    Text("30s")
+                    Spacer()
+                    Text("300s")
+                }
+                .font(AppTypography.caption)
+                .foregroundColor(AppColors.textSecondary)
+                .textCase(.uppercase)
+                .tracking(1)
+            }
+            
+            Divider()
+                .background(AppColors.surfaceContainerHighest.opacity(0.5))
+            
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                HStack {
+                    Text("RIR range (effort)")
+                        .font(AppTypography.bodyMedium)
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text("\(settings.rirMin) – \(settings.rirMax) RIR")
+                        .font(AppTypography.bodyBold)
+                        .foregroundColor(AppColors.accent)
+                }
+                Slider(
+                    value: Binding(
+                        get: { Double(settings.rirMin) },
+                        set: { new in
+                            HapticManager.selection()
+                            settings.rirMin = Int(new.rounded())
+                            if settings.rirMin > settings.rirMax {
+                                settings.rirMax = settings.rirMin
+                            }
+                        }
+                    ),
+                    in: Double(rirBounds.lowerBound)...Double(rirBounds.upperBound),
+                    step: 1
+                )
+                .tint(AppColors.accent)
+                Slider(
+                    value: Binding(
+                        get: { Double(settings.rirMax) },
+                        set: { new in
+                            HapticManager.selection()
+                            settings.rirMax = Int(new.rounded())
+                            if settings.rirMax < settings.rirMin {
+                                settings.rirMin = settings.rirMax
+                            }
+                        }
+                    ),
+                    in: Double(rirBounds.lowerBound)...Double(rirBounds.upperBound),
+                    step: 1
+                )
+                .tint(AppColors.accent)
+                HStack {
+                    Text("Max intensity")
+                    Spacer()
+                    Text("Recovery focus")
+                }
+                .font(AppTypography.caption)
+                .foregroundColor(AppColors.textSecondary)
+                .textCase(.uppercase)
+                .tracking(1)
+            }
+        }
+        .padding(AppSpacing.cardPadding)
+        .background(AppColors.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
+    }
+}
+
+// MARK: - Legacy reference sections (unchanged behavior)
 
 struct CoreRulesSection: View {
     var body: some View {

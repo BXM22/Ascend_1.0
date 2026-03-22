@@ -1,10 +1,18 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @main
 struct WorkoutTrackerApp: App {
     init() {
         // Pre-initialize ColorThemeProvider to ensure colors load instantly
         _ = ColorThemeProvider.shared
+        
+        #if canImport(UIKit)
+        // Avoid white flash behind SwiftUI; match `BrandHex.surfaceBase` (#131313).
+        UIWindow.appearance().backgroundColor = UIColor(red: 19 / 255, green: 19 / 255, blue: 19 / 255, alpha: 1)
+        #endif
         
         // Request notification permissions on app launch
         Task {
@@ -21,6 +29,7 @@ struct WorkoutTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(ColorThemeProvider.shared)
         }
     }
 }

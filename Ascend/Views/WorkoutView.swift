@@ -11,6 +11,7 @@ import HealthKit
 // MARK: - Redesigned Workout View
 struct WorkoutView: View {
     @ObservedObject var viewModel: WorkoutViewModel
+    @Environment(\.kineticPalette) private var kp
     @State private var showFinishConfirmation = false
     @State private var showHelpSheet = false
     @State private var showCancelConfirmation = false
@@ -33,34 +34,28 @@ struct WorkoutView: View {
         }
     }
 
-    private var completedExercises: Int {
-        guard let workout = viewModel.currentWorkout else { return 0 }
-        return workout.exercises.filter { $0.sets.count >= $0.targetSets }.count
-    }
-    
-    private var totalExercises: Int {
-        viewModel.currentWorkout?.exercises.count ?? 0
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
-            // Hero section — only shown in workout mode
-            if selectedSegment == .workout {
-                workoutHeader
-            }
-            // Segment switcher sits below the hero
-            WorkoutTimerSegmentBar(selectedSegment: $selectedSegment)
-            // Content area
+            WorkoutTimerSegmentBar(
+                selectedSegment: $selectedSegment,
+                useKineticChrome: selectedSegment == .workout
+            )
             if selectedSegment == .workout {
                 exercisesScrollContent
             } else {
                 SportsTimerView(isEmbedded: true)
             }
         }
-        .background(AppColors.background)
+        .background(kp.background)
         .id(AppColors.themeID)
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .onChange(of: autoAdvanceToggle) { _, _ in
+            viewModel.toggleAutoAdvance()
+        }
+        .onAppear {
+            autoAdvanceToggle = viewModel.autoAdvanceEnabled
         }
         .alert("Finish Workout?", isPresented: $showFinishConfirmation) {
             Button("Cancel", role: .cancel) { }
@@ -107,34 +102,18 @@ struct WorkoutView: View {
         .sheet(isPresented: $showHelpSheet) {
             PageFeaturesView(pageType: .workout)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if selectedSegment == .workout {
+                KineticWorkoutBottomBar(
+                    onCancel: { showCancelConfirmation = true },
+                    onFinish: { showFinishConfirmation = true }
+                )
+            }
+        }
     }
 
-    // Workout hero header — extracted from scroll so it stays sticky above segment bar.
-    private var workoutHeader: some View {
-        RedesignedWorkoutHeader(
-            workoutName: viewModel.currentWorkout?.name ?? "Workout",
-            totalVolume: viewModel.totalWorkoutVolume,
-            elapsedTime: TimeInterval(viewModel.elapsedTime),
-            timerPaused: viewModel.isTimerPausedDuringRest,
-            autoAdvanceEnabled: viewModel.autoAdvanceEnabled,
-            completedExercises: completedExercises,
-            totalExercises: totalExercises,
-            onTogglePause: { viewModel.pauseWorkout() },
-            onFinish: { showFinishConfirmation = true },
-            onSettings: { viewModel.showSettingsSheet = true },
-            onHelp: { showHelpSheet = true },
-            onCancel: { showCancelConfirmation = true },
-            isVerticalLayout: isVerticalLayout,
-            onToggleLayout: { isVerticalLayout.toggle() },
-            autoAdvanceToggle: $autoAdvanceToggle
-        )
-        .onChange(of: autoAdvanceToggle) { _, _ in
-            viewModel.toggleAutoAdvance()
-        }
-        .onAppear {
-            autoAdvanceToggle = viewModel.autoAdvanceEnabled
-        }
-        .padding(.top, 8)
+    private var kineticUpNextExerciseName: String {
+        viewModel.currentExercise?.name ?? "Next exercise"
     }
 
     // Scrollable exercises area — the header has been extracted above.
@@ -142,19 +121,61 @@ struct WorkoutView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    // Rest Timer Banner (when active)
+                    HStack {
+                        Spacer(minLength: 0)
+                        Menu {
+                            Button {
+                                viewModel.pauseWorkout()
+                            } label: {
+                                Label(
+                                    viewModel.isTimerPausedDuringRest ? "Resume workout" : "Pause workout",
+                                    systemImage: viewModel.isTimerPausedDuringRest ? "play.fill" : "pause.fill"
+                                )
+                            }
+                            Button("Settings", systemImage: "gearshape.fill") {
+                                viewModel.showSettingsSheet = true
+                            }
+                            Toggle("Auto-advance sets", isOn: $autoAdvanceToggle)
+                            Button {
+                                isVerticalLayout.toggle()
+                            } label: {
+                                Label(
+                                    isVerticalLayout ? "Use horizontal layout" : "Use vertical layout",
+                                    systemImage: "rectangle.split.2x1"
+                                )
+                            }
+                            Button("Help", systemImage: "questionmark.circle") {
+                                showHelpSheet = true
+                            }
+                            Divider()
+                            Button("Cancel workout", systemImage: "xmark.circle", role: .destructive) {
+                                showCancelConfirmation = true
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(kp.tertiary)
+                                .frame(width: 40, height: 40)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Workout options")
+                    }
+
+                    KineticWorkoutSessionHeader(
+                        workoutName: viewModel.currentWorkout?.name ?? "Workout",
+                        sessionStart: viewModel.sessionStartTime
+                    )
+
                     if viewModel.restTimerActive {
-                        EnhancedRestTimerBanner(
+                        KineticRestTimerBento(
                             timeRemaining: max(0, viewModel.restTimeRemaining),
                             totalDuration: max(1, viewModel.restTimerTotalDuration),
+                            upNextExerciseName: kineticUpNextExerciseName,
+                            onAdd15: {
+                                viewModel.addTimeToRest(15)
+                            },
                             onSkip: {
                                 viewModel.quickSkipRest()
-                            },
-                            onAddTime: {
-                                viewModel.addTimeToRest(30)
-                            },
-                            onSubtractTime: {
-                                viewModel.subtractTimeFromRest(30)
                             }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -187,7 +208,7 @@ struct WorkoutView: View {
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(AppColors.mutedForeground)
                                 }
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 0)
                                 .padding(.top, 4)
                                 
                                 LazyVStack(spacing: 8) {
@@ -202,7 +223,7 @@ struct WorkoutView: View {
                                                     .multilineTextAlignment(.leading)
                                                 Spacer()
                                             }
-                                            .padding(.horizontal, 20)
+                                            .padding(.horizontal, 0)
                                             
                                             ZStack(alignment: .topTrailing) {
                                                 exerciseCardView(for: exercise)
@@ -252,7 +273,7 @@ struct WorkoutView: View {
                             AddExerciseButton {
                                 viewModel.showAddExerciseSheet = true
                             }
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, 0)
                             .padding(.top, 16)
                         } else {
                             // Original horizontal navigation with a single focused card
@@ -272,7 +293,7 @@ struct WorkoutView: View {
                                     }
                                 }
                             )
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, 0)
                             .padding(.top, 8)
                             
                             // Current Exercise Card
@@ -286,7 +307,7 @@ struct WorkoutView: View {
                             AddExerciseButton {
                                 viewModel.showAddExerciseSheet = true
                             }
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, 0)
                             .padding(.top, 16)
                         }
                     } else {
@@ -325,8 +346,11 @@ struct WorkoutView: View {
                     }
                     
                     Spacer()
-                        .frame(height: 100)
+                        .frame(height: 24)
                 }
+                .frame(maxWidth: 448)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
             }
             .onChange(of: viewModel.readyForNextSet) { _, _ in
                 if let exercise = viewModel.currentExercise {
@@ -376,7 +400,7 @@ struct WorkoutView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 0)
         } else if viewModel.isCardioExercise(exercise) {
             // Cardio exercise card - unified design
             CardioExerciseCard(
@@ -405,7 +429,7 @@ struct WorkoutView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 0)
         } else if viewModel.isCalisthenicsExercise(exercise) {
             // Calisthenics exercise - use appropriate card based on type
             if exercise.targetHoldDuration != nil {
@@ -443,7 +467,7 @@ struct WorkoutView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 0)
             } else {
                 // Rep-based calisthenics
                 CalisthenicsExerciseCard(
@@ -478,16 +502,48 @@ struct WorkoutView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 0)
             }
         } else {
-            // Weighted exercise - use new simplified card
-            SimplifiedWeightedExerciseCard(
-                viewModel: viewModel,
-                exercise: exercise
-            )
-            .padding(.horizontal, 20)
+            let tags = KineticExerciseTags.tags(for: exercise.name)
+            VStack(alignment: .leading, spacing: 16) {
+                KineticExerciseTitleRow(
+                    exerciseName: exercise.name,
+                    tag1: tags.0,
+                    tag2: tags.1,
+                    onInfo: { viewModel.showExerciseHistory = true }
+                )
+                SimplifiedWeightedExerciseCard(
+                    viewModel: viewModel,
+                    exercise: exercise
+                )
+                kineticCoachingNote(for: exercise.name)
+            }
+            .padding(.horizontal, 0)
         }
+    }
+
+    private func kineticCoachingNote(for exerciseName: String) -> some View {
+        let tip: String = {
+            if let ex = ExRxDirectoryManager.shared.findExercise(name: exerciseName) {
+                return "Focus on \(ex.muscleGroup.lowercased()) engagement. Control the eccentric and breathe steadily through each rep."
+            }
+            return "Focus on consistent form and controlled tempo. Maintain control through the full range of motion."
+        }()
+        return HStack(alignment: .top, spacing: 0) {
+            Rectangle()
+                .fill(kp.primaryContainer.opacity(0.4))
+                .frame(width: 2)
+            Text(tip)
+                .font(Font.custom("Manrope-Medium", size: 12))
+                .foregroundStyle(kp.tertiary)
+                .lineSpacing(4)
+                .padding(.leading, 12)
+                .padding(.vertical, 4)
+        }
+        .padding(16)
+        .background(kp.surfaceContainerLowest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -495,6 +551,16 @@ struct WorkoutView: View {
 
 private struct WorkoutTimerSegmentBar: View {
     @Binding var selectedSegment: WorkoutView.WorkoutTimerSegment
+    var useKineticChrome: Bool = false
+    @Environment(\.kineticPalette) private var kp
+
+    private var selectedTint: Color {
+        useKineticChrome ? kp.primary : AppColors.primary
+    }
+
+    private var mutedTint: Color {
+        useKineticChrome ? kp.tertiary.opacity(0.75) : AppColors.mutedForeground
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -508,12 +574,12 @@ private struct WorkoutTimerSegmentBar: View {
                     VStack(spacing: 4) {
                         Image(systemName: segment.icon)
                             .font(.system(size: 16, weight: selectedSegment == segment ? .semibold : .regular))
-                            .foregroundColor(selectedSegment == segment ? AppColors.primary : AppColors.mutedForeground)
+                            .foregroundColor(selectedSegment == segment ? selectedTint : mutedTint)
                         Text(segment.rawValue)
                             .font(.system(size: 11, weight: selectedSegment == segment ? .semibold : .regular))
-                            .foregroundColor(selectedSegment == segment ? AppColors.primary : AppColors.mutedForeground)
+                            .foregroundColor(selectedSegment == segment ? selectedTint : mutedTint)
                         Rectangle()
-                            .fill(selectedSegment == segment ? AppColors.primary : Color.clear)
+                            .fill(selectedSegment == segment ? selectedTint : Color.clear)
                             .frame(height: 2)
                             .clipShape(Capsule())
                     }
@@ -524,9 +590,15 @@ private struct WorkoutTimerSegmentBar: View {
             }
         }
         .padding(.horizontal, 20)
-        .background(AppColors.background)
+        .background(useKineticChrome ? kp.background : AppColors.background)
         .overlay(alignment: .bottom) {
-            Divider()
+            if useKineticChrome {
+                Rectangle()
+                    .fill(kp.surfaceContainerHighest.opacity(0.2))
+                    .frame(height: 1)
+            } else {
+                Divider()
+            }
         }
     }
 }
@@ -3400,7 +3472,7 @@ struct ExerciseNavigationView: View {
     }
 }
 
-// MARK: - Settings View
+// MARK: - Settings View (kinetic HTML parity — Manrope + palette from KineticWorkoutChrome)
 struct SettingsView: View {
     @ObservedObject var settingsManager: SettingsManager
     @ObservedObject var progressViewModel: ProgressViewModel
@@ -3409,6 +3481,8 @@ struct SettingsView: View {
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject private var exerciseDataManager = ExerciseDataManager.shared
     @Environment(\.dismiss) var dismiss
+    @Environment(\.openURL) private var openURL
+    @Environment(\.kineticPalette) private var kp
     @State private var showResetWarning = false
     @State private var showAddCustomExercise = false
     @State private var showCustomExercisesList = false
@@ -3417,340 +3491,75 @@ struct SettingsView: View {
     @State private var csvImportMessage = ""
     @State private var csvImportSuccess = false
     
-    private let restTimerOptions: [Int] = AppConstants.restTimerOptions
+    /// Preset grid — wireframe 30…300s (3×2).
+    private let restTimerPresetGrid: [Int] = [30, 60, 90, 120, 180, 300]
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Rest Timer Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Rest Timer")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                        
-                        Text("Set the default rest time between sets")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        // Current Selection Display
-                        HStack {
-                            Text("Current: \(formatTime(settingsManager.restTimerDuration))")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(AppColors.foreground)
-                            
-                            Spacer()
-                            
-                            Text("\(settingsManager.restTimerDuration) seconds")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColors.mutedForeground)
-                        }
-                        .padding(16)
-                        .background(AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        
-                        // Quick Options
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Quick Options")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppColors.foreground)
-                            
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 12) {
-                                ForEach(restTimerOptions, id: \.self) { duration in
-                                    Button(action: {
-                                        settingsManager.restTimerDuration = duration
-                                    }) {
-                                        VStack(spacing: 4) {
-                                            Text("\(formatTime(duration))")
-                                                .font(.system(size: 16, weight: .semibold))
-                                            
-                                            Text("\(duration)s")
-                                                .font(.system(size: 12, weight: .regular))
-                                        }
-                                        .foregroundColor(settingsManager.restTimerDuration == duration ? AppColors.alabasterGrey : AppColors.foreground)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(settingsManager.restTimerDuration == duration ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Custom Duration Slider
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Custom Duration")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppColors.foreground)
-                            
-                            HStack {
-                                Text("30s")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(AppColors.mutedForeground)
-                                
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(settingsManager.restTimerDuration) },
-                                        set: { settingsManager.restTimerDuration = Int($0) }
-                                    ),
-                                    in: 30...600,
-                                    step: 15
-                                )
-                                .tint(AppColors.primary)
-                                
-                                Text("10m")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(AppColors.mutedForeground)
-                            }
-                            
-                            Text("\(formatTime(settingsManager.restTimerDuration))")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(LinearGradient.primaryGradient)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.top, 8)
-                        }
-                        .padding(16)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Apple Health Section
-                    AppleHealthSettingsSection()
-                    
-                    // UI Color Customization Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("App Colors")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(AppColors.foreground)
-                                
-                                Text("Customize colors throughout the app")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(AppColors.mutedForeground)
-                            }
-                            
-                            Spacer()
-                            
-                            if UIColorCustomizationManager.shared.hasCustomizations {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(AppColors.primary)
-                            }
-                        }
-                        
-                        NavigationLink(destination: UIColorCustomizationView(settingsManager: settingsManager)) {
-                            HStack {
-                                Image(systemName: "paintpalette.fill")
-                                    .font(.system(size: 20))
-                                Text("Customize UI Colors")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(AppColors.mutedForeground)
-                            }
-                            .foregroundColor(AppColors.foreground)
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 16)
-                            .background(AppColors.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Reset Data Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Data Management")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                        
-                        Text("Reset all app data including workouts, templates, programs, and progress. This action cannot be undone.")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        Button(action: {
-                            showResetWarning = true
-                        }) {
-                            HStack {
-                                Image(systemName: "trash.fill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Reset All Data")
-                                    .font(.system(size: 16, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Exercise Database Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Exercise Database")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                        
-                        Text("Manage all exercises in the database")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                HapticManager.impact(style: .light)
-                                showMasterExerciseList = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "list.bullet.rectangle")
-                                        .font(.system(size: 20))
-                                    Text("View All Exercises (\(ExRxDirectoryManager.shared.getAllExercises().count))")
-                                        .font(.system(size: 16, weight: .semibold))
-                                }
-                                .foregroundColor(AppColors.foreground)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(AppColors.secondary)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(AppColors.border, lineWidth: 2)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Custom Exercises Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Custom Exercises")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                        
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                showAddCustomExercise = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("Add Custom Exercise")
-                                        .font(.system(size: 16, weight: .semibold))
-                                }
-                                .foregroundColor(AppColors.alabasterGrey)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(LinearGradient.primaryGradient)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                            
-                            if !exerciseDataManager.customExercises.isEmpty {
-                                Button(action: {
-                                    showCustomExercisesList = true
-                                }) {
-                                    HStack {
-                                        Image(systemName: "list.bullet")
-                                            .font(.system(size: 20))
-                                        Text("View Custom Exercises (\(exerciseDataManager.customExercises.count))")
-                                            .font(.system(size: 16, weight: .semibold))
-                                    }
-                                    .foregroundColor(AppColors.foreground)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(AppColors.secondary)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(AppColors.border, lineWidth: 2)
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                }
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
-                    
-                    // Help & Support Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Help & Support")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppColors.foreground)
-                        
-                        Button(action: {
-                            HapticManager.impact(style: .medium)
-                            OnboardingManager.shared.resetTutorial()
-                            dismiss()
-                        }) {
-                            HStack {
-                                Image(systemName: "questionmark.circle.fill")
-                                    .font(.system(size: 20))
-                                Text("Show Tutorial")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(AppColors.mutedForeground)
-                            }
-                            .foregroundColor(AppColors.foreground)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(AppColors.secondary)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.border, lineWidth: 2)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        }
-                        
-                        Text("Learn how to use Ascend's key features and navigate the app")
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(AppColors.mutedForeground)
-                            .padding(.top, -8)
-                    }
-                    .padding(20)
-                    .background(AppColors.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-                    .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+        NavigationStack {
+            ZStack {
+                kp.background.ignoresSafeArea()
+                
+                // Ambient glow (HTML parity)
+                GeometryReader { geo in
+                    Circle()
+                        .fill(kp.primary.opacity(0.05))
+                        .frame(width: geo.size.width * 0.4, height: geo.size.width * 0.4)
+                        .blur(radius: 60)
+                        .offset(x: -geo.size.width * 0.05, y: -geo.size.height * 0.05)
+                    Circle()
+                        .fill(kp.secondary.opacity(0.05))
+                        .frame(width: geo.size.width * 0.5, height: geo.size.width * 0.5)
+                        .blur(radius: 75)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                        .offset(x: geo.size.width * 0.05, y: geo.size.height * 0.05)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 20)
+                .allowsHitTesting(false)
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 40) {
+                        restTimerSection
+
+                        settingsSectionHeader(title: "Goals")
+                        weeklyWorkoutGoalSection
+                        
+                        settingsSectionHeader(title: "Ecosystem")
+                        AppleHealthSettingsSection()
+                        
+                        settingsSectionHeader(title: "Interface")
+                        interfaceSection
+                        
+                        settingsSectionHeader(title: "Exercise Library")
+                        exerciseLibrarySection
+                        
+                        settingsSectionHeader(title: "Support")
+                        supportSection
+                        
+                        resetSection
+                        brandFooter
+                    }
+                    .frame(maxWidth: 672)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+                    .padding(.bottom, 96)
+                }
             }
-            .background(AppColors.background)
-            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .principal) {
+                    Text("Settings")
+                        .font(KineticWorkoutTypography.semiBold(18))
+                        .foregroundColor(kp.primary)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(AppColors.primary)
+                    .font(KineticWorkoutTypography.semiBold(17))
+                    .foregroundColor(kp.primary)
                 }
             }
             .sheet(isPresented: $showAddCustomExercise) {
@@ -3762,7 +3571,7 @@ struct SettingsView: View {
                 CustomExercisesListView()
             }
             .sheet(isPresented: $showMasterExerciseList) {
-                MasterExerciseListView()
+                MasterExerciseListView(progressViewModel: progressViewModel)
             }
             .alert("Reset All Data", isPresented: $showResetWarning) {
                 Button("Cancel", role: .cancel) { }
@@ -3786,6 +3595,372 @@ struct SettingsView: View {
                 Text(csvImportMessage)
             }
         }
+    }
+    
+    @ViewBuilder
+    private func settingsSectionHeader(title: String) -> some View {
+        Text(title.uppercased())
+            .font(KineticWorkoutTypography.bold(13))
+            .tracking(1.6)
+            .foregroundColor(kp.tertiary.opacity(0.85))
+            .padding(.horizontal, 8)
+    }
+    
+    private var restTimerSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .bottom) {
+                Text("Rest Timer")
+                    .font(KineticWorkoutTypography.bold(13))
+                    .tracking(1.6)
+                    .foregroundColor(kp.tertiary.opacity(0.85))
+                Spacer(minLength: 8)
+                Text(formatRestClock(settingsManager.restTimerDuration))
+                    .font(KineticWorkoutTypography.extraBold(36))
+                    .foregroundColor(kp.primary)
+                    .tracking(-1)
+            }
+            .padding(.horizontal, 8)
+            
+            VStack(spacing: 24) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ],
+                    spacing: 12
+                ) {
+                    ForEach(restTimerPresetGrid, id: \.self) { duration in
+                        let isSelected = settingsManager.restTimerDuration == duration
+                        Button {
+                            HapticManager.impact(style: .light)
+                            settingsManager.restTimerDuration = duration
+                        } label: {
+                            Text("\(duration)s")
+                                .font(KineticWorkoutTypography.semiBold(15))
+                                .foregroundColor(isSelected ? kp.onPrimaryContainer : kp.onSurface)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(isSelected ? kp.primaryContainer : kp.surfaceContainerLow)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .stroke(
+                                            isSelected ? kp.primary.opacity(0.2) : Color.white.opacity(0.05),
+                                            lineWidth: 1
+                                        )
+                                )
+                                .shadow(color: isSelected ? kp.primary.opacity(0.1) : .clear, radius: 8, x: 0, y: 0)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Min (30s)")
+                            .font(KineticWorkoutTypography.medium(11))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                            .foregroundColor(kp.tertiary)
+                        Spacer()
+                        Text("Max (600s)")
+                            .font(KineticWorkoutTypography.medium(11))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                            .foregroundColor(kp.tertiary)
+                    }
+                    Slider(
+                        value: Binding(
+                            get: { Double(settingsManager.restTimerDuration) },
+                            set: { settingsManager.restTimerDuration = Int($0) }
+                        ),
+                        in: 30...600,
+                        step: 15
+                    )
+                    .tint(kp.primary)
+                }
+            }
+            .padding(24)
+            .background(kp.surfaceContainerHighest)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+    
+    private var weeklyWorkoutGoalSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Weekly workout goal")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .foregroundColor(kp.onSurface)
+                    Text("Targets the Studio dashboard “X of Y workouts” ring.")
+                        .font(KineticWorkoutTypography.medium(12))
+                        .foregroundColor(kp.tertiary)
+                }
+                Spacer(minLength: 12)
+                Stepper(value: $settingsManager.weeklyWorkoutGoal, in: 1...14) {
+                    Text("\(settingsManager.weeklyWorkoutGoal)")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .monospacedDigit()
+                        .foregroundColor(kp.onSurface)
+                        .frame(minWidth: 24, alignment: .trailing)
+                }
+                .labelsHidden()
+            }
+            .padding(20)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var interfaceSection: some View {
+        VStack(spacing: 0) {
+            NavigationLink(destination: UIColorCustomizationView(settingsManager: settingsManager)) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(kp.primary.opacity(0.1))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "paintpalette.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(kp.primary)
+                    }
+                    Text("Customize UI Colors")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .foregroundColor(kp.onSurface)
+                    Spacer()
+                    if UIColorCustomizationManager.shared.hasCustomizations {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(kp.primary)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(kp.outlineVariant)
+                }
+                .padding(20)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    private var exerciseLibrarySection: some View {
+        VStack(spacing: 16) {
+            libraryExploreCard
+            customListCard
+        }
+    }
+    
+    private var libraryExploreCard: some View {
+        let count = ExRxDirectoryManager.shared.getAllExercises().count
+        return ZStack(alignment: .topLeading) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 96))
+                .foregroundColor(.white.opacity(0.05))
+                .rotationEffect(.degrees(12))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .offset(x: 24, y: 20)
+                .allowsHitTesting(false)
+            
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("View Library")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .foregroundColor(kp.onSurface)
+                    Text("\(count)+ Exercises")
+                        .font(KineticWorkoutTypography.medium(12))
+                        .foregroundColor(kp.tertiary)
+                }
+                Button {
+                    HapticManager.impact(style: .light)
+                    showMasterExerciseList = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Explore")
+                            .font(KineticWorkoutTypography.bold(14))
+                        Image(systemName: "arrow.forward")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundColor(kp.primary)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(20)
+        .frame(minHeight: 128, alignment: .topLeading)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    private var customListCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Custom List")
+                .font(KineticWorkoutTypography.bold(16))
+                .foregroundColor(kp.onSurface)
+            HStack(spacing: 8) {
+                Button {
+                    showAddCustomExercise = true
+                } label: {
+                    Text("Add New")
+                        .font(KineticWorkoutTypography.bold(12))
+                        .foregroundColor(kp.onSurface)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(kp.surfaceContainerLow)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                
+                Button {
+                    if !exerciseDataManager.customExercises.isEmpty {
+                        HapticManager.impact(style: .light)
+                        showCustomExercisesList = true
+                    }
+                } label: {
+                    Text("View All")
+                        .font(KineticWorkoutTypography.bold(12))
+                        .foregroundColor(kp.onSurface)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(kp.surfaceContainerLow)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .opacity(exerciseDataManager.customExercises.isEmpty ? 0.45 : 1)
+                .disabled(exerciseDataManager.customExercises.isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    private var supportSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                HapticManager.impact(style: .medium)
+                OnboardingManager.shared.resetTutorial()
+                dismiss()
+            } label: {
+                HStack(spacing: 16) {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(kp.secondary)
+                    Text("Show Tutorial")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .foregroundColor(kp.onSurface)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(kp.outlineVariant)
+                }
+                .padding(20)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            
+            Divider()
+                .background(Color.white.opacity(0.05))
+            
+            Button {
+                HapticManager.impact(style: .light)
+                if let url = URL(string: "mailto:support@ascend.app?subject=Ascend%20Support") {
+                    openURL(url)
+                }
+            } label: {
+                HStack(spacing: 16) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(kp.secondary)
+                    Text("Contact Support")
+                        .font(KineticWorkoutTypography.bold(16))
+                        .foregroundColor(kp.onSurface)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(kp.outlineVariant)
+                }
+                .padding(20)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    private var resetSection: some View {
+        Button {
+            showResetWarning = true
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(Color(hex: "ffb4ab"))
+                Text("Reset All Data")
+                    .font(KineticWorkoutTypography.bold(16))
+                    .foregroundColor(Color(hex: "ffb4ab"))
+                Text("This action cannot be undone")
+                    .font(KineticWorkoutTypography.medium(10))
+                    .tracking(2)
+                    .textCase(.uppercase)
+                    .foregroundColor(Color(hex: "ffb4ab").opacity(0.6))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(20)
+            .background(Color(hex: "93000a").opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color(hex: "ffb4ab").opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 8)
+    }
+    
+    private var brandFooter: some View {
+        VStack(spacing: 8) {
+            Text("ASCEND")
+                .font(KineticWorkoutTypography.extraBold(24))
+                .tracking(-0.5)
+                .foregroundColor(kp.onSurface)
+            Text(appVersionString)
+                .font(KineticWorkoutTypography.bold(10))
+                .tracking(3)
+                .textCase(.uppercase)
+                .foregroundColor(kp.onSurface.opacity(0.3))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
+        .opacity(0.9)
+    }
+    
+    private var appVersionString: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        return "Version \(v) (Build \(b))"
+    }
+    
+    private func formatRestClock(_ seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
     }
     
     private func importCSVExercises() {
@@ -4241,84 +4416,52 @@ struct WarmupPreviewSection: View {
     }
 }
 
-// MARK: - Apple Health Settings Section
+// MARK: - Apple Health Settings Section (compact kinetic row — HTML parity)
 struct AppleHealthSettingsSection: View {
     @ObservedObject private var healthKitManager = HealthKitManager.shared
     @State private var isRequestingAuthorization = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @Environment(\.kineticPalette) private var kp
+
+    private var healthAccent: Color { Color(hex: "FF2D55") }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(healthAccent.opacity(0.1))
+                    .frame(width: 48, height: 48)
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.red)
-                
+                    .font(.system(size: 22))
+                    .foregroundColor(healthAccent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Apple Health")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(AppColors.foreground)
+                    .font(KineticWorkoutTypography.bold(16))
+                    .foregroundColor(kp.onSurface)
+                Text(connectionSubtitle)
+                    .font(KineticWorkoutTypography.medium(12))
+                    .foregroundColor(kp.tertiary)
             }
-            
-            Text("Sync your workouts with Apple Health to track your fitness progress across all your apps.")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(AppColors.mutedForeground)
-            
-            // Connection Status
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(healthKitManager.isAuthorized ? Color.green : Color.orange)
-                            .frame(width: 8, height: 8)
-                        
-                        Text(healthKitManager.isAuthorized ? "Connected" : "Not Connected")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(AppColors.foreground)
-                    }
-                    
-                    Text(statusDescription)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(AppColors.mutedForeground)
-                }
-                
-                Spacer()
-            }
-            .padding(16)
-            .background(AppColors.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            
-            // Connect/Reconnect Button
-            Button(action: {
+            Spacer(minLength: 8)
+            Button {
                 requestAuthorization()
-            }) {
-                HStack {
-                    Image(systemName: healthKitManager.isAuthorized ? "arrow.clockwise" : "link")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text(healthKitManager.isAuthorized ? "Reconnect" : "Connect to Apple Health")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(LinearGradient.primaryGradient)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .opacity(isRequestingAuthorization ? 0.6 : 1.0)
+            } label: {
+                Text(healthKitManager.isAuthorized ? "Reconnect" : "Connect")
+                    .font(KineticWorkoutTypography.bold(14))
+                    .foregroundColor(kp.onSecondaryContainer)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(kp.secondaryContainer)
+                    .clipShape(Capsule())
             }
             .disabled(isRequestingAuthorization)
-            
-            if healthKitManager.isAuthorized {
-                Text("Your workouts will automatically sync to Apple Health when you complete them.")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(AppColors.mutedForeground)
-                    .padding(.top, -8)
-            }
+            .opacity(isRequestingAuthorization ? 0.6 : 1)
         }
         .padding(20)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: 4)
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 3, x: 0, y: 1)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onAppear {
             healthKitManager.checkAuthorizationStatus()
         }
@@ -4327,6 +4470,13 @@ struct AppleHealthSettingsSection: View {
         } message: {
             Text(errorMessage)
         }
+    }
+    
+    private var connectionSubtitle: String {
+        if healthKitManager.isAuthorized {
+            return "Connected"
+        }
+        return "Disconnected"
     }
     
     private var statusDescription: String {

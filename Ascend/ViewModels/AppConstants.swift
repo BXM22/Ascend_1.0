@@ -50,6 +50,10 @@ enum AppConstants {
         // Auto-advance settings
         static let autoAdvanceEnabled = "autoAdvanceEnabled"
         static let autoAdvanceRestDuration = "autoAdvanceRestDuration"
+        /// Target number of workouts per week for the Studio dashboard goal card (1…14).
+        static let weeklyWorkoutGoal = "weeklyWorkoutGoal"
+        /// Last template name produced from the generate sheet (for UI hints).
+        static let lastGeneratedTemplateLabel = "lastGeneratedTemplateLabel"
     }
     
     // MARK: - Timer Constants
@@ -119,6 +123,9 @@ enum AppConstants {
         static let smallCornerRadius: CGFloat = 12.0
         static let borderWidth: CGFloat = 1.0
         static let thickBorderWidth: CGFloat = 2.0
+        /// Primary reading column — Studio (Dashboard), Habits, Library (`TemplatesView`); cap then center then `mainColumnGutter` padding.
+        static let mainColumnMaxWidth: CGFloat = 600
+        static let mainColumnGutter: CGFloat = 24
     }
     
     // MARK: - Animation Durations
@@ -134,16 +141,6 @@ enum AppConstants {
     
     enum PRBadge {
         static let displayDuration: TimeInterval = 3.0 // seconds
-    }
-    
-    // MARK: - CloudKit
-    
-    enum CloudKit {
-        static let containerIdentifier = "iCloud.com.app.com.Ascend"
-        static let workoutRecordType = "Workout"
-        static let templateRecordType = "WorkoutTemplate"
-        static let programRecordType = "WorkoutProgram"
-        static let customExerciseRecordType = "CustomExercise"
     }
     
     // MARK: - Validation

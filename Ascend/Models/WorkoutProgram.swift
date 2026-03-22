@@ -143,6 +143,117 @@ class WorkoutProgramManager {
             ],
             frequency: "2-3 cycles per week (e.g., Mon = Day 1, Thu = Day 2)",
             category: .skill
+        ),
+        
+        WorkoutProgram(
+            name: "Example PPL Split",
+            description: "Classic push / pull / legs rotation for balanced hypertrophy. Run once per week (3 days) or repeat for 6 training days.",
+            days: [
+                WorkoutDay(
+                    dayNumber: 1,
+                    name: "Push",
+                    description: "Chest, shoulders, triceps — horizontal and vertical pressing",
+                    exercises: [
+                        ProgramExercise(name: "Barbell Bench Press", sets: 4, reps: "6-8", notes: "Primary press; add weight when you clear top of range."),
+                        ProgramExercise(name: "Overhead Press", sets: 3, reps: "8-10", notes: "Standing or seated; full lockout."),
+                        ProgramExercise(name: "Incline Dumbbell Press", sets: 3, reps: "10-12", notes: "30–45° bench."),
+                        ProgramExercise(name: "Lateral Raise", sets: 3, reps: "12-15", notes: "Control the negative."),
+                        ProgramExercise(name: "Tricep Pushdown", sets: 3, reps: "10-12", notes: "Rope or bar; elbows fixed."),
+                        ProgramExercise(name: "Cable Fly", sets: 2, reps: "12-15", notes: "Optional finisher", exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 70
+                ),
+                WorkoutDay(
+                    dayNumber: 2,
+                    name: "Pull",
+                    description: "Back and biceps — rows, vertical pulls, arms",
+                    exercises: [
+                        ProgramExercise(name: "Barbell Row", sets: 4, reps: "6-8", notes: "Hip hinge; torso ~45°."),
+                        ProgramExercise(name: "Lat Pulldown", sets: 3, reps: "10-12", notes: "Chest up; full stretch at top."),
+                        ProgramExercise(name: "Seated Cable Row", sets: 3, reps: "10-12", notes: "Squeeze shoulder blades."),
+                        ProgramExercise(name: "Face Pull", sets: 3, reps: "15-20", notes: "Rear delts + external rotation."),
+                        ProgramExercise(name: "Barbell Curl", sets: 3, reps: "8-10", notes: "No swing."),
+                        ProgramExercise(name: "Hammer Curl", sets: 3, reps: "10-12", notes: "Neutral grip.", exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 65
+                ),
+                WorkoutDay(
+                    dayNumber: 3,
+                    name: "Legs",
+                    description: "Quads, hamstrings, glutes, calves",
+                    exercises: [
+                        ProgramExercise(name: "Back Squat", sets: 4, reps: "6-8", notes: "Depth you own; brace hard."),
+                        ProgramExercise(name: "Romanian Deadlift", sets: 3, reps: "8-10", notes: "Hamstrings; soft knee bend."),
+                        ProgramExercise(name: "Leg Press", sets: 3, reps: "12-15", notes: "Full foot contact."),
+                        ProgramExercise(name: "Leg Curl", sets: 3, reps: "10-12", notes: "Lying or seated."),
+                        ProgramExercise(name: "Standing Calf Raise", sets: 4, reps: "10-12", notes: "Pause at bottom.", exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 70
+                )
+            ],
+            frequency: "3–6× per week (one P–P–L cycle, or run twice)",
+            category: .hypertrophy,
+            splitType: .pushPullLegs
+        ),
+        
+        WorkoutProgram(
+            name: "Example Upper / Lower Split",
+            description: "Four-day upper–lower block: two upper and two lower sessions with slightly different emphasis for balanced weekly volume.",
+            days: [
+                WorkoutDay(
+                    dayNumber: 1,
+                    name: "Upper A",
+                    description: "Heavy horizontal push & pull",
+                    exercises: [
+                        ProgramExercise(name: "Barbell Bench Press", sets: 4, reps: "6-8", notes: "Primary strength work."),
+                        ProgramExercise(name: "Barbell Row", sets: 4, reps: "6-8", notes: "Match bench effort."),
+                        ProgramExercise(name: "Lat Pulldown", sets: 3, reps: "10-12", notes: nil),
+                        ProgramExercise(name: "Lateral Raise", sets: 3, reps: "12-15", notes: nil),
+                        ProgramExercise(name: "Tricep Rope Pushdown", sets: 3, reps: "10-12", notes: nil, exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 65
+                ),
+                WorkoutDay(
+                    dayNumber: 2,
+                    name: "Lower A",
+                    description: "Squat-biased leg day",
+                    exercises: [
+                        ProgramExercise(name: "Back Squat", sets: 4, reps: "6-8", notes: "Primary lower lift."),
+                        ProgramExercise(name: "Romanian Deadlift", sets: 3, reps: "8-10", notes: "Posterior chain."),
+                        ProgramExercise(name: "Leg Curl", sets: 3, reps: "10-12", notes: nil),
+                        ProgramExercise(name: "Standing Calf Raise", sets: 4, reps: "10-12", notes: nil, exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 60
+                ),
+                WorkoutDay(
+                    dayNumber: 3,
+                    name: "Upper B",
+                    description: "Incline & vertical pull + arms",
+                    exercises: [
+                        ProgramExercise(name: "Incline Dumbbell Press", sets: 4, reps: "8-10", notes: "30–45° bench."),
+                        ProgramExercise(name: "Pull-Ups", sets: 4, reps: "AMRAP", notes: "Band-assisted if needed."),
+                        ProgramExercise(name: "Seated Cable Row", sets: 3, reps: "10-12", notes: nil),
+                        ProgramExercise(name: "Face Pull", sets: 3, reps: "15-20", notes: nil),
+                        ProgramExercise(name: "Hammer Curl", sets: 3, reps: "10-12", notes: nil, exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 60
+                ),
+                WorkoutDay(
+                    dayNumber: 4,
+                    name: "Lower B",
+                    description: "Hinge & machine volume",
+                    exercises: [
+                        ProgramExercise(name: "Leg Press", sets: 4, reps: "12-15", notes: "High foot placement optional for glutes."),
+                        ProgramExercise(name: "Walking Lunge", sets: 3, reps: "10 each", notes: "Bodyweight or DB."),
+                        ProgramExercise(name: "Leg Extension", sets: 3, reps: "12-15", notes: nil),
+                        ProgramExercise(name: "Seated Calf Raise", sets: 4, reps: "12-15", notes: nil, exerciseType: .weightReps)
+                    ],
+                    estimatedDuration: 55
+                )
+            ],
+            frequency: "4× per week (e.g. Mon Tue Thu Fri)",
+            category: .hypertrophy,
+            splitType: .upperLower
         )
     ]
     

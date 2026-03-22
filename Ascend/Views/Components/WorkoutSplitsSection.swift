@@ -5,6 +5,10 @@ struct WorkoutSplitsSection: View {
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
     let onStartWorkout: () -> Void
+    /// Section heading (e.g. "Your programs" when shown below the Atelier catalog).
+    var sectionTitle: String = "Workout Programs"
+    /// When true, only the add button row is shown (use an external kinetic label above).
+    var hidesSectionTitle: Bool = false
     @State private var expandedProgramId: UUID?
     @State private var showCreateProgram = false
     
@@ -12,9 +16,11 @@ struct WorkoutSplitsSection: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             // Header
             HStack {
-                Text("Workout Programs")
-                    .font(AppTypography.heading2)
-                    .foregroundColor(AppColors.textPrimary)
+                if !hidesSectionTitle {
+                    Text(sectionTitle)
+                        .font(AppTypography.heading2)
+                        .foregroundColor(AppColors.textPrimary)
+                }
                 
                 Spacer()
                 
@@ -76,6 +82,7 @@ struct WorkoutSplitsSection: View {
         .sheet(isPresented: $showCreateProgram) {
             CreateWorkoutProgramView(
                 programViewModel: programViewModel,
+                templatesViewModel: templatesViewModel,
                 onDismiss: {
                     showCreateProgram = false
                 }
@@ -505,167 +512,60 @@ struct TemplatePickerView: View {
 
 struct CreateWorkoutProgramView: View {
     @ObservedObject var programViewModel: WorkoutProgramViewModel
+    @ObservedObject var templatesViewModel: TemplatesViewModel
     let onDismiss: () -> Void
     @Environment(\.dismiss) var dismiss
+    @Environment(\.kineticPalette) private var kp
     
     @State private var programName: String = ""
     @State private var programDescription: String = ""
     @State private var selectedSplitType: WorkoutSplitType = .pushPullLegs
     @State private var customDayNames: [String] = ["Day 1", "Day 2", "Rest"]
     @State private var newDayName: String = ""
+    @State private var autoGenerateWorkouts = true
+    @State private var setAsActiveProgram = false
+    @State private var showGenerationSettings = false
+    
+    private var trimmedName: String { programName.trimmingCharacters(in: .whitespacesAndNewlines) }
+    
+    /// Name of the program currently marked active (for replacement copy).
+    private var existingActiveProgramName: String? {
+        guard let active = programViewModel.activeProgram,
+              let current = programViewModel.programs.first(where: { $0.id == active.programId }) else {
+            return nil
+        }
+        return current.name
+    }
+    private var canCreate: Bool {
+        guard !trimmedName.isEmpty else { return false }
+        if selectedSplitType == .custom {
+            let names = customDayNames.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            return !names.isEmpty
+        }
+        return true
+    }
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Program Name
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Program Name")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColors.mutedForeground)
-                        
-                        TextField("e.g., My PPL Program", text: $programName)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(AppColors.foreground)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(AppColors.input)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.border, lineWidth: 2)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    
-                    // Split Type Selection
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Split Type")
-                            .font(AppTypography.heading3)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        ForEach(WorkoutSplitType.allCases, id: \.self) { splitType in
-                            Button(action: {
-                                selectedSplitType = splitType
-                            }) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text(splitType.rawValue)
-                                            .font(AppTypography.bodyMedium)
-                                            .foregroundColor(selectedSplitType == splitType ? AppColors.alabasterGrey : AppColors.textPrimary)
-                                        
-                                        Spacer()
-                                        
-                                        if selectedSplitType == splitType {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 20))
-                                                .foregroundColor(AppColors.alabasterGrey)
-                                        }
-                                    }
-                                    
-                                    Text(splitType.description)
-                                        .font(AppTypography.caption)
-                                        .foregroundColor(selectedSplitType == splitType ? AppColors.alabasterGrey.opacity(0.8) : AppColors.textSecondary)
-                                }
-                                .padding(AppSpacing.md)
-                                .background(selectedSplitType == splitType ? LinearGradient.primaryGradient : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    
-                    // Custom Split Days Editor
+                VStack(alignment: .leading, spacing: 28) {
+                    headerBlock
+                    nameField
+                    blueprintField
+                    splitSection
                     if selectedSplitType == .custom {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Custom Days")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColors.mutedForeground)
-                            
-                            ForEach(Array(customDayNames.enumerated()), id: \.offset) { index, dayName in
-                                HStack {
-                                    TextField("Day name", text: Binding(
-                                        get: { customDayNames[index] },
-                                        set: { customDayNames[index] = $0 }
-                                    ))
-                                    .font(.system(size: 16))
-                                    .foregroundColor(AppColors.foreground)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(AppColors.input)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    
-                                    Button(action: {
-                                        customDayNames.remove(at: index)
-                                    }) {
-                                        Image(systemName: "trash")
-                                            .foregroundColor(AppColors.destructive)
-                                    }
-                                }
-                            }
-                            
-                            HStack {
-                                TextField("New day name", text: $newDayName)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(AppColors.foreground)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(AppColors.input)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                
-                                Button(action: {
-                                    if !newDayName.isEmpty {
-                                        customDayNames.append(newDayName)
-                                        newDayName = ""
-                                    }
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(AppColors.primary)
-                                }
-                                .disabled(newDayName.isEmpty)
-                            }
-                        }
-                        .padding(16)
-                        .background(AppColors.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        customDaysEditor
                     }
-                    
-                    // Create Button
-                    Button(action: {
-                        if !programName.isEmpty {
-                            if selectedSplitType == .custom {
-                                _ = programViewModel.createCustomProgram(
-                                    name: programName,
-                                    description: programDescription,
-                                    dayNames: customDayNames
-                                )
-                            } else {
-                                _ = programViewModel.createProgram(
-                                    name: programName,
-                                    description: programDescription,
-                                    splitType: selectedSplitType
-                                )
-                            }
-                            onDismiss()
-                            dismiss()
-                        }
-                    }) {
-                        Text("Create Program")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(AppColors.alabasterGrey)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(LinearGradient.primaryGradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: AppColors.primary.opacity(0.3), radius: 14, x: 0, y: 4)
-                    }
-                    .disabled(programName.isEmpty)
-                    .opacity(programName.isEmpty ? 0.6 : 1.0)
+                    autoGenerateSection
+                    activeProgramSection
+                    createButton
                 }
-                .padding(AppSpacing.lg)
+                .padding(.horizontal, AppConstants.UI.mainColumnGutter)
+                .padding(.vertical, 24)
+                .padding(.bottom, 32)
             }
-            .background(AppColors.background)
-            .navigationTitle("Create Program")
+            .background(kp.background.ignoresSafeArea())
+            .navigationTitle("New program")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -673,13 +573,286 @@ struct CreateWorkoutProgramView: View {
                         onDismiss()
                         dismiss()
                     }
-                    .foregroundColor(AppColors.accent)
+                    .font(.custom("Manrope-SemiBold", size: 16, relativeTo: .body))
+                    .foregroundStyle(kp.primary)
                 }
+            }
+            .sheet(isPresented: $showGenerationSettings) {
+                WorkoutGenerationSettingsView(settings: $templatesViewModel.generationSettings)
             }
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
         }
+    }
+    
+    private var headerBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Define your split")
+                .font(.custom("Manrope-ExtraBold", size: 22, relativeTo: .title2))
+                .foregroundStyle(kp.onSurface)
+            Text("Name it, choose a structure—then optionally generate exercises for every training day from your generator settings.")
+                .font(.custom("Manrope-Medium", size: 14, relativeTo: .subheadline))
+                .foregroundStyle(kp.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    private var nameField: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("PROGRAM NAME")
+                .font(.custom("Manrope-Bold", size: 10, relativeTo: .caption))
+                .tracking(2)
+                .foregroundStyle(kp.primary)
+            TextField("e.g. My offseason PPL", text: $programName)
+                .font(.custom("Manrope-SemiBold", size: 17, relativeTo: .body))
+                .foregroundStyle(kp.onSurface)
+                .padding(16)
+                .background(kp.surfaceContainerHigh)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(kp.outlineVariant.opacity(0.35), lineWidth: 1)
+                )
+        }
+    }
+    
+    private var blueprintField: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("THE BLUEPRINT")
+                .font(.custom("Manrope-Bold", size: 10, relativeTo: .caption))
+                .tracking(2)
+                .foregroundStyle(kp.primary)
+            TextField("Short description (optional)", text: $programDescription, axis: .vertical)
+                .font(.custom("Manrope-Medium", size: 15, relativeTo: .body))
+                .foregroundStyle(kp.onSurface)
+                .lineLimit(3...6)
+                .padding(16)
+                .background(kp.surfaceContainerHigh)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(kp.outlineVariant.opacity(0.35), lineWidth: 1)
+                )
+        }
+    }
+    
+    private var splitSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("SPLIT TYPE")
+                .font(.custom("Manrope-Bold", size: 10, relativeTo: .caption))
+                .tracking(2)
+                .foregroundStyle(kp.primary)
+            VStack(spacing: 12) {
+                ForEach(WorkoutSplitType.allCases, id: \.self) { splitType in
+                    splitTypeCard(splitType)
+                }
+            }
+        }
+    }
+    
+    private func splitTypeCard(_ splitType: WorkoutSplitType) -> some View {
+        let selected = selectedSplitType == splitType
+        return Button {
+            selectedSplitType = splitType
+            HapticManager.selection()
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(splitType.rawValue)
+                        .font(.custom("Manrope-Bold", size: 16, relativeTo: .body))
+                        .foregroundStyle(selected ? kp.onPrimaryContainer : kp.onSurface)
+                        .multilineTextAlignment(.leading)
+                    Text(splitType.description)
+                        .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                        .foregroundStyle(selected ? kp.onPrimaryContainer.opacity(0.85) : kp.onSurfaceVariant)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(kp.primary)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(selected ? kp.primaryContainer.opacity(0.35) : kp.surfaceContainerHigh)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(selected ? kp.primary.opacity(0.65) : kp.outlineVariant.opacity(0.3), lineWidth: selected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private var customDaysEditor: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("CUSTOM DAYS")
+                .font(.custom("Manrope-Bold", size: 10, relativeTo: .caption))
+                .tracking(2)
+                .foregroundStyle(kp.primary)
+            VStack(spacing: 10) {
+                ForEach(Array(customDayNames.enumerated()), id: \.offset) { index, _ in
+                    HStack(spacing: 10) {
+                        TextField("Day name", text: Binding(
+                            get: { customDayNames[index] },
+                            set: { customDayNames[index] = $0 }
+                        ))
+                        .font(.custom("Manrope-Medium", size: 15, relativeTo: .body))
+                        .foregroundStyle(kp.onSurface)
+                        .padding(12)
+                        .background(kp.surfaceContainerLow)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        Button {
+                            customDayNames.remove(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(kp.onSurfaceVariant)
+                        }
+                    }
+                }
+                HStack(spacing: 10) {
+                    TextField("Add day", text: $newDayName)
+                        .font(.custom("Manrope-Medium", size: 15, relativeTo: .body))
+                        .foregroundStyle(kp.onSurface)
+                        .padding(12)
+                        .background(kp.surfaceContainerLow)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    Button {
+                        let t = newDayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !t.isEmpty else { return }
+                        customDayNames.append(t)
+                        newDayName = ""
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(kp.primary)
+                    }
+                    .disabled(newDayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(16)
+            .background(kp.surfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(kp.outlineVariant.opacity(0.25), lineWidth: 1)
+            )
+        }
+    }
+    
+    private var autoGenerateSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle(isOn: $autoGenerateWorkouts) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Auto-generate workouts")
+                        .font(.custom("Manrope-Bold", size: 16, relativeTo: .body))
+                        .foregroundStyle(kp.onSurface)
+                    Text("Creates a saved template and exercise list for each training day (push/pull/legs, upper/lower, etc.) from your generator rules.")
+                        .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                        .foregroundStyle(kp.onSurfaceVariant)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(kp.primaryContainer)
+            Button {
+                showGenerationSettings = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "slider.horizontal.3")
+                    Text("Generator settings")
+                }
+                .font(.custom("Manrope-SemiBold", size: 14, relativeTo: .subheadline))
+                .foregroundStyle(kp.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .background(kp.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private var activeProgramSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle(isOn: $setAsActiveProgram) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Set as active program")
+                        .font(.custom("Manrope-Bold", size: 16, relativeTo: .body))
+                        .foregroundStyle(kp.onSurface)
+                    Text("Uses this plan for the dashboard program card, calendar alignment, and day tracking.")
+                        .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                        .foregroundStyle(kp.onSurfaceVariant)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(kp.primaryContainer)
+            if let name = existingActiveProgramName {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 14))
+                        .foregroundStyle(kp.secondary)
+                    Text("Turning this on replaces “\(name)” as your active program.")
+                        .font(.custom("Manrope-Medium", size: 12, relativeTo: .caption))
+                        .foregroundStyle(kp.onSurfaceVariant)
+                }
+            }
+        }
+        .padding(18)
+        .background(kp.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private var createButton: some View {
+        Button(action: createProgramTapped) {
+            Text("Create program")
+                .font(.custom("Manrope-Bold", size: 17, relativeTo: .body))
+                .tracking(0.5)
+                .foregroundStyle(kp.onPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(LinearGradient.heroCTA)
+                .clipShape(Capsule())
+                .shadow(color: kp.primaryContainer.opacity(0.35), radius: 16, x: 0, y: 8)
+        }
+        .buttonStyle(.plain)
+        .disabled(!canCreate)
+        .opacity(canCreate ? 1 : 0.55)
+    }
+    
+    private func createProgramTapped() {
+        guard canCreate else { return }
+        let desc = programDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let program: WorkoutProgram
+        if selectedSplitType == .custom {
+            let names = customDayNames.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            program = programViewModel.createCustomProgram(name: trimmedName, description: desc, dayNames: names)
+        } else {
+            program = programViewModel.createProgram(name: trimmedName, description: desc, splitType: selectedSplitType)
+        }
+        if autoGenerateWorkouts {
+            programViewModel.populateProgramDaysWithAutoGeneratedWorkouts(
+                programId: program.id,
+                settings: templatesViewModel.generationSettings,
+                templatesViewModel: templatesViewModel
+            )
+        }
+        if setAsActiveProgram {
+            programViewModel.setActiveProgram(program)
+        }
+        HapticManager.success()
+        onDismiss()
+        dismiss()
     }
 }
 

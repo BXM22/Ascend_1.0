@@ -11,11 +11,36 @@ enum ViewMode {
     case list, grouped
 }
 
+// MARK: - Kinetic Progress (Progress / Stats mock — tonal surfaces + Manrope)
+
+/// Nested segments inside Progress → Exercises (HTML: Stats | Exercises | Records).
+enum ExercisesProgressSubTab: String, CaseIterable {
+    case stats = "Stats"
+    case exercises = "Exercises"
+    case records = "Records"
+}
+
+private enum ProgressFonts {
+    static func medium(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Medium", size: size, relativeTo: .body)
+    }
+    static func semiBold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-SemiBold", size: size, relativeTo: .body)
+    }
+    static func bold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Bold", size: size, relativeTo: .body)
+    }
+    static func extraBold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-ExtraBold", size: size, relativeTo: .body)
+    }
+}
+
 struct ProgressView: View {
     @ObservedObject var viewModel: ProgressViewModel
     @ObservedObject var themeManager: ThemeManager
     let onSettings: () -> Void
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.kineticPalette) private var kp
     
     // State for redesign
     @State private var selectedTab: ProgressTab = .overview
@@ -27,55 +52,66 @@ struct ProgressView: View {
     @State private var filters = PRFilters()
     @State private var viewMode: ViewMode = .list
     @State private var expandedGroups: Set<String> = []
+    @State private var exercisesProgressSubTab: ExercisesProgressSubTab = .exercises
     
     // Performance: Cache filtered exercises
     @State private var cachedFilteredExercises: [String] = []
     @State private var lastFilterCacheKey: String = ""
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Redesigned Header
-            RedesignedProgressHeader(
-                selectedTab: $selectedTab,
+            // No avatar / KINETIC ATELIER — keep title + subtitle on all Progress sub-tabs.
+            KineticProgressTopBar(
+                progressViewModel: viewModel,
                 themeManager: themeManager,
-                onSettings: onSettings
+                onSettings: onSettings,
+                showLeadingBrand: false
             )
-            
-            // Segment Control
-            Picker("Progress Tab", selection: $selectedTab) {
-                ForEach(ProgressTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tab.icon)
-                        .tag(tab)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Progress")
+                    .font(ProgressFonts.extraBold(34))
+                    .foregroundStyle(kp.onSurface)
+                    .kineticDisplayTracking(for: 34)
+                Text("Performance tracking and kinetic analysis")
+                    .font(ProgressFonts.medium(14))
+                    .foregroundStyle(kp.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+
+            KineticProgressSegmentedBar(selection: $selectedTab)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
+
+            // Use `switch` instead of `TabView(.page)`: page-style TabViews often fail to sync
+            // `selection` when swiping, so `selectedTab` stayed wrong and the header never hid on Stats.
+            Group {
+                switch selectedTab {
+                case .overview:
+                    OverviewTab(viewModel: viewModel, showExerciseDetail: $showExerciseDetail, selectedExercise: $selectedExerciseForDetail)
+                case .exercises:
+                    ExercisesTab(
+                        viewModel: viewModel,
+                        searchText: $searchText,
+                        filters: $filters,
+                        showFilterSheet: $showFilterSheet,
+                        showExerciseDetail: $showExerciseDetail,
+                        selectedExercise: $selectedExerciseForDetail,
+                        viewMode: $viewMode,
+                        expandedGroups: $expandedGroups,
+                        exercisesSubTab: $exercisesProgressSubTab
+                    )
+                case .stats:
+                    StatsTab(viewModel: viewModel)
                 }
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
-            
-            // Tab Content
-            TabView(selection: $selectedTab) {
-                OverviewTab(viewModel: viewModel, showExerciseDetail: $showExerciseDetail, selectedExercise: $selectedExerciseForDetail)
-                    .tag(ProgressTab.overview)
-                
-                ExercisesTab(
-                    viewModel: viewModel,
-                    searchText: $searchText,
-                    filters: $filters,
-                    showFilterSheet: $showFilterSheet,
-                    showExerciseDetail: $showExerciseDetail,
-                    selectedExercise: $selectedExerciseForDetail,
-                    viewMode: $viewMode,
-                    expandedGroups: $expandedGroups
-                )
-                .tag(ProgressTab.exercises)
-                
-                StatsTab(viewModel: viewModel)
-                    .tag(ProgressTab.stats)
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
-        .background(AppColors.background)
+        .background(kp.surface)
         .id(AppColors.themeID)
         .sheet(isPresented: $showPRHistory) {
             PRHistoryView(progressViewModel: viewModel)
@@ -91,35 +127,59 @@ struct ProgressView: View {
     }
 }
 
-// MARK: - Redesigned Header
+// MARK: - Kinetic top chrome
 
-struct RedesignedProgressHeader: View {
-    @Binding var selectedTab: ProgressTab
+private struct KineticProgressTopBar: View {
+    @Environment(\.kineticPalette) private var kp
+    @ObservedObject var progressViewModel: ProgressViewModel
     @ObservedObject var themeManager: ThemeManager
     let onSettings: () -> Void
-    
+    /// When false, hides avatar + **KINETIC ATELIER** (Progress uses this for all sub-tabs).
+    var showLeadingBrand: Bool = true
+
+    @State private var showExportShare = false
+    @State private var exportFileURL: URL?
+
     var body: some View {
-        HStack {
-            Text("Progress")
-                .font(AppTypography.largeTitleBold)
-                .foregroundStyle(LinearGradient.primaryGradient)
-            
+        HStack(spacing: 12) {
+            if showLeadingBrand {
+                ZStack {
+                    Circle()
+                        .fill(kp.surfaceContainerHighest)
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(kp.tertiary.opacity(0.85))
+                }
+                .frame(width: 32, height: 32)
+                .clipShape(Circle())
+
+                Text("KINETIC ATELIER")
+                    .font(ProgressFonts.bold(17))
+                    .tracking(-0.34)
+                    .foregroundStyle(kp.primary)
+            }
+
             Spacer()
-            
-            HStack(spacing: 12) {
+
+            HStack(spacing: 16) {
                 HelpButton(pageType: .progress)
                 
-                // Theme Toggle
                 HeaderThemeToggle(themeManager: themeManager)
                 
-                // Consolidated Settings Menu
                 Menu {
                     Section("Export") {
-                        Button(action: { /* Future: Export data */ }) {
+                        Button(action: {
+                            HapticManager.impact(style: .light)
+                            do {
+                                exportFileURL = try AppDataExportService.writeTempExportFile(progressViewModel: progressViewModel)
+                                showExportShare = true
+                            } catch {
+                                Logger.error("Failed to export data", error: error, category: .persistence)
+                            }
+                        }) {
                             Label("Export Data", systemImage: "square.and.arrow.up")
                         }
                     }
-                    
                     Section {
                         Button(action: {
                             HapticManager.impact(style: .light)
@@ -129,17 +189,85 @@ struct RedesignedProgressHeader: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundStyle(kp.primary)
                         .frame(width: 40, height: 40)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .contentShape(Rectangle())
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .sheet(isPresented: $showExportShare) {
+            if let url = exportFileURL {
+                ActivityShareSheet(activityItems: [url])
+            }
+        }
+    }
+}
+
+private struct KineticProgressSegmentedBar: View {
+    @Environment(\.kineticPalette) private var kp
+    @Binding var selection: ProgressTab
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(ProgressTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selection = tab
+                        HapticManager.selection()
+                    }
+                } label: {
+                    Text(tab.rawValue)
+                        .font(ProgressFonts.semiBold(14))
+                        .foregroundStyle(selection == tab ? kp.primary : kp.tertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(selection == tab ? kp.surfaceContainerHighest : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(kp.surfaceContainerLowest)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct KineticExercisesSubSegmentedBar: View {
+    @Environment(\.kineticPalette) private var kp
+    @Binding var selection: ExercisesProgressSubTab
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(ExercisesProgressSubTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selection = tab
+                        HapticManager.selection()
+                    }
+                } label: {
+                    Text(tab.rawValue)
+                        .font(ProgressFonts.semiBold(14))
+                        .foregroundStyle(selection == tab ? kp.primary : kp.tertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(selection == tab ? kp.surfaceContainerHighest : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(kp.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
@@ -149,84 +277,55 @@ struct OverviewTab: View {
     @ObservedObject var viewModel: ProgressViewModel
     @Binding var showExerciseDetail: Bool
     @Binding var selectedExercise: String
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.kineticPalette) private var kp
+
+    private var isWide: Bool { horizontalSizeClass == .regular }
+    
+    private var improvementRows: [(exercise: String, percent: Int)] {
+        viewModel.topImprovementPercentages(limit: 4)
+    }
+    
+    private var maxImprovementPercent: Int {
+        max(improvementRows.map(\.percent).max() ?? 1, 1)
+    }
+    
+    private var kineticInsightBody: String {
+        if let insight = viewModel.generateInsight() {
+            return insight.message
+        }
+        return "Your strength trends and recovery signals will appear here as you log workouts and PRs."
+    }
     
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 20, pinnedViews: []) {
-                // Stat Cards
-                HStack(spacing: 12) {
-                    EnhancedStatCard(
-                        icon: "flame.fill",
-                        gradient: LinearGradient.armsGradient,
-                        primaryValue: "\(viewModel.currentStreak)",
-                        primaryLabel: "Day Streak",
-                        secondaryValue: "Best: \(viewModel.longestStreak)",
-                        secondaryLabel: "Personal Best"
-                    )
-                    
-                    EnhancedStatCard(
-                        icon: "chart.bar.fill",
-                        gradient: LinearGradient.backGradient,
-                        primaryValue: "\(viewModel.weeklyWorkouts)",
-                        primaryLabel: "This Week",
-                        secondaryValue: "\(viewModel.workoutCount) Total",
-                        secondaryLabel: "All Time"
-                    )
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                
-                // Recent PRs Section
-                if !viewModel.recentPRs().isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "Recent PRs", subtitle: "Last 7 days")
-                            .padding(.horizontal, 20)
-                        
-                        VStack(spacing: 8) {
-                            ForEach(viewModel.recentPRs().prefix(5), id: \.id) { pr in
-                                RecentPRCard(pr: pr)
-                                    .onTapGesture {
-                                        HapticManager.impact(style: .light)
-                                        selectedExercise = pr.exercise
-                                        showExerciseDetail = true
-                                    }
-                            }
+            LazyVStack(alignment: .leading, spacing: 24) {
+                Group {
+                    if isWide {
+                        HStack(alignment: .top, spacing: 16) {
+                            streakColumn
+                            workoutPairColumn
                         }
-                        .padding(.horizontal, 20)
+                    } else {
+                        streakColumn
+                        workoutPairColumn
                     }
                 }
                 
-                // Top Exercises
-                if !viewModel.topExercises().isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "Top Exercises", subtitle: "Most improved")
-                            .padding(.horizontal, 20)
-                        
-                        HStack(spacing: 12) {
-                            ForEach(viewModel.topExercises(), id: \.exercise) { item in
-                                TopExerciseCard(
-                                    exercise: item.exercise,
-                                    prCount: item.prCount,
-                                    gradient: AppColors.categoryGradient(for: item.exercise)
-                                )
-                                .onTapGesture {
-                                    HapticManager.impact(style: .light)
-                                    selectedExercise = item.exercise
-                                    showExerciseDetail = true
-                                }
-                            }
+                kineticIntelligenceCard
+                
+                Group {
+                    if isWide {
+                        HStack(alignment: .top, spacing: 16) {
+                            recentPRsPanel
+                            topImprovementsPanel
                         }
-                        .padding(.horizontal, 20)
+                    } else {
+                        recentPRsPanel
+                        topImprovementsPanel
                     }
                 }
                 
-                // Quick Insights
-                if let insight = viewModel.generateInsight() {
-                    InsightCard(insight: insight)
-                        .padding(.horizontal, 20)
-                }
-                
-                // Empty state if no PRs
                 if viewModel.prs.isEmpty {
                     ProgressEmptyState(
                         icon: "trophy.fill",
@@ -235,12 +334,303 @@ struct OverviewTab: View {
                         primaryAction: nil,
                         secondaryAction: nil
                     )
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 40)
+                    .padding(.vertical, 24)
                 }
             }
+            .padding(.horizontal, 24)
             .padding(.bottom, 100)
         }
+    }
+    
+    private var streakColumn: some View {
+        VStack(spacing: 16) {
+            ZStack(alignment: .bottomTrailing) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Active Momentum")
+                        .font(ProgressFonts.bold(10))
+                        .tracking(1.6)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.primary.opacity(0.6))
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(viewModel.currentStreak)")
+                            .font(ProgressFonts.extraBold(48))
+                            .foregroundStyle(kp.primary)
+                            .kineticDisplayTracking(for: 48)
+                        Text("days")
+                            .font(ProgressFonts.medium(18))
+                            .foregroundStyle(kp.tertiary)
+                    }
+                    Text("Current Day Streak")
+                        .font(ProgressFonts.medium(12))
+                        .foregroundStyle(kp.tertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+                .background(kp.surfaceContainerHighest)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 72))
+                    .foregroundStyle(kp.primary.opacity(0.12))
+                    .offset(x: 16, y: 16)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Personal Record")
+                    .font(ProgressFonts.bold(10))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(viewModel.longestStreak)")
+                        .font(ProgressFonts.extraBold(40))
+                        .foregroundStyle(kp.onSurface)
+                        .kineticDisplayTracking(for: 40)
+                    Text("days")
+                        .font(ProgressFonts.medium(16))
+                        .foregroundStyle(kp.tertiary)
+                }
+                Text("Best Workout Streak")
+                    .font(ProgressFonts.medium(12))
+                    .foregroundStyle(kp.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .background(kp.surfaceContainerHigh)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(kp.outlineVariant.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+    
+    private var workoutPairColumn: some View {
+        HStack(alignment: .top, spacing: 16) {
+            workoutMetricCard(
+                icon: "calendar",
+                title: "Weekly Workouts",
+                value: "\(viewModel.weeklyWorkouts)",
+                iconTint: kp.secondary
+            )
+            workoutMetricCard(
+                icon: "dumbbell.fill",
+                title: "Total Workouts",
+                value: "\(viewModel.workoutCount)",
+                iconTint: kp.primary
+            )
+        }
+    }
+    
+    private func workoutMetricCard(icon: String, title: String, value: String, iconTint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(iconTint)
+                Spacer(minLength: 0)
+            }
+            .padding(.bottom, 16)
+            Text(title)
+                .font(ProgressFonts.medium(14))
+                .foregroundStyle(kp.tertiary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(ProgressFonts.extraBold(48))
+                .foregroundStyle(kp.onSurface)
+                .kineticDisplayTracking(for: 48)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .frame(minHeight: 160)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+    
+    private var kineticIntelligenceCard: some View {
+        HStack(alignment: .top, spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(kp.primary.opacity(0.2))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(kp.primary)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Kinetic Intelligence")
+                    .font(ProgressFonts.bold(18))
+                    .foregroundStyle(kp.primary)
+                Text(kineticInsightBody)
+                    .font(ProgressFonts.medium(17))
+                    .foregroundStyle(kp.onSurface.opacity(0.9))
+                    .kineticBodyLineHeight()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer(minLength: 0)
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            kp.secondaryContainer.opacity(0.35),
+                            kp.primaryContainer.opacity(0.22)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(kp.primary.opacity(0.12), lineWidth: 1)
+        )
+    }
+    
+    private var recentPRsPanel: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Recent PRs")
+                    .font(ProgressFonts.bold(20))
+                    .foregroundStyle(kp.onSurface)
+                Spacer()
+                Text("Last 7 Days")
+                    .font(ProgressFonts.bold(10))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.tertiary)
+            }
+            
+            if viewModel.recentPRs().isEmpty {
+                Text("No PRs in the last week.")
+                    .font(ProgressFonts.medium(14))
+                    .foregroundStyle(kp.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.recentPRs().prefix(5), id: \.id) { pr in
+                        KineticOverviewPRRow(
+                            pr: pr,
+                            delta: viewModel.weightDeltaFromPreviousPR(for: pr)
+                        )
+                        .onTapGesture {
+                            HapticManager.impact(style: .light)
+                            selectedExercise = pr.exercise
+                            showExerciseDetail = true
+                        }
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(kp.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+    
+    private var topImprovementsPanel: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Top Improvements")
+                    .font(ProgressFonts.bold(20))
+                    .foregroundStyle(kp.onSurface)
+                Spacer()
+                Text("Growth Ratio")
+                    .font(ProgressFonts.bold(10))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.tertiary)
+            }
+            
+            if improvementRows.isEmpty {
+                Text("Log at least two PRs per exercise to see improvement percentages.")
+                    .font(ProgressFonts.medium(14))
+                    .foregroundStyle(kp.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 20) {
+                    ForEach(improvementRows, id: \.exercise) { row in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(row.exercise)
+                                    .font(ProgressFonts.medium(14))
+                                    .foregroundStyle(kp.onSurface)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(row.percent)%")
+                                    .font(ProgressFonts.medium(14))
+                                    .foregroundStyle(kp.secondary)
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(kp.surfaceContainerHighest)
+                                    Capsule()
+                                        .fill(kp.secondary)
+                                        .frame(width: max(0, geo.size.width * CGFloat(row.percent) / CGFloat(maxImprovementPercent)))
+                                        .shadow(color: kp.secondary.opacity(0.45), radius: 8, x: 0, y: 0)
+                                }
+                            }
+                            .frame(height: 6)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(kp.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct KineticOverviewPRRow: View {
+    @Environment(\.kineticPalette) private var kp
+    let pr: PersonalRecord
+    let delta: Int?
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .full
+        return f
+    }()
+    
+    private var whenLabel: String {
+        KineticOverviewPRRow.relativeFormatter.localizedString(for: pr.date, relativeTo: Date())
+    }
+    
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(pr.exercise)
+                    .font(ProgressFonts.medium(17))
+                    .foregroundStyle(kp.onSurface)
+                Text(whenLabel)
+                    .font(ProgressFonts.medium(12))
+                    .foregroundStyle(kp.tertiary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(Int(pr.weight)) lbs")
+                    .font(ProgressFonts.bold(18))
+                    .foregroundStyle(kp.primary)
+                if let delta {
+                    Text("+\(delta) lbs")
+                        .font(ProgressFonts.bold(10))
+                        .tracking(0.8)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.primary.opacity(0.75))
+                }
+            }
+        }
+        .padding(16)
+        .background(kp.surfaceContainerHighest.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -255,16 +645,18 @@ struct ExercisesTab: View {
     @Binding var selectedExercise: String
     @Binding var viewMode: ViewMode
     @Binding var expandedGroups: Set<String>
-    
+    @Binding var exercisesSubTab: ExercisesProgressSubTab
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.kineticPalette) private var kp
+
     private var filteredExercises: [String] {
         var exercises = viewModel.availableExercises
         
-        // Apply search
         if !searchText.isEmpty {
             exercises = exercises.filter { $0.localizedCaseInsensitiveContains(searchText) }
         }
         
-        // Apply filters
         exercises = exercises.filter { exercise in
             let prs = viewModel.prsForExercise(exercise)
             return prs.contains { filters.matches($0) }
@@ -273,69 +665,122 @@ struct ExercisesTab: View {
         return exercises
     }
     
-    private var groupedExercises: [String: [String]] {
-        var groups: [String: [String]] = [:]
-        
-        for exercise in filteredExercises {
-            let (primary, _) = ExerciseDataManager.shared.getMuscleGroups(for: exercise)
-            let group = primary.first ?? "Other"
-            
-            if groups[group] == nil {
-                groups[group] = []
-            }
-            groups[group]?.append(exercise)
-        }
-        
-        return groups
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
-            // Search & Filter Bar
-            HStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(AppColors.mutedForeground)
-                    TextField("Search exercises", text: $searchText)
-                        .foregroundColor(AppColors.textPrimary)
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(AppColors.mutedForeground)
-                        }
-                    }
-                }
-                .padding(12)
-                .background(AppColors.card)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                Button(action: { 
-                    HapticManager.impact(style: .light)
-                    showFilterSheet = true 
-                }) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .font(.system(size: 18))
-                            .foregroundColor(AppColors.textPrimary)
-                            .frame(width: 48, height: 48)
-                            .background(AppColors.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        
-                        if filters.isActive {
-                            Circle()
-                                .fill(AppColors.destructive)
-                                .frame(width: 8, height: 8)
-                                .offset(x: -8, y: 8)
-                        }
-                    }
+            KineticExercisesSubSegmentedBar(selection: $exercisesSubTab)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            
+            Group {
+                switch exercisesSubTab {
+                case .stats:
+                    exercisesStatsPane
+                case .exercises:
+                    exercisesBrowsePane
+                case .records:
+                    exercisesRecordsPane
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
+        }
+    }
+    
+    // MARK: Sub-tab: Stats (summary)
+    
+    private var exercisesStatsPane: some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                    spacing: 12
+                ) {
+                    KineticExerciseStatTile(
+                        title: "Total PRs",
+                        value: "\(viewModel.prs.count)",
+                        accent: kp.primary
+                    )
+                    KineticExerciseStatTile(
+                        title: "Exercises",
+                        value: "\(viewModel.availableExercises.count)",
+                        accent: kp.secondary
+                    )
+                    KineticExerciseStatTile(
+                        title: "PRs This Month",
+                        value: "\(viewModel.monthlyPRs)",
+                        accent: kp.primary
+                    )
+                    KineticExerciseStatTile(
+                        title: "Current Streak",
+                        value: "\(viewModel.currentStreak)d",
+                        accent: kp.secondary
+                    )
+                }
+                .padding(.horizontal, 16)
+                
+                if let insight = viewModel.generateInsight() {
+                    InsightCard(insight: insight)
+                        .padding(.horizontal, 16)
+                }
+            }
+            .padding(.bottom, 100)
+        }
+    }
+    
+    // MARK: Sub-tab: Exercises (search + cards)
+    
+    private var exercisesBrowsePane: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                HStack(spacing: 0) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 20))
+                        .foregroundStyle(kp.outline)
+                        .padding(.leading, 16)
+                    TextField("Search exercises...", text: $searchText)
+                        .font(ProgressFonts.medium(16))
+                        .foregroundStyle(kp.onSurface)
+                        .padding(.vertical, 14)
+                        .padding(.trailing, 12)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                            HapticManager.selection()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(kp.outline)
+                        }
+                        .padding(.trailing, 12)
+                    }
+                }
+                .background(kp.surfaceContainerLow)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                
+                Button {
+                    HapticManager.impact(style: .light)
+                    showFilterSheet = true
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(kp.surfaceContainerLow)
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(kp.onSurface)
+                        if filters.isActive {
+                            Circle()
+                                .fill(kp.primary)
+                                .frame(width: 8, height: 8)
+                                .padding(10)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
             
-            // Exercise List
             ScrollView {
-                LazyVStack(spacing: 12, pinnedViews: []) {
+                LazyVStack(spacing: 16) {
                     if filteredExercises.isEmpty {
                         ProgressEmptyState(
                             icon: "magnifyingglass",
@@ -349,43 +794,294 @@ struct ExercisesTab: View {
                             }),
                             secondaryAction: nil
                         )
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 40)
                     } else {
-                        LazyVStack(spacing: 12) {
-                            ForEach(filteredExercises, id: \.self) { exercise in
-                                // Pull PR data once per exercise to avoid repeated work during rendering
-                                let prsForExercise = viewModel.prsForExercise(exercise)
-                                let currentPR = prsForExercise.first
-                                
-                                ExercisePreviewCard(
-                                    exercise: exercise,
-                                    currentPR: currentPR,
-                                    prCount: prsForExercise.count,
-                                    lastPerformed: currentPR?.date,
-                                    trend: viewModel.calculateTrend(for: exercise, using: prsForExercise)
-                                )
-                                .onTapGesture {
-                                    HapticManager.impact(style: .light)
-                                    selectedExercise = exercise
-                                    showExerciseDetail = true
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        HapticManager.impact(style: .light)
-                                        for pr in prsForExercise {
-                                            viewModel.deletePR(pr)
-                                        }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                        ForEach(filteredExercises, id: \.self) { exercise in
+                            let prsForExercise = viewModel.prsForExercise(exercise)
+                            let currentPR = prsForExercise.first
+                            KineticExerciseProgressCard(
+                                exercise: exercise,
+                                currentPR: currentPR,
+                                prCount: prsForExercise.count,
+                                prHistory: prsForExercise,
+                                isWideLayout: horizontalSizeClass == .regular
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                HapticManager.impact(style: .light)
+                                selectedExercise = exercise
+                                showExerciseDetail = true
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    for pr in prsForExercise {
+                                        viewModel.deletePR(pr)
                                     }
+                                } label: {
+                                    Label("Delete All PRs for \(exercise)", systemImage: "trash")
                                 }
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 100)
+            }
+        }
+    }
+    
+    // MARK: Sub-tab: Records (chronological PRs)
+    
+    private var exercisesRecordsPane: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                if viewModel.prs.isEmpty {
+                    Text("No PR records yet.")
+                        .font(ProgressFonts.medium(15))
+                        .foregroundStyle(kp.tertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 48)
+                }
+                ForEach(viewModel.prs.sorted { $0.date > $1.date }) { pr in
+                    Button {
+                        HapticManager.impact(style: .light)
+                        selectedExercise = pr.exercise
+                        showExerciseDetail = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(pr.exercise)
+                                    .font(ProgressFonts.semiBold(16))
+                                    .foregroundStyle(kp.onSurface)
+                                    .lineLimit(1)
+                                Text(pr.date.formatted(date: .abbreviated, time: .omitted))
+                                    .font(ProgressFonts.medium(13))
+                                    .foregroundStyle(kp.tertiary)
+                            }
+                            Spacer()
+                            Text("\(Int(pr.weight)) lbs × \(pr.reps)")
+                                .font(ProgressFonts.bold(15))
+                                .foregroundStyle(kp.primary)
+                        }
+                        .padding(16)
+                        .background(kp.surfaceContainerHighest)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 100)
+        }
+    }
+}
+
+// MARK: - Kinetic exercise cards (Exercises progress)
+
+private struct KineticExerciseStatTile: View {
+    @Environment(\.kineticPalette) private var kp
+    let title: String
+    let value: String
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Capsule()
+                .fill(accent.opacity(0.5))
+                .frame(width: 28, height: 4)
+            Text(title)
+                .font(ProgressFonts.medium(14))
+                .foregroundStyle(kp.tertiary)
+            Text(value)
+                .font(ProgressFonts.extraBold(28))
+                .foregroundStyle(kp.onSurface)
+                .kineticDisplayTracking(for: 28)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct KineticExerciseProgressCard: View {
+    @Environment(\.kineticPalette) private var kp
+    let exercise: String
+    let currentPR: PersonalRecord?
+    let prCount: Int
+    let prHistory: [PersonalRecord]
+    let isWideLayout: Bool
+
+    private static let lastPerformedFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        return f
+    }()
+    
+    private var category: (label: String, useSecondary: Bool) {
+        let (primary, _) = ExerciseDataManager.shared.getMuscleGroups(for: exercise)
+        let p = (primary.first ?? "").lowercased()
+        if p.contains("chest") || p.contains("pectoral") {
+            return ("Chest", true)
+        }
+        return ("Strength", false)
+    }
+    
+    private var sparklineHeights: [CGFloat] {
+        let sorted = prHistory.sorted { $0.date < $1.date }
+        let last = Array(sorted.suffix(6))
+        let volumes = last.map { $0.weight * Double($0.reps) }
+        guard let maxV = volumes.max(), maxV > 0, !volumes.isEmpty else {
+            return Array(repeating: 0.28, count: 6)
+        }
+        var normalized = volumes.map { CGFloat($0 / maxV) }
+        while normalized.count < 6 {
+            normalized.insert(0.12, at: 0)
+        }
+        return Array(normalized.suffix(6))
+    }
+    
+    private var accent: Color {
+        category.useSecondary ? kp.secondary : kp.primary
+    }
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Text("PR")
+                .font(ProgressFonts.extraBold(64))
+                .foregroundStyle(kp.onSurface.opacity(0.08))
+                .padding(16)
+                .accessibilityHidden(true)
+            
+            Group {
+                if isWideLayout {
+                    HStack(alignment: .top, spacing: 20) {
+                        exerciseThumbnail
+                        exerciseDetails
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 20) {
+                        exerciseThumbnail
+                            .frame(maxWidth: .infinity)
+                        exerciseDetails
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(kp.surfaceContainerHighest)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(kp.primary.opacity(0.06), lineWidth: 1)
+        )
+    }
+    
+    private var exerciseThumbnail: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(kp.surfaceContainerLow)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(AppColors.categoryGradient(for: exercise))
+                .opacity(0.22)
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 40, weight: .medium))
+                .foregroundStyle(accent.opacity(0.95))
+        }
+        .frame(width: isWideLayout ? 128 : nil, height: 128)
+        .frame(maxWidth: isWideLayout ? 128 : .infinity)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+    
+    private var exerciseDetails: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                Text(exercise)
+                    .font(ProgressFonts.bold(20))
+                    .foregroundStyle(kp.onSurface)
+                    .lineLimit(2)
+                Spacer(minLength: 8)
+                Text(category.label)
+                    .font(ProgressFonts.bold(10))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(accent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+            .padding(.bottom, 4)
+            
+            if let date = currentPR?.date {
+                Text("Last performed: \(Self.lastPerformedFormatter.string(from: date))")
+                    .font(ProgressFonts.medium(14))
+                    .foregroundStyle(kp.tertiary)
+                    .padding(.bottom, 16)
+            } else {
+                Text("No PR logged yet")
+                    .font(ProgressFonts.medium(14))
+                    .foregroundStyle(kp.tertiary)
+                    .padding(.bottom, 16)
+            }
+            
+            HStack(alignment: .bottom, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Personal Record")
+                        .font(ProgressFonts.bold(10))
+                        .tracking(1.6)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.outline)
+                    if let pr = currentPR {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(Int(pr.weight))")
+                                .font(ProgressFonts.extraBold(28))
+                                .foregroundStyle(kp.onSurface)
+                            Text("lbs")
+                                .font(ProgressFonts.medium(14))
+                                .foregroundStyle(kp.tertiary)
+                        }
+                    } else {
+                        Text("—")
+                            .font(ProgressFonts.extraBold(28))
+                            .foregroundStyle(kp.tertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("PR Count")
+                        .font(ProgressFonts.bold(10))
+                        .tracking(1.6)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.outline)
+                    Text(String(format: "%02d", min(prCount, 99)))
+                        .font(ProgressFonts.extraBold(28))
+                        .foregroundStyle(kp.onSurface)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Volume")
+                        .font(ProgressFonts.bold(10))
+                        .tracking(1.6)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.outline)
+                    HStack(alignment: .bottom, spacing: 2) {
+                        ForEach(0..<sparklineHeights.count, id: \.self) { i in
+                            let h = sparklineHeights[i]
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(accent.opacity(0.2 + Double(h) * 0.75))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: max(4, 40 * h))
+                        }
+                    }
+                    .frame(height: 40)
+                    .frame(maxWidth: .infinity)
+                }
             }
         }
     }
@@ -401,10 +1097,6 @@ struct StatsTab: View {
             LazyVStack(spacing: 24) {
                 // Progress Summary Card
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Your Progress")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(AppColors.textPrimary)
-                    
                     // Grid of stat pills
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         StatPill(

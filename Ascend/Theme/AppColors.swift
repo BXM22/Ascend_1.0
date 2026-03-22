@@ -4,6 +4,21 @@ import Combine
 import UIKit
 #endif
 
+// MARK: - DESIGN.md §2 canonical pairs (single source of truth)
+private enum BrandHex {
+    static let primaryLit = "9cd0d3"
+    static let primaryDeep = "3c6e71"
+    static let secondaryLit = "a8cbe7"
+    static let secondaryDeep = "284b63"
+    static let surfaceBase = "131313"
+    static let surfaceElevated = "353535"
+    static let tertiaryNeutral = "d9d9d9"
+    /// Body text on dark surfaces — high contrast on `#131313` / `#353535`.
+    static let textOnDark = "f2f2f2"
+    /// Secondary labels on dark surfaces (still above ~4.5:1 on base surface).
+    static let textMutedOnDark = "c8c8c8"
+}
+
 // MARK: - Theme Provider
 class ColorThemeProvider: ObservableObject {
     @Published var themeID = UUID()
@@ -45,12 +60,12 @@ class ColorThemeProvider: ObservableObject {
 }
 
 struct AppColors {
-    // Default Color Palette
-    static let inkBlack = Color(hex: "0d1b2a")
-    static let prussianBlue = Color(hex: "1b263b")
-    static let duskBlue = Color(hex: "415a77")
-    static let dustyDenim = Color(hex: "778da9")
-    static let alabasterGrey = Color(hex: "e0e1dd")
+    // Default Color Palette (aligned with DESIGN.md — deep masculine base + clinical accents)
+    static let inkBlack = Color(hex: "0f2224")
+    static let prussianBlue = Color(hex: BrandHex.secondaryDeep)
+    static let duskBlue = Color(hex: BrandHex.primaryDeep)
+    static let dustyDenim = Color(hex: "5a8a8e")
+    static let alabasterGrey = Color(hex: "e8e8e8")
     
     // MARK: - Custom Theme Support
     
@@ -82,6 +97,8 @@ struct AppColors {
     }
     
     // Helper to get color with light/dark variants
+    /// - Note: Imported palettes are **sorted by brightness**, so array indices are **not** reliable for brand primary vs accent.
+    /// Use theme indices only for **background / surface / text**; brand colors use `defaultLight`/`defaultDark` + optional `customKey` overrides.
     private static func adaptiveColor(
         lightIndex: Int? = nil,
         darkIndex: Int? = nil,
@@ -117,123 +134,158 @@ struct AppColors {
     }
     
     // Semantic Colors - Now with dark mode support, custom theme support, and custom color overrides
+    /// App canvas — deepest charcoal (DESIGN.md: avoid #000; use surface base).
     static var background: Color {
         adaptiveColor(
-            lightIndex: 4, // Use last color (usually lightest) for light mode
-            darkIndex: 0,  // Use first color (usually darkest) for dark mode
+            lightIndex: 4,
+            darkIndex: 0,
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "000000"), // True black for dark mode
+            defaultDark: Color(hex: BrandHex.surfaceBase),
             customKey: "background"
         )
     }
+
+    /// Same palette as `background`, but chosen from SwiftUI `ColorScheme`.
+    /// Use for chrome (e.g. bottom tab bar in `safeAreaInset`) where dynamic `UIColor`–backed colors can resolve to the wrong variant and read as white.
+    static func appBackground(for colorScheme: ColorScheme) -> Color {
+        if let custom = getCustomColor(for: "background") {
+            return custom
+        }
+        guard let theme = customTheme else {
+            switch colorScheme {
+            case .dark: return Color(hex: BrandHex.surfaceBase)
+            case .light: return alabasterGrey
+            @unknown default: return alabasterGrey
+            }
+        }
+        if colorScheme == .dark {
+            if 0 < theme.colors.count {
+                return Color(hex: theme.colors[0])
+            }
+            return Color(hex: BrandHex.surfaceBase)
+        }
+        if 4 < theme.colors.count {
+            return Color(hex: theme.colors[4])
+        }
+        return alabasterGrey
+    }
     
+    /// Main text — theme slots skipped by default so imported palettes can’t replace body text with low-contrast hues.
     static var foreground: Color {
         adaptiveColor(
-            lightIndex: 0, // Dark text on light background
-            darkIndex: 4,  // Light text on dark background
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: inkBlack,
-            defaultDark: Color(hex: "ffffff"), // White text for dark mode
+            defaultDark: Color(hex: BrandHex.textOnDark),
             customKey: "foreground"
         )
     }
     
+    /// Elevated surface — fixed defaults; theme indices were unreliable (same slot as bg or random hues when sorted).
     static var card: Color {
         adaptiveColor(
-            lightIndex: 4, // Light card in light mode
-            darkIndex: 1,  // Second color for card in dark mode
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: .white,
-            defaultDark: Color(hex: "1c1c1e"), // iOS system dark gray for cards
+            defaultDark: Color(hex: BrandHex.surfaceElevated),
             customKey: "card"
         )
     }
     
+    /// Brand primary — deep on light UI, **lit** on dark UI so labels stay visible on charcoal surfaces.
     static var primary: Color {
         adaptiveColor(
-            lightIndex: 2,
-            darkIndex: 2,
-            defaultLight: prussianBlue,
-            defaultDark: Color(hex: "5a9eff"), // Bright blue for dark mode - ensures visibility
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: BrandHex.primaryDeep),
+            defaultDark: Color(hex: BrandHex.primaryLit),
             customKey: "primary"
         )
     }
     
+    /// Neutral chrome (tabs, etc.) — not a “secondary brand” swatch.
     static var secondary: Color {
         adaptiveColor(
-            lightIndex: 4,
-            darkIndex: 1,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1f1f1f"), // Dark gray for secondary elements
+            defaultDark: Color(hex: "252525"),
             customKey: "secondary"
         )
     }
     
     static var muted: Color {
         adaptiveColor(
-            lightIndex: 4,
-            darkIndex: 1,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: Color(hex: "f0f0f0"),
-            defaultDark: Color(hex: "2c2c2e"), // Slightly lighter gray for muted elements
+            defaultDark: Color(hex: "2a2a2a"),
             customKey: "muted"
         )
     }
     
     static var mutedForeground: Color {
         adaptiveColor(
-            lightIndex: 2,
-            darkIndex: 3,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "c7c7cc"), // Brighter gray for secondary text in dark mode
+            defaultDark: Color(hex: BrandHex.textMutedOnDark),
             customKey: "mutedForeground"
         )
     }
     
     static var border: Color {
         adaptiveColor(
-            lightIndex: 2,
-            darkIndex: 2,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: dustyDenim,
-            defaultDark: Color(hex: "3a3a3c"), // Medium gray for borders
+            defaultDark: Color(hex: "5c5c5c"),
             customKey: "border"
         )
     }
     
     static var input: Color {
         adaptiveColor(
-            lightIndex: 4,
-            darkIndex: 1,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: Color(hex: "f5f5f5"),
-            defaultDark: Color(hex: "1c1c1e"), // Dark gray for input fields
+            defaultDark: Color(hex: "2c2c2e"),
             customKey: "input"
         )
     }
     
+    /// Design system **Secondary** — analytical data, progress, subtle focus (`#a8cbe7` / `#284b63`). Not `secondary` (neutral chrome).
     static var accent: Color {
         adaptiveColor(
-            lightIndex: 3,
-            darkIndex: 3,
-            defaultLight: duskBlue,
-            defaultDark: Color(hex: "7ab8ff"), // Lighter blue for dark mode - ensures visibility
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: BrandHex.secondaryDeep),
+            defaultDark: Color(hex: BrandHex.secondaryLit),
             customKey: "accent"
         )
     }
     
+    /// Alias for design-language “Secondary” (same as `accent`). `AppColors.secondary` remains neutral UI chrome.
+    static var brandSecondary: Color { accent }
+    
+    /// Text on accent-colored controls: light text on dark accent (light mode), dark text on light accent (dark mode).
     static var accentForeground: Color {
         adaptiveColor(
-            lightIndex: 0,
-            darkIndex: 4,
+            lightIndex: nil,
+            darkIndex: nil,
             defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "ffffff"), // White for dark mode - ensures visibility
+            defaultDark: Color(hex: BrandHex.secondaryDeep),
             customKey: "accentForeground"
         )
     }
     
-    // Adaptive color for text on gradient/primary backgrounds
+    // Adaptive color for text on gradient/primary backgrounds (dark mode: light text on deep teal end of gradient)
     static var onPrimary: Color {
         adaptiveColor(
-            lightIndex: 4,
-            darkIndex: 4,
-            defaultLight: alabasterGrey,
-            defaultDark: Color(hex: "ffffff"), // White for dark mode - ensures visibility on dark gradients
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: "0f2224"),
+            defaultDark: alabasterGrey,
             customKey: "onPrimary"
         )
     }
@@ -247,10 +299,10 @@ struct AppColors {
     
     static var success: Color {
         adaptiveColor(
-            lightIndex: 3,
-            darkIndex: 3,
-            defaultLight: duskBlue,
-            defaultDark: Color(hex: "34c759"), // iOS green for success in dark mode
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: "16a34a"),
+            defaultDark: Color(hex: "34c759"),
             customKey: "success"
         )
     }
@@ -265,24 +317,48 @@ struct AppColors {
     // Design system aliases for DashboardView compatibility
     static var textPrimary: Color { foreground }
     static var textSecondary: Color { mutedForeground }
+    static var onSurface: Color { foreground }
+    static var onSurfaceVariant: Color { mutedForeground }
+    /// Foundation — recessed base.
+    static var surface: Color { Color(hex: BrandHex.surfaceBase) }
+    /// Sectioning between base and cards (visible step from `surface`).
+    static var surfaceContainerLow: Color { Color(hex: "1c1c1c") }
+    /// Interactive cards — toward the elevated surface tone.
+    static var surfaceContainerHigh: Color { Color(hex: "303030") }
+    /// Elevated surface — content lifts from the base.
+    static var surfaceContainerHighest: Color { Color(hex: BrandHex.surfaceElevated) }
+    /// Primary lit fill — pairs with `primaryDim` for gradients.
+    static var primaryContainer: Color { Color(hex: BrandHex.primaryLit) }
+    static var primaryDim: Color { Color(hex: BrandHex.primaryDeep) }
+    static var onPrimaryContainer: Color { Color(hex: "0f2224") }
+    static var secondaryContainer: Color { Color(hex: BrandHex.secondaryDeep) }
+    static var onSecondaryContainer: Color { Color(hex: "d9e7f2") }
+    static var outlineVariant: Color { Color(hex: "484848").opacity(0.15) }
+    /// Tertiary / neutral — body tone; dark mode uses boosted contrast vs spec `#d9d9d9`.
+    static var tertiary: Color {
+        Color(light: inkBlack, dark: Color(hex: BrandHex.textOnDark))
+    }
+    static var tertiaryContainer: Color {
+        Color(light: dustyDenim, dark: Color(hex: BrandHex.textMutedOnDark))
+    }
     
-    // Adaptive gradient colors for headers
+    // Brand gradient — not driven by theme indices (was duplicating slot 3 for start/end).
     static var primaryGradientStart: Color {
         adaptiveColor(
-            lightIndex: 1,
-            darkIndex: 3,
-            defaultLight: prussianBlue,
-            defaultDark: Color(hex: "5a9eff"), // Bright blue gradient start for dark mode
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: BrandHex.primaryDeep),
+            defaultDark: Color(hex: BrandHex.primaryLit),
             customKey: "primaryGradientStart"
         )
     }
     
     static var primaryGradientEnd: Color {
         adaptiveColor(
-            lightIndex: 2,
-            darkIndex: 3,
-            defaultLight: duskBlue,
-            defaultDark: Color(hex: "7ab8ff"), // Lighter blue gradient end for dark mode
+            lightIndex: nil,
+            darkIndex: nil,
+            defaultLight: Color(hex: BrandHex.secondaryDeep),
+            defaultDark: Color(hex: BrandHex.primaryDeep),
             customKey: "primaryGradientEnd"
         )
     }
@@ -373,8 +449,8 @@ struct AppColors {
         ("Rose", "f43f5e"),
         ("Teal", "0891b2"),
         ("Sky", "0ea5e9"),
-        ("Primary", "415a77"),
-        ("Dusty Denim", "778da9")
+        ("Primary deep", BrandHex.primaryDeep),
+        ("Secondary deep", BrandHex.secondaryDeep)
     ]
     
     // MARK: - Color Grid Generation
@@ -562,11 +638,20 @@ extension LinearGradient {
     static var accentGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color(light: AppColors.duskBlue, dark: Color(hex: "2c2c2e")),
-                Color(light: AppColors.dustyDenim, dark: Color(hex: "3a3a3c"))
+                Color(light: Color(hex: BrandHex.secondaryDeep), dark: Color(hex: BrandHex.secondaryLit)),
+                Color(light: Color(hex: BrandHex.primaryDeep), dark: Color(hex: BrandHex.secondaryDeep))
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
+        )
+    }
+    
+    /// Kinetic Atelier hero CTA — `secondary_container` → `primary_container`, ~45° (DESIGN.md §2).
+    static var heroCTA: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.secondaryContainer, AppColors.primaryContainer],
+            startPoint: .bottomLeading,
+            endPoint: .topTrailing
         )
     }
     

@@ -6,8 +6,10 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
+    @EnvironmentObject private var colorThemeProvider: ColorThemeProvider
     @StateObject private var progressViewModel: ProgressViewModel
     @StateObject private var templatesViewModel: TemplatesViewModel
     @StateObject private var programViewModel: WorkoutProgramViewModel
@@ -54,8 +56,8 @@ struct ContentView: View {
         }
     }
     
-    enum Tab {
-        case dashboard, workout, progress, templates
+    enum Tab: CaseIterable, Hashable {
+        case dashboard, workout, progress, templates, habits
     }
     
     var effectiveColorScheme: ColorScheme {
@@ -66,86 +68,91 @@ struct ContentView: View {
         ZStack {
             AppColors.background
                 .ignoresSafeArea()
-                .id(AppColors.themeID)
                 .onTapGesture {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             
-            // Main Content
-            Group {
-                switch selectedTab {
-                case .dashboard:
-                    DashboardView(
-                        progressViewModel: progressViewModel,
-                        workoutViewModel: workoutViewModel,
-                        templatesViewModel: templatesViewModel,
-                        programViewModel: programViewModel,
-                        themeManager: themeManager,
-                        onStartWorkout: {
-                            withAnimation(AppAnimations.standard) {
-                                selectedTab = .workout
+            // Main content + bottom tab bar — explicit `VStack` so chrome stays at the physical bottom (`safeAreaInset` can pin incorrectly inside some `ZStack` layouts).
+            VStack(spacing: 0) {
+                Group {
+                    switch selectedTab {
+                    case .dashboard:
+                        DashboardView(
+                            progressViewModel: progressViewModel,
+                            workoutViewModel: workoutViewModel,
+                            templatesViewModel: templatesViewModel,
+                            programViewModel: programViewModel,
+                            themeManager: themeManager,
+                            settingsManager: settingsManager,
+                            onStartWorkout: {
+                                withAnimation(AppAnimations.standard) {
+                                    selectedTab = .workout
+                                }
+                            },
+                            onSettings: {
+                                showSettingsSheet = true
+                            },
+                            onNavigateToProgress: {
+                                withAnimation(AppAnimations.standard) {
+                                    selectedTab = .progress
+                                }
                             }
-                        },
-                        onSettings: {
-                            showSettingsSheet = true
-                        },
-                        onNavigateToProgress: {
-                            withAnimation(AppAnimations.standard) {
-                                selectedTab = .progress
-                            }
-                        }
-                    )
-                    .id(AppColors.themeID)
-                    .transition(.slideFromBottom)
-                case .workout:
-                    WorkoutView(viewModel: workoutViewModel)
+                        )
                         .id(AppColors.themeID)
                         .transition(.slideFromBottom)
-                case .progress:
-                    ProgressView(
-                        viewModel: progressViewModel,
-                        themeManager: themeManager,
-                        onSettings: {
-                            showSettingsSheet = true
-                        }
-                    )
-                    .id(AppColors.themeID)
-                    .transition(.slideFromBottom)
-                case .templates:
-                    TemplatesView(
-                        viewModel: templatesViewModel,
-                        workoutViewModel: workoutViewModel,
-                        programViewModel: programViewModel,
-                        themeManager: themeManager,
-                        progressViewModel: progressViewModel,
-                        onStartTemplate: {
-                            withAnimation(AppAnimations.standard) {
-                                selectedTab = .workout
+                    case .workout:
+                        WorkoutView(viewModel: workoutViewModel)
+                            .id(AppColors.themeID)
+                            .transition(.slideFromBottom)
+                    case .progress:
+                        ProgressView(
+                            viewModel: progressViewModel,
+                            themeManager: themeManager,
+                            onSettings: {
+                                showSettingsSheet = true
                             }
-                        },
-                        onSettings: {
+                        )
+                        .id(AppColors.themeID)
+                        .transition(.slideFromBottom)
+                    case .templates:
+                        TemplatesView(
+                            viewModel: templatesViewModel,
+                            workoutViewModel: workoutViewModel,
+                            programViewModel: programViewModel,
+                            themeManager: themeManager,
+                            progressViewModel: progressViewModel,
+                            onStartTemplate: {
+                                withAnimation(AppAnimations.standard) {
+                                    selectedTab = .workout
+                                }
+                            },
+                            onSettings: {
+                                showSettingsSheet = true
+                            }
+                        )
+                        .id(AppColors.themeID)
+                        .transition(.slideFromBottom)
+                    case .habits:
+                        HabitsView(onSettings: {
                             showSettingsSheet = true
-                        }
-                    )
-                    .id(AppColors.themeID)
-                    .transition(.slideFromBottom)
+                        })
+                        .id(AppColors.themeID)
+                        .transition(.slideFromBottom)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(AppAnimations.standard, value: selectedTab)
+
+                BottomNavigationBar(selectedTab: $selectedTab, resolvedColorScheme: effectiveColorScheme)
+                    .id(AppColors.themeID)
+                    .animation(nil, value: selectedTab)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(AppAnimations.standard, value: selectedTab)
+            // Extend into the home-indicator strip so the bar sits on the physical bottom (no extra gap under it).
+            .ignoresSafeArea(edges: .bottom)
             .environmentObject(settingsManager)
             .environmentObject(ColorThemeProvider.shared)
-            
-            // Floating Bottom Navigation Bar
-            VStack {
-                Spacer()
-                BottomNavigationBar(
-                    selectedTab: $selectedTab,
-                    themeManager: themeManager,
-                    settingsManager: settingsManager
-                )
-                .id(AppColors.themeID)
-            }
+            .environment(\.kineticPalette, KineticAdaptivePalette.alignedWithAppColors(effectiveColorScheme))
             .ignoresSafeArea(.keyboard)
             .tutorialOverlay(onboardingManager: onboardingManager) {
                 // Handle tutorial completion - switch to highlighted tab if needed
@@ -228,67 +235,138 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Kinetic tab bar (DESIGN.md: tonal chrome, primary accent, no hard rules)
+
+private enum KineticTabBarFonts {
+    static func label(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Bold", size: size, relativeTo: .caption2)
+    }
+}
+
+private extension ContentView.Tab {
+    var tabIcon: String {
+        switch self {
+        case .dashboard: return "house.fill"
+        case .workout: return "dumbbell.fill"
+        case .progress: return "chart.line.uptrend.xyaxis"
+        case .templates: return "rectangle.stack.fill"
+        case .habits: return "checkmark.circle.fill"
+        }
+    }
+
+    var tabShortLabel: String {
+        switch self {
+        case .dashboard: return "STUDIO"
+        case .workout: return "SESSION"
+        case .progress: return "STATS"
+        case .templates: return "LIBRARY"
+        case .habits: return "HABITS"
+        }
+    }
+
+    var tabAccessibilityLabel: String {
+        switch self {
+        case .dashboard: return "Dashboard"
+        case .workout: return "Workout"
+        case .progress: return "Progress"
+        case .templates: return "Templates"
+        case .habits: return "Habits"
+        }
+    }
+}
+
 struct BottomNavigationBar: View {
     @Binding var selectedTab: ContentView.Tab
-    @ObservedObject var themeManager: ThemeManager
-    @ObservedObject var settingsManager: SettingsManager
-    
+    /// Must match `ContentView.effectiveColorScheme` — `safeAreaInset` can report the wrong `Environment.colorScheme` vs the canvas / `ThemeManager`.
+    var resolvedColorScheme: ColorScheme
+
+    private var homeIndicatorInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets.bottom ?? 0
+    }
+
     var body: some View {
-        // Connected circles design
-        HStack(spacing: -8) {
-            NavButton(
-                icon: "house.fill",
-                title: "Home",
-                isSelected: selectedTab == .dashboard
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .dashboard
+        // Intrinsic height only — never use `maxHeight: .infinity` here: inside a root `VStack` it steals
+        // all remaining vertical space and pins controls to the top, leaving a blank band at the bottom.
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(resolvedColorScheme == .dark ? 0.22 : 0.06),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 12)
+            .allowsHitTesting(false)
+
+            HStack(spacing: 0) {
+                ForEach(ContentView.Tab.allCases, id: \.self) { tab in
+                    KineticTabBarItem(
+                        icon: tab.tabIcon,
+                        label: tab.tabShortLabel,
+                        isSelected: selectedTab == tab,
+                        accessibilityTitle: tab.tabAccessibilityLabel
+                    ) {
+                        select(tab)
+                    }
                 }
             }
-            
-            NavButton(
-                icon: "dumbbell.fill",
-                title: "Workout",
-                isSelected: selectedTab == .workout
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .workout
-                }
-            }
-            
-            NavButton(
-                icon: "chart.line.uptrend.xyaxis",
-                title: "Progress",
-                isSelected: selectedTab == .progress
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .progress
-                }
-            }
-            
-            NavButton(
-                icon: "list.bullet.rectangle",
-                title: "Templates",
-                isSelected: selectedTab == .templates
-            ) {
-                HapticManager.selection()
-                withAnimation(AppAnimations.quick) {
-                    selectedTab = .templates
-                }
-            }
-            
+            .padding(.top, 6)
+            .padding(.bottom, max(4, homeIndicatorInset - 4))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(
-            // Connected circles background
-            ConnectedCirclesBackground()
-        )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+        .background {
+            AppColors.appBackground(for: resolvedColorScheme)
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    private func select(_ tab: ContentView.Tab) {
+        HapticManager.selection()
+        selectedTab = tab
+    }
+}
+
+private struct KineticTabBarItem: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let accessibilityTitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                Text(label)
+                    .font(KineticTabBarFonts.label(7.5))
+                    .tracking(1.8)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(AppColors.primary)
+                        .frame(width: 22, height: 3)
+                        .opacity(isSelected ? 1 : 0)
+                    Color.clear
+                        .frame(height: 3)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .foregroundStyle(isSelected ? AppColors.primary : AppColors.foreground.opacity(0.4))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityTitle)
+        .accessibilityHint(isSelected ? "Currently selected" : "Switch to this tab")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -403,122 +481,8 @@ struct ThemeToggleButton: View {
     }
 }
 
-struct NavButton: View {
-    let icon: String
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
-                    // Circular background - always visible but styled differently
-                    Circle()
-                        .fill(
-                            isSelected
-                                ? LinearGradient.primaryGradient
-                                : LinearGradient(
-                                    colors: [
-                                        AppColors.card.opacity(0.8),
-                                        AppColors.card.opacity(0.6)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(
-                                    isSelected
-                                        ? Color.clear
-                                        : AppColors.border.opacity(0.2),
-                                    lineWidth: 1
-                                )
-                        )
-                        .shadow(
-                            color: isSelected
-                                ? AppColors.primary.opacity(0.4)
-                                : AppColors.foreground.opacity(0.05),
-                            radius: isSelected ? 8 : 4,
-                            x: 0,
-                            y: isSelected ? 2 : 1
-                        )
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(isSelected ? .white : AppColors.textSecondary)
-                        .scaleEffect(isSelected ? 1.0 : (isHovered ? 1.05 : 1.0))
-                        .animation(AppAnimations.selection, value: isSelected)
-                        .animation(AppAnimations.quick, value: isHovered)
-                }
-                .frame(width: 50, height: 50)
-                
-                Text(title)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
-                    .foregroundColor(isSelected ? AppColors.primary : AppColors.textSecondary)
-                    .opacity(isHovered && !isSelected ? 0.8 : 1.0)
-            }
-            .frame(maxWidth: .infinity)
-            .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
-            .animation(AppAnimations.quick, value: isHovered)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .accessibilityLabel(title)
-        .accessibilityHint(isSelected ? "Currently selected \(title) tab" : "Switch to \(title) tab")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-// MARK: - Connected Circles Background
-
-struct ConnectedCirclesBackground: View {
-    var body: some View {
-        GeometryReader { geometry in
-            let circleRadius: CGFloat = 25
-            let circleDiameter = circleRadius * 2
-            let totalWidth = geometry.size.width
-            let totalHeight = geometry.size.height
-            let circleCount: CGFloat = 5 // 5 nav buttons
-            let spacing = (totalWidth - (circleCount * circleDiameter)) / (circleCount - 1)
-            
-            ZStack {
-                // Background blur
-                RoundedRectangle(cornerRadius: totalHeight / 2)
-                    .fill(.ultraThinMaterial)
-                    .frame(width: totalWidth, height: totalHeight)
-                    .shadow(color: AppColors.foreground.opacity(0.08), radius: 20, x: 0, y: -2)
-                
-                // Connecting lines between circles
-                ForEach(0..<Int(circleCount - 1), id: \.self) { index in
-                    let startX = circleRadius + CGFloat(index) * (circleDiameter + spacing)
-                    let endX = startX + spacing + circleDiameter
-                    let centerY = totalHeight / 2
-                    
-                    Path { path in
-                        path.move(to: CGPoint(x: startX + circleRadius, y: centerY))
-                        path.addLine(to: CGPoint(x: endX - circleRadius, y: centerY))
-                    }
-                    .stroke(
-                        AppColors.border.opacity(0.15),
-                        style: StrokeStyle(lineWidth: 1, lineCap: .round)
-                    )
-                }
-                
-                // Border around the entire shape
-                RoundedRectangle(cornerRadius: totalHeight / 2)
-                    .strokeBorder(AppColors.border.opacity(0.15), lineWidth: 0.5)
-            }
-        }
-    }
-}
-
 #Preview {
     ContentView()
+        .environmentObject(ColorThemeProvider.shared)
 }
 

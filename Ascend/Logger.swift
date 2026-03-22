@@ -10,7 +10,6 @@ enum Logger {
     
     private static let general = OSLog(subsystem: subsystem, category: "General")
     private static let persistence = OSLog(subsystem: subsystem, category: "Persistence")
-    private static let cloudKit = OSLog(subsystem: subsystem, category: "CloudKit")
     private static let validation = OSLog(subsystem: subsystem, category: "Validation")
     private static let notification = OSLog(subsystem: subsystem, category: "Notification")
     private static let performance = OSLog(subsystem: subsystem, category: "Performance")
@@ -54,7 +53,6 @@ enum Logger {
     enum Category {
         case general
         case persistence
-        case cloudKit
         case validation
         case notification
         case performance
@@ -66,8 +64,6 @@ enum Logger {
             return general
         case .persistence:
             return persistence
-        case .cloudKit:
-            return cloudKit
         case .validation:
             return validation
         case .notification:

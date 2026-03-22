@@ -58,21 +58,22 @@ struct HabitsSummaryCard: View {
                 // Compact stats
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Habits")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppTypography.labelSmallUppercase)
+                        .tracking(0.8)
                         .foregroundColor(AppColors.foreground)
                     
                     HStack(spacing: 8) {
                         Text("\(viewModel.totalHabits) active")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppColors.mutedForeground)
+                            .font(AppTypography.bodyMediumEditorial)
+                            .foregroundColor(AppColors.onSurfaceVariant)
                         
                         if viewModel.totalHabits > 0 {
                             Text("•")
                                 .foregroundColor(AppColors.mutedForeground)
                             
                             Text("\(viewModel.todayCompletions)/\(viewModel.totalHabits) today")
-                                .font(.system(size: 12))
-                                .foregroundColor(AppColors.mutedForeground)
+                                .font(AppTypography.bodyMediumEditorial)
+                                .foregroundColor(AppColors.onSurfaceVariant)
                         }
                     }
                 }
@@ -103,15 +104,8 @@ struct HabitsSummaryCard: View {
                 }
             }
             .padding(AppSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AppColors.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
-                    )
-            )
-            .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+            .background(AppColors.surfaceContainerHigh)
+            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cardRadiusXL, style: .continuous))
     }
 }
 

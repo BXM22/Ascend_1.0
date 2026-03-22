@@ -16,31 +16,31 @@ struct CompactStatCard: View {
     let icon: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(gradient)
                 
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(AppColors.mutedForeground)
+                    .font(AppTypography.labelSmallUppercase)
+                    .foregroundColor(AppColors.onSurfaceVariant)
+                    .textCase(.uppercase)
+                    .tracking(0.8)
             }
             
             Text(value)
-                .font(.system(size: 24, weight: .bold))
+                .font(AppTypography.numberInputLarge)
                 .foregroundStyle(gradient)
             
             Text(subtitle)
-                .font(.system(size: 10))
-                .foregroundColor(AppColors.mutedForeground)
+                .font(AppTypography.bodyMediumEditorial)
+                .foregroundColor(AppColors.onSurfaceVariant)
         }
         .frame(width: 100)
-        .padding(AppSpacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(AppColors.card)
-        )
+        .padding(AppSpacing.md)
+        .background(AppColors.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cardRadiusXL, style: .continuous))
     }
 }
 

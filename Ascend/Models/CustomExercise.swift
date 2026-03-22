@@ -10,6 +10,8 @@ struct CustomExercise: Identifiable, Codable, Equatable {
     let videoURL: String?
     let category: String
     let equipment: String?
+    /// Optional coaching / execution notes (shown in add/edit only; not required for logging).
+    let performanceCues: String?
     let dateCreated: Date
     
     init(
@@ -21,6 +23,7 @@ struct CustomExercise: Identifiable, Codable, Equatable {
         videoURL: String? = nil,
         category: String,
         equipment: String? = nil,
+        performanceCues: String? = nil,
         dateCreated: Date = Date()
     ) {
         self.id = id
@@ -31,6 +34,7 @@ struct CustomExercise: Identifiable, Codable, Equatable {
         self.videoURL = videoURL
         self.category = category
         self.equipment = equipment
+        self.performanceCues = performanceCues
         self.dateCreated = dateCreated
     }
 }

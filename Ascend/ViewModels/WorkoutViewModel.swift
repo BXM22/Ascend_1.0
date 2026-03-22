@@ -44,6 +44,9 @@ class WorkoutViewModel: ObservableObject {
     private var timer: Timer?
     private var restTimer: Timer?
     private var workoutStartTime: Date?
+
+    /// Wall-clock start of the current session (for UI labels). Nil if no workout in progress.
+    var sessionStartTime: Date? { workoutStartTime }
     private var restTimerStartTime: Date?
     private var restTimerOriginalDuration: Int = 0
     private var backgroundTime: Date?
@@ -1984,6 +1987,24 @@ class WorkoutViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerRemaining)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerTotalDuration)
         UserDefaults.standard.removeObject(forKey: AppConstants.UserDefaultsKeys.restTimerStartTime)
+    }
+    
+    // MARK: - Working set count
+    
+    /// Adds one planned working set slot for the given exercise (kinetic card “+ Add Set”).
+    func addWorkingSetSlot(exerciseId: UUID) {
+        guard var workout = currentWorkout,
+              let idx = workout.exercises.firstIndex(where: { $0.id == exerciseId }) else { return }
+        let ex = workout.exercises[idx]
+        let newTarget = ex.targetSets + 1
+        guard newTarget <= AppConstants.Validation.maxSets else {
+            Logger.debug("addWorkingSetSlot: at max sets (\(AppConstants.Validation.maxSets))", category: .validation)
+            return
+        }
+        workout.exercises[idx] = Exercise(copying: ex, targetSets: newTarget)
+        currentWorkout = workout
+        syncDropsetStateFromCurrentExercise()
+        HapticManager.impact(style: .light)
     }
     
     // MARK: - Exercise Deletion

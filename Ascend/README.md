@@ -110,20 +110,15 @@ Modify `ProgressView.swift` to customize chart appearance and data.
 
 ## Future Enhancements
 
-- [ ] Core Data persistence
-- [ ] CloudKit sync
+- [ ] Core Data / SwiftData (optional migration from JSON `UserDefaults` storage)
 - [ ] Apple Watch companion app
-- [ ] Workout history
-- [ ] Exercise library
-- [ ] Custom rest timer durations
-- [ ] Export workout data
-- [ ] Social sharing
+- [ ] Social sharing (beyond system share sheet)
 
 ## Notes
 
-- Currently uses sample/mock data for progress charts
-- Workout data is stored in memory (not persisted)
-- To add persistence, integrate Core Data or SwiftData
+- **Persistence:** Completed workouts, templates, PRs, custom exercises, habits, and related settings are stored in **`UserDefaults`** (JSON-encoded models). The app is not “in-memory only.”
+- **Export:** Use **Stats → menu → Export Data** to share a JSON backup (workouts, PRs, dates, templates, custom exercises) via the system share sheet.
+- **Weekly goal:** Configurable under **Settings → Goals** (Studio dashboard ring).
 
 ## License
 

@@ -96,9 +96,8 @@ struct CustomSport: Identifiable, Codable, Equatable {
     }
     
     func toSportsTimerConfig() -> SportsTimerConfig {
-        // Create config with placeholder sport - the view model will use custom sport data
-        return SportsTimerConfig(
-            sport: .boxing, // Placeholder - actual sport data comes from CustomSport
+        SportsTimerConfig(
+            sport: .userDefined,
             roundDuration: roundDuration,
             restDuration: restDuration,
             numberOfRounds: numberOfRounds,

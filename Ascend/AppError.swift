@@ -5,7 +5,6 @@ enum AppError: LocalizedError {
     case invalidInput(String)
     case validationFailed(String)
     case persistenceFailed(String)
-    case cloudKitError(String)
     case networkError(String)
     case themeImportError(String)
     case exerciseNotFound(String)
@@ -23,8 +22,6 @@ enum AppError: LocalizedError {
             return "Validation failed: \(message)"
         case .persistenceFailed(let message):
             return "Failed to save data: \(message)"
-        case .cloudKitError(let message):
-            return "CloudKit error: \(message)"
         case .networkError(let message):
             return "Network error: \(message)"
         case .themeImportError(let message):
@@ -52,8 +49,6 @@ enum AppError: LocalizedError {
             return "The data failed validation checks."
         case .persistenceFailed:
             return "The data could not be saved to persistent storage."
-        case .cloudKitError:
-            return "An error occurred while syncing with iCloud."
         case .networkError:
             return "A network error occurred. Please check your connection."
         case .themeImportError:
@@ -81,8 +76,6 @@ enum AppError: LocalizedError {
             return "Please verify the data meets all requirements."
         case .persistenceFailed:
             return "Please try again. If the problem persists, restart the app."
-        case .cloudKitError:
-            return "Please check your iCloud settings and try again."
         case .networkError:
             return "Please check your internet connection and try again."
         case .themeImportError:

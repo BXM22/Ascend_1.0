@@ -5,6 +5,7 @@ enum PageType {
     case workout
     case progress
     case templates
+    case habits
     
     var title: String {
         switch self {
@@ -12,6 +13,7 @@ enum PageType {
         case .workout: return "Workout"
         case .progress: return "Progress"
         case .templates: return "Templates"
+        case .habits: return "Habits"
         }
     }
     
@@ -52,6 +54,13 @@ enum PageType {
                 PageFeature(icon: "figure.strengthtraining.traditional", title: "Calisthenics Skills", description: "Access progression-based calisthenics skill templates."),
                 PageFeature(icon: "pencil", title: "Edit Templates", description: "Modify existing templates to match your evolving training needs."),
                 PageFeature(icon: "magnifyingglass", title: "Search Templates", description: "Quickly find templates by name or exercise.")
+            ]
+        case .habits:
+            return [
+                PageFeature(icon: "checkmark.circle.fill", title: "Daily completions", description: "Log habits for today and build consistency with streak-friendly tracking."),
+                PageFeature(icon: "calendar", title: "14-day view", description: "See how your habit slots fill over the last two weeks."),
+                PageFeature(icon: "plus.circle.fill", title: "Create & edit", description: "Add new habits or adjust existing ones from the floating action button."),
+                PageFeature(icon: "gearshape.fill", title: "Settings", description: "Open app settings from the gear control for timers, themes, and data options.")
             ]
         }
     }

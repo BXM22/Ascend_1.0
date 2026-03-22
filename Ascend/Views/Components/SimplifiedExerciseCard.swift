@@ -11,47 +11,58 @@ import SwiftUI
 struct SimplifiedWeightedExerciseCard: View {
     @ObservedObject var viewModel: WorkoutViewModel
     let exercise: Exercise
-    
+    @Environment(\.kineticPalette) private var kp
+
     @State private var weight: String = ""
     @State private var reps: String = ""
     @State private var showHistory = false
     @State private var showAlternatives = false
     @State private var showDropsetSettings = false
     @State private var showDeleteConfirmation = false
-    
-    var suggestion: (weight: Double, reps: Int)? {
+    /// Snapshot of last-session line for the "Previous" column (does not change mid-set as history updates).
+    @State private var previousSessionLine: String = "—"
+    @State private var previousSessionExerciseId: UUID?
+
+    private var mainWorkingSets: [ExerciseSet] {
+        exercise.sets.filter { !$0.isDropset && !$0.isWarmup }.sorted { $0.setNumber < $1.setNumber }
+    }
+
+    private var nextSetNumber: Int {
+        (mainWorkingSets.last?.setNumber ?? 0) + 1
+    }
+
+    private var suggestion: (weight: Double, reps: Int)? {
         viewModel.getWeightSuggestion(for: exercise)
     }
-    
-    var canCompleteSet: Bool {
+
+    private var canCompleteSet: Bool {
         !weight.isEmpty && !reps.isEmpty
     }
-    
+
+    private var setRowRange: ClosedRange<Int> {
+        let n = max(1, exercise.targetSets)
+        return 1...n
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
-            // Header
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                // Set progress
-                Text("Set \(exercise.sets.count + 1) of \(exercise.targetSets)")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                
-                Spacer()
-                
-                // Quick actions menu
+                Text("Set \(min(nextSetNumber, max(1, exercise.targetSets))) of \(exercise.targetSets)")
+                    .font(KineticWorkoutTypography.bold(11))
+                    .tracking(1.2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.primary)
+                Spacer(minLength: 0)
                 Menu {
                     Button(action: { showHistory = true }) {
                         Label("View History", systemImage: "chart.bar")
                     }
-                    
                     Button(action: { showAlternatives = true }) {
                         Label("Alternatives", systemImage: "arrow.triangle.swap")
                     }
-                    
                     Button(action: { showDropsetSettings = true }) {
                         Label("Dropset Settings", systemImage: "arrow.down.circle")
                     }
-                    
                     Section {
                         Button(role: .destructive, action: { showDeleteConfirmation = true }) {
                             Label("Delete Exercise", systemImage: "trash")
@@ -59,107 +70,67 @@ struct SimplifiedWeightedExerciseCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16))
-                        .foregroundColor(AppColors.mutedForeground)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(kp.tertiary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Exercise options")
             }
-            
-            // Input section
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Weight")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    TextField("lbs", text: $weight)
-                        .keyboardType(.decimalPad)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(12)
-                        .background(AppColors.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .frame(maxWidth: .infinity)
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Reps")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    TextField("reps", text: $reps)
-                        .keyboardType(.numberPad)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(12)
-                        .background(AppColors.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            
-            // Smart suggestions row
-            if let suggestion = suggestion {
+
+            if let suggestion, nextSetNumber <= exercise.targetSets {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 12))
-                        .foregroundStyle(LinearGradient.primaryGradient)
-                    
-                    Text("Suggested: \(Int(suggestion.weight)) lbs × \(suggestion.reps) reps")
-                        .font(.system(size: 13))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    Spacer()
-                    
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(kp.primary)
+                    Text("Suggested \(Int(suggestion.weight)) lbs × \(suggestion.reps)")
+                        .font(KineticWorkoutTypography.medium(12))
+                        .foregroundStyle(kp.tertiary)
+                    Spacer(minLength: 0)
                     Button("Use") {
                         weight = "\(Int(suggestion.weight))"
                         reps = "\(suggestion.reps)"
                         HapticManager.impact(style: .light)
                     }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(LinearGradient.primaryGradient)
+                    .font(KineticWorkoutTypography.bold(12))
+                    .foregroundStyle(kp.primary)
                 }
-                .padding(12)
-                .background(AppColors.accent.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(kp.primaryContainer.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            
-            // Complete Set button
-            Button(action: completeSet) {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
-                    Text("Complete Set")
-                        .font(.system(size: 16, weight: .semibold))
+
+            VStack(spacing: 0) {
+                kineticTableHeader
+                ForEach(Array(setRowRange), id: \.self) { setNum in
+                    kineticSetRow(setNumber: setNum)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(canCompleteSet ? AnyShapeStyle(LinearGradient.primaryGradient) : AnyShapeStyle(AppColors.muted))
-                .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: canCompleteSet ? AppColors.accent.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
-            }
-            .disabled(!canCompleteSet)
-            .accessibilityLabel("Complete set")
-            .accessibilityHint(canCompleteSet ? "Logs this set and starts rest timer" : "Enter weight and reps first")
-            
-            // Previous sets (if any)
-            if !exercise.sets.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Previous Sets")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(AppColors.mutedForeground)
-                    
-                    ForEach(exercise.sets.reversed()) { set in
-                        PreviousSetRow(set: set)
-                    }
+                Button(action: {
+                    viewModel.addWorkingSetSlot(exerciseId: exercise.id)
+                }) {
+                    Text("+ Add Set")
+                        .font(KineticWorkoutTypography.bold(10))
+                        .tracking(2.4)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
                 }
+                .buttonStyle(.plain)
+                .disabled(exercise.targetSets >= AppConstants.Validation.maxSets)
+                .opacity(exercise.targetSets >= AppConstants.Validation.maxSets ? 0.35 : 1)
+                .accessibilityLabel("Add set")
+                .accessibilityHint("Increases planned sets for this exercise up to \(AppConstants.Validation.maxSets)")
             }
         }
-        .padding(20)
-        .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: AppColors.foreground.opacity(0.05), radius: 8, x: 0, y: 4)
+        .padding(16)
+        .background(kp.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.15), lineWidth: 1)
+        )
         .sheet(isPresented: $showHistory) {
             if let progressVM = viewModel.progressViewModel {
                 ExerciseHistoryView(exerciseName: exercise.name, progressViewModel: progressVM)
@@ -189,13 +160,212 @@ struct SimplifiedWeightedExerciseCard: View {
             Text("Are you sure you want to delete '\(exercise.name)'? This will remove all completed sets for this exercise.")
         }
         .onAppear {
-            // Pre-fill with last weight
-            if let lastWeight = viewModel.getLastWeight(for: exercise.name), lastWeight > 0 {
-                weight = String(format: "%.0f", lastWeight)
+            refreshPreviousSessionSnapshotIfNeeded()
+            applyInitialPrefill()
+        }
+        .onChange(of: exercise.id) { _, _ in
+            refreshPreviousSessionSnapshotIfNeeded()
+            applyInitialPrefill()
+        }
+        .onChange(of: exercise.sets.count) { oldCount, newCount in
+            if newCount > oldCount {
+                prefillAfterLoggingWorkingSet()
             }
         }
     }
-    
+
+    private var kineticTableHeader: some View {
+        HStack(spacing: 0) {
+            Text("Set")
+                .frame(width: 28, alignment: .leading)
+            Text("Previous")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Weight")
+                .frame(width: 72, alignment: .center)
+            Text("Reps")
+                .frame(width: 96, alignment: .center)
+        }
+        .font(KineticWorkoutTypography.bold(10))
+        .tracking(2.4)
+        .textCase(.uppercase)
+        .foregroundStyle(kp.tertiary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(kp.surfaceContainerHighest.opacity(0.5))
+    }
+
+    @ViewBuilder
+    private func kineticSetRow(setNumber: Int) -> some View {
+        let completed = mainWorkingSets.first { $0.setNumber == setNumber }
+        let isCurrent = completed == nil && setNumber == nextSetNumber
+        let isFuture = completed == nil && setNumber > nextSetNumber
+
+        HStack(spacing: 0) {
+            Text("\(setNumber)")
+                .font(KineticWorkoutTypography.bold(14))
+                .foregroundStyle(kp.onSurface)
+                .frame(width: 28, alignment: .leading)
+
+            Text(previousSessionLine)
+                .font(KineticWorkoutTypography.medium(12))
+                .foregroundStyle(kp.tertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 4)
+
+            if let done = completed {
+                Text("\(Int(done.weight))")
+                    .font(KineticWorkoutTypography.bold(14))
+                    .foregroundStyle(kp.primary)
+                    .frame(width: 72)
+                HStack(spacing: 6) {
+                    Text("\(done.reps)")
+                        .font(KineticWorkoutTypography.bold(14))
+                        .foregroundStyle(kp.primary)
+                        .frame(minWidth: 28)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(kp.primaryContainer)
+                            .frame(width: 26, height: 26)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 96, alignment: .trailing)
+            } else if isCurrent {
+                TextField("", text: $weight)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.center)
+                    .font(KineticWorkoutTypography.bold(14))
+                    .foregroundStyle(kp.primary)
+                    .padding(.vertical, 6)
+                    .background(kp.surfaceContainerHighest)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .frame(width: 72)
+
+                HStack(spacing: 6) {
+                    TextField("", text: $reps)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.center)
+                        .font(KineticWorkoutTypography.bold(14))
+                        .foregroundStyle(kp.primary)
+                        .padding(.vertical, 6)
+                        .background(kp.surfaceContainerHighest)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .frame(width: 52)
+                    Button(action: completeSet) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(canCompleteSet ? kp.primaryContainer : kp.surfaceContainerHighest)
+                                .frame(width: 26, height: 26)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(canCompleteSet ? Color.white : kp.onSurface.opacity(0.2))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canCompleteSet)
+                    .accessibilityLabel("Complete set")
+                }
+                .frame(width: 96, alignment: .trailing)
+            } else {
+                Text(ghostWeight(for: setNumber))
+                    .font(KineticWorkoutTypography.bold(14))
+                    .foregroundStyle(kp.onSurface.opacity(0.35))
+                    .frame(width: 72)
+                    .padding(.vertical, 6)
+                    .background(kp.surfaceContainerHighest.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                HStack(spacing: 6) {
+                    Text(ghostReps(for: setNumber))
+                        .font(KineticWorkoutTypography.bold(14))
+                        .foregroundStyle(kp.onSurface.opacity(0.35))
+                        .frame(width: 52)
+                        .padding(.vertical, 6)
+                        .background(kp.surfaceContainerHighest.opacity(0.3))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(kp.surfaceContainerHighest)
+                            .frame(width: 26, height: 26)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(kp.onSurface.opacity(0.2))
+                    }
+                }
+                .frame(width: 96, alignment: .trailing)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(completed != nil ? kp.primaryContainer.opacity(0.05) : Color.clear)
+        .opacity(isFuture ? 0.4 : 1)
+    }
+
+    private func ghostWeight(for setNumber: Int) -> String {
+        if let last = mainWorkingSets.last {
+            return String(format: "%.0f", last.weight)
+        }
+        if let s = suggestion {
+            return "\(Int(s.weight))"
+        }
+        if let w = viewModel.getLastWeight(for: exercise.name) {
+            return String(format: "%.0f", w)
+        }
+        return "—"
+    }
+
+    private func ghostReps(for _: Int) -> String {
+        if let last = mainWorkingSets.last {
+            return "\(last.reps)"
+        }
+        if let s = suggestion {
+            return "\(s.reps)"
+        }
+        return "8"
+    }
+
+    private func refreshPreviousSessionSnapshotIfNeeded() {
+        if previousSessionExerciseId != exercise.id {
+            previousSessionExerciseId = exercise.id
+            if let h = ExerciseHistoryManager.shared.getLastWeightReps(for: exercise.name) {
+                previousSessionLine = "\(Int(h.weight)) lbs × \(h.reps)"
+            } else {
+                previousSessionLine = "—"
+            }
+        }
+    }
+
+    /// First paint or switching exercises — fill the active row from history / suggestion / last weight.
+    private func applyInitialPrefill() {
+        guard nextSetNumber <= exercise.targetSets else { return }
+        if let last = mainWorkingSets.last {
+            weight = String(format: "%.0f", last.weight)
+            reps = "\(last.reps)"
+            return
+        }
+        if let s = suggestion {
+            weight = "\(Int(s.weight))"
+            reps = "\(s.reps)"
+            return
+        }
+        if let w = viewModel.getLastWeight(for: exercise.name), w > 0 {
+            weight = String(format: "%.0f", w)
+            if reps.isEmpty { reps = "8" }
+        }
+    }
+
+    /// After logging a set, default the next row to match the last working set (dropsets excluded).
+    private func prefillAfterLoggingWorkingSet() {
+        guard nextSetNumber <= exercise.targetSets else { return }
+        guard let last = mainWorkingSets.last else { return }
+        weight = String(format: "%.0f", last.weight)
+        reps = "\(last.reps)"
+    }
+
     private func completeSet() {
         guard let weightValue = Double(weight), let repsValue = Int(reps) else { return }
         viewModel.completeSet(weight: weightValue, reps: repsValue, isWarmup: false)

@@ -37,7 +37,7 @@ struct HabitCard: View {
     }
     
     private var shouldShowProgress: Bool {
-        guard let target = habit.targetStreakDays,
+        guard habit.targetStreakDays != nil,
               currentStreak > 0 else {
             return false
         }
@@ -55,22 +55,12 @@ struct HabitCard: View {
             
             // Expanded Content
             if isExpanded {
-                Divider()
-                    .background(AppColors.border.opacity(0.3))
-                
                 expandedContent
             }
         }
         .padding(AppSpacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(AppColors.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(habitGradient.opacity(0.3), lineWidth: 2)
-                )
-        )
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
+        .background(AppColors.surfaceContainerHigh)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cardRadiusXL, style: .continuous))
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             // Swipe right to complete/incomplete
             Button {
@@ -128,8 +118,6 @@ struct HabitCard: View {
             }
             
             if let onDelete = onDelete {
-                Divider()
-                
                 Button(role: .destructive) {
                     onDelete(habit)
                 } label: {

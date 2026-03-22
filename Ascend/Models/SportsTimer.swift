@@ -13,6 +13,8 @@ enum SportType: String, CaseIterable, Identifiable, Codable {
     case karate = "Karate"
     case judo = "Judo"
     case mmaGrappling = "MMA Grappling"
+    /// Used when a user-defined custom sport is active (not shown in the built-in sport grid).
+    case userDefined = "Custom"
     
     var id: String { rawValue }
     
@@ -28,11 +30,21 @@ enum SportType: String, CaseIterable, Identifiable, Codable {
         case .karate: return "figure.martial.arts"
         case .judo: return "figure.yoga"
         case .mmaGrappling: return "figure.mixed.cardio"
+        case .userDefined: return "star.circle.fill"
         }
     }
     
     var defaultConfig: SportsTimerConfig {
         switch self {
+        case .userDefined:
+            return SportsTimerConfig(
+                sport: self,
+                roundDuration: 180,
+                restDuration: 60,
+                numberOfRounds: 5,
+                roundLabel: "Round",
+                restLabel: "Rest"
+            )
         case .boxing:
             return SportsTimerConfig(
                 sport: self,
@@ -124,6 +136,11 @@ enum SportType: String, CaseIterable, Identifiable, Codable {
                 restLabel: "Rest"
             )
         }
+    }
+
+    /// Preset sports shown in the picker (excludes the sentinel used for custom sports).
+    static var presetCases: [SportType] {
+        allCases.filter { $0 != .userDefined }
     }
 }
 

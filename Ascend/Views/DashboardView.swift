@@ -1,51 +1,51 @@
 import SwiftUI
 
-// MARK: - Redesigned Dashboard View
-/// Streamlined dashboard with improved information hierarchy and progressive disclosure
-/// Created: December 18, 2025
+// MARK: - Dashboard (aligned with Habits — Kinetic palette)
+
+private enum HabitsFonts {
+    static func bold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Bold", size: size, relativeTo: .body)
+    }
+
+    static func semiBold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-SemiBold", size: size, relativeTo: .body)
+    }
+
+    static func medium(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Medium", size: size, relativeTo: .body)
+    }
+
+    static func extraBold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-ExtraBold", size: size, relativeTo: .body)
+    }
+}
+
+// MARK: - Dashboard View
+
 struct DashboardView: View {
     @ObservedObject var progressViewModel: ProgressViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @ObservedObject var templatesViewModel: TemplatesViewModel
     @ObservedObject var programViewModel: WorkoutProgramViewModel
     @ObservedObject var themeManager: ThemeManager
+    @ObservedObject var settingsManager: SettingsManager
     @EnvironmentObject var colorThemeProvider: ColorThemeProvider
+    @Environment(\.kineticPalette) private var kp
     let onStartWorkout: () -> Void
     let onSettings: () -> Void
     let onNavigateToProgress: (() -> Void)?
     
     @State private var showWorkoutHistory = false
-    @State private var selectedTab: DashboardTab = .overview
-    @State private var insightsExpanded: Bool = true
-    @State private var muscleChartExpanded: Bool = true
-    
-    // Habits
-    @StateObject private var habitViewModel = HabitViewModel()
-    @State private var showCreateHabit = false
-    @State private var editingHabit: Habit?
-    @State private var selectedHabit: Habit?
-    @State private var expandedHabits: Set<UUID> = []
-    
-    enum DashboardTab: String, CaseIterable {
-        case overview = "Overview"
-        case analytics = "Analytics"
-        case habits = "Habits"
-        
-        var icon: String {
-            switch self {
-            case .overview: return "house.fill"
-            case .analytics: return "chart.bar.fill"
-            case .habits: return "checkmark.circle.fill"
-            }
-        }
-    }
-    
+
+    private static let weeklyVolumeChartHeight: CGFloat = 80
+
     init(
         progressViewModel: ProgressViewModel,
         workoutViewModel: WorkoutViewModel,
         templatesViewModel: TemplatesViewModel,
         programViewModel: WorkoutProgramViewModel,
         themeManager: ThemeManager,
+        settingsManager: SettingsManager,
         onStartWorkout: @escaping () -> Void,
         onSettings: @escaping () -> Void,
         onNavigateToProgress: (() -> Void)? = nil
@@ -55,41 +55,29 @@ struct DashboardView: View {
         self.templatesViewModel = templatesViewModel
         self.programViewModel = programViewModel
         self.themeManager = themeManager
+        self.settingsManager = settingsManager
         self.onStartWorkout = onStartWorkout
         self.onSettings = onSettings
         self.onNavigateToProgress = onNavigateToProgress
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Sticky Header
-            DashboardHeader(
-                progressViewModel: progressViewModel,
-                programViewModel: programViewModel,
-                themeManager: themeManager,
-                onSettings: onSettings,
-                onShowHistory: {
-                    showWorkoutHistory = true
-                }
-            )
-            .id(colorThemeProvider.themeID)
-            .background(AppColors.background)
-            
-            // Tab Selector
-            DashboardTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-                .background(AppColors.background)
-            
-            // Tab Content
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    tabContent
-                }
-                .padding(.bottom, 100) // Padding for tab bar
+        ScrollView {
+            VStack(spacing: 32) {
+                settingsAccessoryRow
+                welcomeAndStreakSection
+                activeGoalCard
+                metricsGrid
+                restDayRow
+                recentActivitySection
             }
+            .frame(maxWidth: AppConstants.UI.mainColumnMaxWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, AppConstants.UI.mainColumnGutter)
+            .padding(.top, 16)
+            .padding(.bottom, 128)
         }
+        .scrollIndicators(.hidden)
         .onAppear {
             // Ensure data is loaded when dashboard appears
             progressViewModel.updateVolumeAndCount()
@@ -105,19 +93,6 @@ struct DashboardView: View {
                 progressViewModel.addWorkoutDate(date)
             }
             
-            // Load saved preferences (default to collapsed for better initial view)
-            if UserDefaults.standard.object(forKey: "dashboard.insightsExpanded") == nil {
-                insightsExpanded = false // Default collapsed
-            } else {
-                insightsExpanded = UserDefaults.standard.bool(forKey: "dashboard.insightsExpanded")
-            }
-            
-            if UserDefaults.standard.object(forKey: "dashboard.muscleChartExpanded") == nil {
-                muscleChartExpanded = true // Default expanded
-            } else {
-                muscleChartExpanded = UserDefaults.standard.bool(forKey: "dashboard.muscleChartExpanded")
-            }
-            
             // Preload template data for active program
             if programViewModel.activeProgram != nil {
                 preloadActiveProgramData()
@@ -129,198 +104,538 @@ struct DashboardView: View {
                 templates: templatesViewModel.templates
             )
         }
-        .background(AppColors.background)
+        .background(kp.surface)
         .id(colorThemeProvider.themeID)
         .sheet(isPresented: $showWorkoutHistory) {
             WorkoutHistoryView()
         }
-        .sheet(isPresented: $showCreateHabit) {
-            HabitEditView(
-                habit: nil,
-                onSave: { habit in
-                    habitViewModel.createHabit(habit)
-                    showCreateHabit = false
-                },
-                onCancel: {
-                    showCreateHabit = false
+    }
+
+    /// Settings only (no fixed header bar).
+    private var settingsAccessoryRow: some View {
+        HStack {
+            Spacer()
+            HelpButton(pageType: .dashboard)
+            Button {
+                HapticManager.impact(style: .light)
+                onSettings()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(kp.mutedNav)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Settings")
+        }
+    }
+
+    private var welcomeAndStreakSection: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Welcome Back")
+                    .font(HabitsFonts.bold(11))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.onSurfaceVariant)
+                Text("Ready to Move?")
+                    .font(HabitsFonts.extraBold(36))
+                    .foregroundStyle(kp.onSurface)
+                    .kineticDisplayTracking(for: 36)
+            }
+            Spacer(minLength: 12)
+            HStack(spacing: 8) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(kp.tertiary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(progressViewModel.currentStreak) Days")
+                        .font(HabitsFonts.bold(20))
+                        .foregroundStyle(kp.onSurface)
+                    Text("STREAK")
+                        .font(HabitsFonts.bold(10))
+                        .tracking(0.8)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.onSurfaceVariant)
                 }
+            }
+            .padding(16)
+            .background(kp.surfaceContainerLow)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(kp.outlineVariant.opacity(0.1), lineWidth: 1)
             )
-        }
-        .sheet(item: $editingHabit) { habit in
-            HabitEditView(
-                habit: habit,
-                onSave: { updatedHabit in
-                    habitViewModel.updateHabit(updatedHabit)
-                    editingHabit = nil
-                },
-                onCancel: {
-                    editingHabit = nil
-                },
-                onDelete: {
-                    habitViewModel.deleteHabit(habit)
-                    editingHabit = nil
-                }
-            )
-        }
-        .sheet(item: $selectedHabit) { habit in
-            HabitDetailView(
-                habit: habit,
-                viewModel: habitViewModel
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
-    
-    @ViewBuilder
-    private var tabContent: some View {
-        switch selectedTab {
-        case .overview:
-            overviewContent
-        case .analytics:
-            analyticsContent
-        case .habits:
-            habitsContent
-        }
-    }
-    
-    private var overviewContent: some View {
-        VStack(spacing: 16) {
-            // Streak and Workout Count Card
-            StreakWorkoutCard(progressViewModel: progressViewModel)
-                .padding(.horizontal, 20)
-            
-            // Calendar View (moved from Activity section)
-            WeeklyCalendarWidget(
-                progressViewModel: progressViewModel,
-                programViewModel: programViewModel
-            )
-            .padding(.horizontal, 20)
-            
-            // Active Program Day Card (if program is active)
-            if programViewModel.activeProgram != nil {
-                ActiveProgramDayCard(
-                    programViewModel: programViewModel,
-                    templatesViewModel: templatesViewModel,
-                    workoutViewModel: workoutViewModel,
-                    progressViewModel: progressViewModel,
-                    onStartWorkout: onStartWorkout
-                )
-                .padding(.horizontal, 20)
-            }
-            
-            // Suggested Workout Card (only show if no active program)
-            if programViewModel.activeProgram == nil {
-                SuggestedWorkoutCard(
-                    workoutViewModel: workoutViewModel,
-                    templatesViewModel: templatesViewModel,
-                    programViewModel: programViewModel,
-                    onStartWorkout: onStartWorkout
-                )
-                .padding(.horizontal, 20)
-            }
-            
-            // Quick Actions (only show if no active program)
-            if programViewModel.activeProgram == nil {
-                QuickActionsSection(
-                    progressViewModel: progressViewModel,
-                    workoutViewModel: workoutViewModel,
-                    templatesViewModel: templatesViewModel,
-                    programViewModel: programViewModel,
-                    onStartWorkout: onStartWorkout
-                )
-            }
-            
-            // Rest Day Button — only when no active program and today not already logged
-            if programViewModel.activeProgram == nil && !progressViewModel.isRestDay {
-                RestDayButton(progressViewModel: progressViewModel)
-                    .padding(.horizontal, 20)
-            }
-        }
-    }
-    
-    private var analyticsContent: some View {
-        VStack(spacing: 16) {
-            // Recovery Section
-            RecoverySectionView(progressViewModel: progressViewModel)
-                .padding(.top, 8)
-            
-            // Muscle Chart
-            MuscleChartSection(progressViewModel: progressViewModel)
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-    }
-    
-    private var habitsContent: some View {
-        VStack(spacing: 16) {
-            if habitViewModel.activeHabits.isEmpty {
-                EmptyStateView(
-                    icon: "checkmark.circle.fill",
-                    title: "No Habits Yet",
-                    message: "Create your first habit to start building consistency.",
-                    actionTitle: "Add Habit",
-                    action: {
-                        HapticManager.impact(style: .medium)
-                        showCreateHabit = true
-                    },
-                    style: .standard
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 40)
-            } else {
-                HabitsSummaryCard(viewModel: habitViewModel)
-                    .padding(.horizontal, 20)
-                
-                LazyVStack(spacing: 12) {
-                    ForEach(habitViewModel.activeHabits) { habit in
-                        HabitCard(
-                            habit: habit,
-                            viewModel: habitViewModel,
-                            isExpanded: expandedHabits.contains(habit.id),
-                            onTap: {
-                                selectedHabit = habit
-                            },
-                            onToggleExpand: {
-                                if expandedHabits.contains(habit.id) {
-                                    expandedHabits.remove(habit.id)
-                                } else {
-                                    expandedHabits.insert(habit.id)
-                                }
-                            },
-                            onEdit: { habit in
-                                // Ensure we present the editor, not the detail sheet
-                                selectedHabit = nil
-                                editingHabit = habit
-                            },
-                            onDelete: { habit in
-                                habitViewModel.deleteHabit(habit)
-                            }
-                        )
-                        // Force refresh when completion state changes
-                        .id(habit.id.uuidString + "_\(habitViewModel.isCompleted(habitId: habit.id))")
-                        .padding(.horizontal, 20)
+
+    private var activeGoalCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(kp.primary.opacity(0.1))
+                .blur(radius: 28)
+                .padding(-8)
+
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(dashboardActiveCardSectionLabel)
+                        .font(HabitsFonts.bold(11))
+                        .tracking(0.8)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.primary)
+                    Text(dashboardActiveCardTitle)
+                        .font(HabitsFonts.bold(30))
+                        .foregroundStyle(kp.onSurface)
+                    if let sub = dashboardActiveCardSubtitle {
+                        Text(sub)
+                            .font(HabitsFonts.medium(14))
+                            .foregroundStyle(kp.onSurfaceVariant)
                     }
                 }
-                
-                Button(action: {
-                    HapticManager.impact(style: .medium)
-                    showCreateHabit = true
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                        Text("Add Habit")
-                            .font(.system(size: 16, weight: .semibold))
+
+                HStack(spacing: 16) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(kp.surfaceContainerHighest)
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [kp.primary, kp.secondary],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: max(0, geo.size.width * weeklyCompletionRatio))
+                        }
                     }
-                    .foregroundColor(.white)
+                    .frame(height: 12)
+
+                    Text("\(weeklyWorkoutCount) OF \(weeklyGoalTarget) WORKOUTS")
+                        .font(HabitsFonts.bold(11))
+                        .foregroundStyle(kp.onSurface)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                Button(action: handleDashboardActiveCardPrimaryAction) {
+                    HStack(spacing: 8) {
+                        Image(systemName: dashboardActiveCardButtonIcon)
+                            .font(.system(size: 20, weight: .bold))
+                        Text(dashboardActiveCardButtonTitle)
+                            .font(HabitsFonts.extraBold(16))
+                    }
+                    .foregroundStyle(kp.onPrimary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(LinearGradient.primaryGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: AppColors.primary.opacity(0.3), radius: 12, x: 0, y: 4)
+                    .padding(.vertical, 20)
+                    .background(kp.primary)
+                    .clipShape(Capsule())
+                    .shadow(color: kp.primary.opacity(0.3), radius: 16, x: 0, y: 4)
+                    .opacity(dashboardActiveCardButtonDisabled ? 0.45 : 1)
                 }
                 .buttonStyle(ScaleButtonStyle())
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .disabled(dashboardActiveCardButtonDisabled)
             }
+            .padding(32)
+            .background(
+                ZStack(alignment: .bottomTrailing) {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(kp.surfaceContainerHigh)
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 160))
+                        .foregroundStyle(kp.onSurface.opacity(0.05))
+                        .offset(x: 32, y: 32)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(kp.outlineVariant.opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+
+    private var metricsGrid: some View {
+        HStack(alignment: .top, spacing: 16) {
+            latestPRCard
+            weeklyVolumeCard
+        }
+    }
+
+    private var latestPRCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(kp.secondary)
+                Spacer()
+                Text("LATEST PR")
+                    .font(HabitsFonts.bold(10))
+                    .tracking(0.7)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+            .padding(.bottom, 16)
+
+            if let pr = latestPR {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(Int(pr.weight))")
+                        .font(HabitsFonts.bold(30))
+                        .foregroundStyle(kp.onSurface)
+                    Text("lbs")
+                        .font(HabitsFonts.medium(18))
+                        .foregroundStyle(kp.onSurfaceVariant)
+                }
+                Text(pr.exercise)
+                    .font(HabitsFonts.medium(14))
+                    .foregroundStyle(kp.onSurfaceVariant)
+                    .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 8) {
+                    Rectangle()
+                        .fill(kp.outlineVariant.opacity(0.1))
+                        .frame(height: 1)
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(prTrendLine)
+                            .font(HabitsFonts.medium(12))
+                    }
+                    .foregroundStyle(kp.secondary)
+                }
+                .padding(.top, 16)
+            } else {
+                Text("No PRs")
+                    .font(HabitsFonts.bold(24))
+                    .foregroundStyle(kp.onSurface)
+                Text("Log a workout to start tracking")
+                    .font(HabitsFonts.medium(12))
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .frame(minHeight: 200, alignment: .top)
+        .background(kp.surfaceContainerLow)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            onNavigateToProgress?()
+        }
+    }
+
+    private var weeklyVolumeCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(kp.primary)
+                Spacer()
+                Text("WEEKLY VOLUME")
+                    .font(HabitsFonts.bold(10))
+                    .tracking(0.7)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+            .padding(.bottom, 24)
+
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(Array(dailyVolumeRatios.enumerated()), id: \.offset) { index, ratio in
+                    let maxR = dailyVolumeRatios.max() ?? 0
+                    let height = Self.weeklyVolumeChartHeight * CGFloat(ratio)
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(ratio == maxR && ratio > 0 ? kp.primary : kp.surfaceContainerHighest)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: max(6, height))
+                }
+            }
+            .frame(height: Self.weeklyVolumeChartHeight)
+
+            HStack {
+                ForEach(0..<7, id: \.self) { i in
+                    Text(rollingWeekdayLetter(for: i))
+                        .font(HabitsFonts.bold(8))
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.onSurfaceVariant)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .frame(minHeight: 200, alignment: .top)
+        .background(kp.surfaceContainerLow)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var restDayRow: some View {
+        RestDayButton(progressViewModel: progressViewModel)
+    }
+
+    private var recentActivitySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Recent Activity")
+                    .font(HabitsFonts.bold(20))
+                    .foregroundStyle(kp.onSurface)
+                Spacer()
+                Button {
+                    showWorkoutHistory = true
+                } label: {
+                    Text("View All")
+                        .font(HabitsFonts.bold(12))
+                        .tracking(2)
+                        .textCase(.uppercase)
+                        .foregroundStyle(kp.primary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(spacing: 12) {
+                ForEach(Array(recentWorkouts.prefix(3).enumerated()), id: \.element.id) { index, workout in
+                    HStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(kp.surfaceContainerHigh)
+                                .frame(width: 48, height: 48)
+                            Image(systemName: workoutIcon(for: workout))
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundStyle(activityIconTint(for: index))
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(workout.name)
+                                .font(HabitsFonts.bold(15))
+                                .foregroundStyle(kp.onSurface)
+                            Text(activitySubtitle(for: workout))
+                                .font(HabitsFonts.medium(12))
+                                .foregroundStyle(kp.onSurfaceVariant)
+                        }
+                        Spacer(minLength: 8)
+                        Text(activityDateLabel(for: workout.startDate))
+                            .font(HabitsFonts.bold(10))
+                            .foregroundStyle(kp.onSurfaceVariant)
+                    }
+                    .padding(16)
+                    .background(kp.surfaceContainerLow)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(kp.outlineVariant.opacity(0.05), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
+    }
+
+    /// Current program day for the dashboard hero card (nil when no plan is active).
+    private var dashboardActiveProgramInfo: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)? {
+        guard let active = programViewModel.activeProgram,
+              let program = programViewModel.programs.first(where: { $0.id == active.programId }),
+              let currentDay = programViewModel.getCurrentDay(for: program) else {
+            return nil
+        }
+        let dayIndex = active.getCurrentDayIndex(totalDays: program.days.count)
+        return (program, currentDay, dayIndex)
+    }
+
+    private func isDashboardRestProgramDay(_ day: WorkoutDay) -> Bool {
+        day.isRestDay || day.name.lowercased().contains("rest")
+    }
+
+    private var dashboardActiveCardSectionLabel: String {
+        dashboardActiveProgramInfo == nil ? "Quick start" : "Active plan"
+    }
+
+    private var dashboardActiveCardTitle: String {
+        guard let info = dashboardActiveProgramInfo else {
+            return "Random template"
+        }
+        if let templateId = info.currentDay.templateId,
+           let template = templatesViewModel.templates.first(where: { $0.id == templateId }) {
+            return template.name
+        }
+        return "Day \(info.currentDay.dayNumber): \(info.currentDay.name)"
+    }
+
+    private var dashboardActiveCardSubtitle: String? {
+        if let info = dashboardActiveProgramInfo {
+            return info.program.name
+        }
+        return "We’ll pick a saved workout for you"
+    }
+
+    private var dashboardActiveCardButtonTitle: String {
+        if let info = dashboardActiveProgramInfo, isDashboardRestProgramDay(info.currentDay) {
+            return progressViewModel.isRestDay ? "REST DAY LOGGED" : "MARK REST DAY"
+        }
+        if dashboardActiveProgramInfo != nil {
+            return "START WORKOUT"
+        }
+        return "START RANDOM TEMPLATE"
+    }
+
+    private var dashboardActiveCardButtonIcon: String {
+        if let info = dashboardActiveProgramInfo, isDashboardRestProgramDay(info.currentDay) {
+            return progressViewModel.isRestDay ? "checkmark.circle.fill" : "moon.zzz.fill"
+        }
+        if dashboardActiveProgramInfo != nil {
+            return "play.fill"
+        }
+        return "shuffle"
+    }
+
+    private var dashboardActiveCardButtonDisabled: Bool {
+        guard let info = dashboardActiveProgramInfo, isDashboardRestProgramDay(info.currentDay) else {
+            return false
+        }
+        return progressViewModel.isRestDay
+    }
+
+    private func handleDashboardActiveCardPrimaryAction() {
+        HapticManager.impact(style: .medium)
+        if let info = dashboardActiveProgramInfo {
+            if isDashboardRestProgramDay(info.currentDay) {
+                if !progressViewModel.isRestDay {
+                    progressViewModel.markRestDay()
+                    HapticManager.success()
+                }
+                return
+            }
+            ActiveProgramDayWorkoutStart.start(
+                program: info.program,
+                currentDay: info.currentDay,
+                programViewModel: programViewModel,
+                templatesViewModel: templatesViewModel,
+                workoutViewModel: workoutViewModel,
+                onWorkoutReady: onStartWorkout,
+                onGeneratedTemplate: nil
+            )
+            return
+        }
+        startRandomTemplateWorkout()
+    }
+
+    private func startRandomTemplateWorkout() {
+        let pool = templatesViewModel.templates.filter { !$0.exercises.isEmpty && !$0.name.contains("Progression") }
+        if let template = pool.randomElement() {
+            templatesViewModel.startTemplate(template, workoutViewModel: workoutViewModel)
+            onStartWorkout()
+        } else {
+            let generated = templatesViewModel.generateWorkout(name: "Quick workout")
+            templatesViewModel.startTemplate(generated, workoutViewModel: workoutViewModel)
+            onStartWorkout()
+        }
+    }
+
+    private var latestPR: PersonalRecord? {
+        progressViewModel.prs.max(by: { $0.date < $1.date })
+    }
+
+    private var recentWorkouts: [Workout] {
+        WorkoutHistoryManager.shared.completedWorkouts
+            .sorted(by: { $0.startDate > $1.startDate })
+    }
+
+    private var weeklyGoalTarget: Int { settingsManager.weeklyWorkoutGoal }
+    private var weeklyWorkoutCount: Int {
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return progressViewModel.workoutDates.filter { $0 >= weekAgo }.count
+    }
+    private var weeklyCompletionRatio: CGFloat {
+        CGFloat(min(Double(weeklyWorkoutCount) / Double(weeklyGoalTarget), 1.0))
+    }
+
+    private var prTrendText: String {
+        let sorted = progressViewModel.prs.sorted { $0.date > $1.date }
+        guard sorted.count > 1 else { return "New PR logged" }
+        let latest = sorted[0]
+        let previous = sorted[1]
+        let diff = Int(latest.weight - previous.weight)
+        if diff > 0 { return "+\(diff) lbs from previous PR" }
+        if diff < 0 { return "\(diff) lbs from previous PR" }
+        return "Matched previous PR"
+    }
+
+    /// Prefer “last month” when a 30‑day baseline exists for the same lift.
+    private var prTrendLine: String {
+        let sorted = progressViewModel.prs.sorted { $0.date > $1.date }
+        guard let latest = sorted.first else { return "New PR logged" }
+        let calendar = Calendar.current
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        if let older = sorted.first(where: { $0.exercise == latest.exercise && $0.date < latest.date && $0.date >= thirtyDaysAgo }) {
+            let diff = Int(latest.weight - older.weight)
+            if diff > 0 { return "+\(diff) lbs from last month" }
+            if diff < 0 { return "\(diff) lbs from last month" }
+        }
+        guard sorted.count > 1 else { return "New PR logged" }
+        let previous = sorted[1]
+        let diff = Int(latest.weight - previous.weight)
+        if diff > 0 { return "+\(diff) lbs from last PR" }
+        if diff < 0 { return "\(diff) lbs from last PR" }
+        return "Matched last PR"
+    }
+
+    private var dailyVolumeRatios: [CGFloat] {
+        let calendar = Calendar.current
+        let workouts = recentWorkouts
+        let volumes: [Double] = (0..<7).map { offset in
+            let targetDay = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -(6 - offset), to: Date()) ?? Date())
+            let dayWorkouts = workouts.filter { calendar.isDate($0.startDate, inSameDayAs: targetDay) }
+            return dayWorkouts.reduce(0.0) { total, workout in
+                total + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
+                    exerciseTotal + exercise.sets.reduce(0.0) { setTotal, set in
+                        setTotal + (set.weight * Double(set.reps))
+                    }
+                }
+            }
+        }
+        let maxValue = max(volumes.max() ?? 1.0, 1.0)
+        return volumes.map { CGFloat($0 / maxValue) }
+    }
+
+    private func workoutIcon(for workout: Workout) -> String {
+        let lower = workout.name.lowercased()
+        if lower.contains("cardio") { return "figure.run" }
+        if lower.contains("yoga") || lower.contains("recovery") { return "figure.mind.and.body" }
+        return "dumbbell.fill"
+    }
+
+    private func activitySubtitle(for workout: Workout) -> String {
+        let volume = workout.exercises.reduce(0) { total, exercise in
+            total + exercise.sets.reduce(0) { setTotal, set in
+                setTotal + Int(set.weight * Double(set.reps))
+            }
+        }
+        let estMinutes = max(12, workout.exercises.count * 12)
+        return "\(estMinutes) mins • \(volume.formatted()) lbs total"
+    }
+
+    private func activityDateLabel(for date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return "TODAY" }
+        if Calendar.current.isDateInYesterday(date) { return "YESTERDAY" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date).uppercased()
+    }
+
+    private func rollingWeekdayLetter(for index: Int) -> String {
+        let calendar = Calendar.current
+        guard let day = calendar.date(byAdding: .day, value: -6 + index, to: Date()) else { return "?" }
+        let weekday = calendar.component(.weekday, from: day)
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        return letters[(weekday - 1) % 7]
+    }
+
+    private func activityIconTint(for index: Int) -> Color {
+        switch index % 3 {
+        case 0: return kp.secondary
+        case 1: return kp.primary
+        default: return kp.tertiary
         }
     }
     
@@ -347,111 +662,6 @@ struct DashboardView: View {
         }
     }
 }
-
-// MARK: - Dashboard Tab Bar
-
-private struct DashboardTabBar: View {
-    @Binding var selectedTab: DashboardView.DashboardTab
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(DashboardView.DashboardTab.allCases, id: \.self) { tab in
-                Button(action: {
-                    HapticManager.selection()
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                        selectedTab = tab
-                    }
-                }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 18, weight: selectedTab == tab ? .semibold : .regular))
-                            .foregroundColor(selectedTab == tab ? AppColors.primary : AppColors.mutedForeground)
-                            .frame(height: 22)
-                        
-                        Rectangle()
-                            .fill(selectedTab == tab ? AppColors.primary : Color.clear)
-                            .frame(height: 2)
-                            .clipShape(Capsule())
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .accessibilityLabel(tab.rawValue)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-    }
-}
-
-// MARK: - Dashboard Header
-
-struct DashboardHeader: View {
-    @ObservedObject var progressViewModel: ProgressViewModel
-    @ObservedObject var programViewModel: WorkoutProgramViewModel
-    @ObservedObject var themeManager: ThemeManager
-    @EnvironmentObject var colorThemeProvider: ColorThemeProvider
-    let onSettings: () -> Void
-    let onShowHistory: () -> Void
-    
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 0..<12: return "Good Morning"
-        case 12..<17: return "Good Afternoon"
-        default:      return "Good Evening"
-        }
-    }
-    
-    var body: some View {
-        HStack {
-            Text("Dashboard")
-                .font(AppTypography.largeTitleBold)
-                .foregroundStyle(LinearGradient.primaryGradient)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            
-            Spacer()
-            
-            HStack(spacing: 12) {
-                HelpButton(pageType: .dashboard)
-                
-                HeaderThemeToggle(themeManager: themeManager)
-                
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onShowHistory()
-                }) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Workout History")
-                
-                Button(action: {
-                    HapticManager.impact(style: .light)
-                    onSettings()
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(AppColors.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .accessibilityLabel("Settings")
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .id(colorThemeProvider.themeID)
-    }
-}
-
 
 // MARK: - Settings Button
 
@@ -792,36 +1002,26 @@ struct TrendIndicatorView: View {
 // MARK: - Rest Day Button
 
 struct RestDayButton: View {
+    @Environment(\.kineticPalette) private var kp
     @ObservedObject var progressViewModel: ProgressViewModel
     @State private var showConfirmation = false
-    
+
+    private var hasWorkoutToday: Bool {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return progressViewModel.workoutDates.contains { cal.isDate($0, inSameDayAs: today) }
+    }
+
     var body: some View {
-        Button(action: {
-            HapticManager.impact(style: .medium)
-            showConfirmation = true
-        }) {
-            HStack(spacing: 10) {
-                Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.accent)
-                
-                Text("Mark today as rest day")
-                    .font(AppTypography.bodySmallMedium)
-                    .foregroundColor(AppColors.foreground)
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(AppColors.mutedForeground)
+        Group {
+            if progressViewModel.isRestDay {
+                restDayLoggedRow
+            } else if hasWorkoutToday {
+                workoutLoggedInfoRow
+            } else {
+                markRestDayButton
             }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, 12)
-            .background(AppColors.card)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: AppColors.foreground.opacity(0.06), radius: 8, x: 0, y: 3)
         }
-        .buttonStyle(ScaleButtonStyle())
         .alert("Mark Rest Day", isPresented: $showConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Mark Rest Day") {
@@ -831,6 +1031,87 @@ struct RestDayButton: View {
         } message: {
             Text("Marks today as rest and keeps your streak going.")
         }
+    }
+
+    private var restDayLoggedRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(kp.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Rest day logged")
+                    .font(HabitsFonts.bold(15))
+                    .foregroundStyle(kp.onSurface)
+                Text("Today counts toward your streak")
+                    .font(HabitsFonts.medium(12))
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+            Spacer(minLength: 8)
+        }
+        .padding(16)
+        .background(kp.surfaceContainerLow)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Rest day logged for today")
+    }
+
+    private var workoutLoggedInfoRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(kp.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Workout logged today")
+                    .font(HabitsFonts.bold(15))
+                    .foregroundStyle(kp.onSurface)
+                Text("Rest day can’t be used on a workout day")
+                    .font(HabitsFonts.medium(12))
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+            Spacer(minLength: 8)
+        }
+        .padding(16)
+        .background(kp.surfaceContainerLow.opacity(0.65))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(kp.outlineVariant.opacity(0.08), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Workout logged today, rest day unavailable")
+    }
+
+    private var markRestDayButton: some View {
+        Button(action: {
+            HapticManager.impact(style: .medium)
+            showConfirmation = true
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(kp.primary)
+                Text("Mark today as rest day")
+                    .font(HabitsFonts.bold(15))
+                    .foregroundStyle(kp.onSurface)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(kp.onSurfaceVariant)
+            }
+            .padding(16)
+            .background(kp.surfaceContainerLow)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(kp.outlineVariant.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel("Mark Rest Day")
     }
 }
 
@@ -857,9 +1138,11 @@ struct DashboardView_Previews: PreviewProvider {
             templatesViewModel: templatesVM,
             programViewModel: programVM,
             themeManager: themeMgr,
+            settingsManager: settingsMgr,
             onStartWorkout: {},
             onSettings: {},
             onNavigateToProgress: nil
         )
+        .environmentObject(ColorThemeProvider.shared)
     }
 }

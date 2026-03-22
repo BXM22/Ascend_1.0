@@ -36,7 +36,7 @@ struct HabitDetailView: View {
                         contentView(for: habit)
                             .padding(20)
                     }
-                    .background(AppColors.background)
+                    .background(AppColors.surface)
                     .navigationTitle("Habit Details")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -61,12 +61,12 @@ struct HabitDetailView: View {
                                 Button("Edit") {
                                     showEditSheet = true
                                 }
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(AppColors.primaryContainer)
                                 
                                 Button("Done") {
                                     dismiss()
                                 }
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(AppColors.primaryContainer)
                             }
                         }
                     }
@@ -119,16 +119,11 @@ struct HabitDetailView: View {
         }
         .padding(AppSpacing.md)
         .background(headerCardBackground(for: habit))
-        .shadow(color: AppColors.foreground.opacity(0.08), radius: 12, x: 0, y: 4)
     }
     
     private func headerCardBackground(for habit: Habit) -> some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(AppColors.card)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(habitGradient(for: habit).opacity(0.3), lineWidth: 2)
-            )
+        RoundedRectangle(cornerRadius: AppSpacing.cardRadiusXL, style: .continuous)
+            .fill(AppColors.surfaceContainerHigh)
     }
     
     private func statsScrollView(for habit: Habit) -> some View {

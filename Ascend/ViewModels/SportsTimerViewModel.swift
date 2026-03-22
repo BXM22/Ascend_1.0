@@ -49,7 +49,7 @@ class SportsTimerViewModel: ObservableObject {
     }
     
     init(customSport: CustomSport) {
-        self.selectedSport = .boxing // Placeholder
+        self.selectedSport = .userDefined
         self.selectedCustomSport = customSport
         let customConfig = customSport.toSportsTimerConfig()
         self.config = customConfig
@@ -72,7 +72,7 @@ class SportsTimerViewModel: ObservableObject {
     func selectCustomSport(_ customSport: CustomSport) {
         guard !isActive else { return }
         selectedCustomSport = customSport
-        selectedSport = .boxing // Placeholder
+        selectedSport = .userDefined
         let customConfig = customSport.toSportsTimerConfig()
         config = customConfig
         resetToInitialStateInternal()

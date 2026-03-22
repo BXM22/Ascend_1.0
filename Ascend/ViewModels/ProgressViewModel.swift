@@ -908,6 +908,36 @@ class ProgressViewModel: ObservableObject {
         let monthAgo = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
         return prs.filter { $0.date > monthAgo }.count
     }
+    
+    /// Weight gained vs the immediately prior PR for the same exercise (nil if unknown or not heavier).
+    func weightDeltaFromPreviousPR(for pr: PersonalRecord) -> Int? {
+        let ordered = prsForExercise(pr.exercise).sorted { $0.date > $1.date }
+        guard let index = ordered.firstIndex(where: { $0.id == pr.id }),
+              index + 1 < ordered.count else { return nil }
+        let previous = ordered[index + 1]
+        let delta = Int(round(pr.weight - previous.weight))
+        return delta > 0 ? delta : nil
+    }
+    
+    /// Exercises with the largest positive volume jump from the prior PR (for “Top Improvements”).
+    func topImprovementPercentages(limit: Int = 4) -> [(exercise: String, percent: Int)] {
+        var results: [(String, Double)] = []
+        for exercise in availableExercises {
+            let sorted = prsForExercise(exercise).sorted { $0.date > $1.date }
+            guard sorted.count >= 2 else { continue }
+            let latestVol = sorted[0].weight * Double(sorted[0].reps)
+            let prevVol = sorted[1].weight * Double(sorted[1].reps)
+            guard prevVol > 0 else { continue }
+            let pct = ((latestVol - prevVol) / prevVol) * 100
+            if pct > 0.5 {
+                results.append((exercise, pct))
+            }
+        }
+        return results
+            .sorted { $0.1 > $1.1 }
+            .prefix(limit)
+            .map { ($0.0, max(1, Int(round($0.1)))) }
+    }
 }
 
 // MARK: - Data Point Models for Graphs

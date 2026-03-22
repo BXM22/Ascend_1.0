@@ -60,6 +60,35 @@ struct WorkoutGenerationSettings: Codable {
         return rirMin...rirMax
     }
     
+    /// Resolved phase for presets and UI (same mapping as `WorkoutGenerator`).
+    var resolvedTrainingPhase: TrainingPhase {
+        switch (trainingType, trainingGoal) {
+        case (.endurance, _):
+            return .endurance
+        case (_, .bulk):
+            return .bulking
+        case (_, .cut):
+            return .cutting
+        }
+    }
+    
+    /// Short title for generation settings hero (Kinetic Atelier).
+    var phaseDisplayTitle: String {
+        switch (trainingType, trainingGoal) {
+        case (.strength, .bulk): return "Hypertrophy"
+        case (.strength, .cut): return "Strength & Fat Loss"
+        case (.endurance, _): return "Muscular Endurance"
+        }
+    }
+    
+    var phaseFocusLabel: String {
+        switch resolvedTrainingPhase {
+        case .bulking: return "Mechanical Tension Priority"
+        case .cutting: return "Load & Intensity Priority"
+        case .endurance: return "Metabolic Stress Priority"
+        }
+    }
+    
     init() {
         // Default settings
         self.exercisesPerMuscleGroup = [
@@ -96,21 +125,17 @@ struct WorkoutGenerationSettings: Codable {
         return exercisesPerMuscleGroup[muscleGroup] ?? 1
     }
     
-    // Convert TrainingGoal to TrainingPhase
-    private func getTrainingPhase() -> TrainingPhase {
-        switch (trainingType, trainingGoal) {
-        case (.endurance, _):
-            return .endurance
-        case (_, .bulk):
-            return .bulking
-        case (_, .cut):
-            return .cutting
+    /// Sets every muscle group to the same count (1–4). Used by generation settings volume UI.
+    mutating func setUniformMuscleExerciseCount(_ value: Int) {
+        let v = max(1, min(4, value))
+        for key in exercisesPerMuscleGroup.keys {
+            exercisesPerMuscleGroup[key] = v
         }
     }
     
     // Apply phase preset based on training goal and split type
     mutating func applyPhasePreset(splitType: WorkoutSplitType? = nil) {
-        let phase = getTrainingPhase()
+        let phase = resolvedTrainingPhase
         
         // Set rest time and RIR ranges
         self.restTimeMin = phase.restTimeRange.lowerBound

@@ -76,6 +76,22 @@ struct Exercise: Identifiable, Equatable, Codable {
         self.numberOfDropsets = numberOfDropsets
         self.weightReductionPerDropset = max(5.0, weightReductionPerDropset) // Ensure minimum 5 lbs
     }
+
+    /// Preserves identity and logged sets when changing only the planned working-set count (e.g. add set mid-session).
+    init(copying exercise: Exercise, targetSets newTarget: Int) {
+        self.id = exercise.id
+        self.name = exercise.name
+        self.sets = exercise.sets
+        self.currentSet = exercise.currentSet
+        self.targetSets = max(1, newTarget)
+        self.exerciseType = exercise.exerciseType
+        self.targetHoldDuration = exercise.targetHoldDuration
+        self.alternatives = exercise.alternatives
+        self.videoURL = exercise.videoURL
+        self.hasDropsets = exercise.hasDropsets
+        self.numberOfDropsets = exercise.numberOfDropsets
+        self.weightReductionPerDropset = exercise.weightReductionPerDropset
+    }
     
     static func == (lhs: Exercise, rhs: Exercise) -> Bool {
         return lhs.id == rhs.id

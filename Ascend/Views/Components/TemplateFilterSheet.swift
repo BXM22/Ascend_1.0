@@ -7,20 +7,60 @@
 
 import SwiftUI
 
+enum TemplateLibrarySortOption: String, CaseIterable, Identifiable {
+    case name = "Name"
+    case exerciseCount = "Exercise Count"
+    case intensity = "Intensity"
+    case duration = "Duration"
+    
+    var id: String { rawValue }
+    
+    func sorted(_ templates: [WorkoutTemplate]) -> [WorkoutTemplate] {
+        switch self {
+        case .name:
+            return templates.sorted { $0.name < $1.name }
+        case .exerciseCount:
+            return templates.sorted { $0.exercises.count > $1.exercises.count }
+        case .intensity:
+            return templates.sorted { lhs, rhs in
+                let lhsIntensity = lhs.intensity?.rawValue ?? "None"
+                let rhsIntensity = rhs.intensity?.rawValue ?? "None"
+                return lhsIntensity < rhsIntensity
+            }
+        case .duration:
+            return templates.sorted { $0.estimatedDuration > $1.estimatedDuration }
+        }
+    }
+}
+
 struct TemplateFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var filters: TemplateFilters
+    @Binding var sortOption: TemplateLibrarySortOption
     @State private var localFilters: TemplateFilters
+    @State private var localSort: TemplateLibrarySortOption
     
-    init(filters: Binding<TemplateFilters>) {
+    init(filters: Binding<TemplateFilters>, sortOption: Binding<TemplateLibrarySortOption>) {
         self._filters = filters
+        self._sortOption = sortOption
         self._localFilters = State(initialValue: filters.wrappedValue)
+        self._localSort = State(initialValue: sortOption.wrappedValue)
     }
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: AppSpacing.xl) {
+                    FilterSection(title: "Sort", icon: "arrow.up.arrow.down") {
+                        Picker("Sort by", selection: $localSort) {
+                            ForEach(TemplateLibrarySortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(AppColors.primary)
+                    }
+                    
                     // Intensity Filter
                     FilterSection(title: "Intensity", icon: "flame.fill") {
                         VStack(spacing: AppSpacing.sm) {
@@ -124,6 +164,10 @@ struct TemplateFilterSheet: View {
             .background(AppColors.background)
             .navigationTitle("Filter Templates")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                localFilters = filters
+                localSort = sortOption
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -133,6 +177,7 @@ struct TemplateFilterSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Apply") {
                         filters = localFilters
+                        sortOption = localSort
                         HapticManager.impact(style: .medium)
                         dismiss()
                     }
@@ -286,5 +331,5 @@ struct TemplateFilters: Equatable {
 }
 
 #Preview {
-    TemplateFilterSheet(filters: .constant(TemplateFilters()))
+    TemplateFilterSheet(filters: .constant(TemplateFilters()), sortOption: .constant(.name))
 }

@@ -34,6 +34,21 @@ class SettingsManager: ObservableObject {
             UserDefaults.standard.set(pauseTimerDuringRest, forKey: AppConstants.UserDefaultsKeys.pauseTimerDuringRest)
         }
     }
+
+    /// Workouts per week shown on the Studio dashboard goal card (clamped 1…14).
+    @Published var weeklyWorkoutGoal: Int {
+        didSet {
+            let clamped = Self.clampWeeklyGoal(weeklyWorkoutGoal)
+            UserDefaults.standard.set(clamped, forKey: AppConstants.UserDefaultsKeys.weeklyWorkoutGoal)
+            if clamped != weeklyWorkoutGoal {
+                weeklyWorkoutGoal = clamped
+            }
+        }
+    }
+
+    private static func clampWeeklyGoal(_ value: Int) -> Int {
+        min(14, max(1, value))
+    }
     
     init() {
         // Load saved rest timer duration, default to 90 seconds
@@ -52,6 +67,9 @@ class SettingsManager: ObservableObject {
         
         // Load pause timer during rest setting, default to false
         self.pauseTimerDuringRest = UserDefaults.standard.bool(forKey: AppConstants.UserDefaultsKeys.pauseTimerDuringRest)
+
+        let storedGoal = UserDefaults.standard.object(forKey: AppConstants.UserDefaultsKeys.weeklyWorkoutGoal) as? Int ?? 5
+        self.weeklyWorkoutGoal = Self.clampWeeklyGoal(storedGoal)
         
         // Load custom theme
         loadCustomTheme()
@@ -196,7 +214,8 @@ class SettingsManager: ObservableObject {
             AppConstants.UserDefaultsKeys.restTimerActive,
             AppConstants.UserDefaultsKeys.restTimerRemaining,
             AppConstants.UserDefaultsKeys.restTimerTotalDuration,
-            AppConstants.UserDefaultsKeys.restTimerStartTime
+            AppConstants.UserDefaultsKeys.restTimerStartTime,
+            AppConstants.UserDefaultsKeys.weeklyWorkoutGoal
         ]
         
         for key in keysToRemove {
@@ -205,6 +224,7 @@ class SettingsManager: ObservableObject {
         
         // Reset SettingsManager properties
         self.restTimerDuration = AppConstants.Timer.defaultRestDuration
+        self.weeklyWorkoutGoal = 5
         self.customTheme = nil
         
         // Reset ThemeManager

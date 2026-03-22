@@ -1,60 +1,79 @@
 import SwiftUI
 
+/// Kinetic Atelier typography — **Manrope** (DESIGN.md §3). PostScript names match bundled TTF files in `Resources/Fonts/`.
 struct AppTypography {
-    // MARK: - Custom Fonts Configuration
-    // Avenir font (currently using Avenir-Regular from "Avenir Regular.ttf")
-    // Note: Avenir typically has these PostScript names:
-    // - Avenir-Book, Avenir-Roman, Avenir-Medium, Avenir-Heavy, Avenir-Black
-    // Using system weights as fallback until you add more Avenir weights
+    // MARK: - Manrope (bundled)
+    private static let regular = "Manrope-Regular"
+    private static let medium = "Manrope-Medium"
+    private static let semiBold = "Manrope-SemiBold"
+    private static let bold = "Manrope-Bold"
+    private static let extraBold = "Manrope-ExtraBold"
     
-    private static let avenirRegular = "Avenir-Book"  // Avenir Regular
-    private static let avenirMedium = "Avenir-Medium"  // You'll need to add this file
-    private static let avenirBold = "Avenir-Heavy"     // You'll need to add this file
+    private static func manrope(_ name: String, size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+        Font.custom(name, size: size, relativeTo: textStyle)
+    }
     
-    // MARK: - Avenir Fonts (Active)
-    // Using Avenir for main typography - mixing with system weights where Avenir weights not available
-    static let heading1 = Font.custom(avenirBold, size: 34, relativeTo: .largeTitle)
-    static let heading2 = Font.custom(avenirBold, size: 26, relativeTo: .title)
-    static let body = Font.custom(avenirRegular, size: 17, relativeTo: .body)
-    static let caption = Font.custom(avenirRegular, size: 13, relativeTo: .caption)
+    // MARK: - Scale (doc: Display / Headline / Title / Body / Labels)
     
-    // Additional typography variants
-    static let heading3 = Font.custom(avenirBold, size: 22, relativeTo: .title2)
-    static let heading4 = Font.custom(avenirMedium, size: 19, relativeTo: .title3)
-    static let bodyBold = Font.custom(avenirBold, size: 17, relativeTo: .body)
-    static let bodyMedium = Font.custom(avenirMedium, size: 17, relativeTo: .body)
-    static let subheadlineMedium = Font.custom(avenirMedium, size: 15, relativeTo: .subheadline)
-    static let captionMedium = Font.custom(avenirMedium, size: 13, relativeTo: .caption)
-    static let captionBold = Font.custom(avenirBold, size: 13, relativeTo: .caption)
-    static let largeTitleBold = Font.custom(avenirBold, size: 36, relativeTo: .largeTitle)
+    /// Display — large metrics; doc: −2% tracking (use `kineticDisplayTracking` modifier).
+    static let displayLarge = manrope(extraBold, size: 40, relativeTo: .largeTitle)
+    static let displayMedium = manrope(extraBold, size: 32, relativeTo: .largeTitle)
     
-    // MARK: - Extended Typography for Exercise Cards
-    // Footnote size (12pt) - labels above inputs
-    static let footnote = Font.custom(avenirRegular, size: 12, relativeTo: .footnote)
-    static let footnoteMedium = Font.custom(avenirMedium, size: 12, relativeTo: .footnote)
+    /// Headline — section titles; Semi-Bold.
+    static let headlineLarge = manrope(semiBold, size: 28, relativeTo: .title)
+    static let headlineMedium = manrope(semiBold, size: 22, relativeTo: .title2)
     
-    // Small body (14pt) - set indicators, secondary labels
-    static let bodySmall = Font.custom(avenirRegular, size: 14, relativeTo: .subheadline)
-    static let bodySmallMedium = Font.custom(avenirMedium, size: 14, relativeTo: .subheadline)
-    static let bodySmallBold = Font.custom(avenirBold, size: 14, relativeTo: .subheadline)
+    /// Title — card headings.
+    static let titleLarge = manrope(bold, size: 22, relativeTo: .title2)
+    static let titleMedium = manrope(bold, size: 19, relativeTo: .title3)
     
-    // Large numbers (24pt) - input fields
-    static let numberInput = Font.custom(avenirBold, size: 24, relativeTo: .title2)
+    /// Body — `tertiary` color + ~1.5× line height (use `kineticBodyLineHeight`).
+    static let body = manrope(regular, size: 17, relativeTo: .body)
+    static let bodyMedium = manrope(medium, size: 17, relativeTo: .body)
+    static let bodyBold = manrope(bold, size: 17, relativeTo: .body)
     
-    // Extra large numbers (32pt) - primary inputs
-    static let numberInputLarge = Font.custom(avenirBold, size: 32, relativeTo: .title)
+    static let subheadlineMedium = manrope(medium, size: 15, relativeTo: .subheadline)
     
-    // Button text (16pt)
-    static let button = Font.custom(avenirMedium, size: 16, relativeTo: .body)
-    static let buttonBold = Font.custom(avenirBold, size: 16, relativeTo: .body)
+    /// Labels — metadata; doc: all-caps +5% tracking (`kineticLabelTracking`).
+    static let labelSmallUppercase = manrope(semiBold, size: 11, relativeTo: .caption)
+    static let caption = manrope(regular, size: 13, relativeTo: .caption)
+    static let captionMedium = manrope(medium, size: 13, relativeTo: .caption)
+    static let captionBold = manrope(bold, size: 13, relativeTo: .caption)
     
-    // Large button text (20pt)
-    static let buttonLarge = Font.custom(avenirBold, size: 20, relativeTo: .title3)
+    // MARK: - Legacy aliases (same scale; existing screens keep compiling)
+    static let heading1 = manrope(bold, size: 34, relativeTo: .largeTitle)
+    static let heading2 = manrope(bold, size: 26, relativeTo: .title)
+    static let heading3 = manrope(bold, size: 22, relativeTo: .title2)
+    static let heading4 = manrope(medium, size: 19, relativeTo: .title3)
+    static let largeTitleBold = manrope(extraBold, size: 36, relativeTo: .largeTitle)
+    static let footnote = manrope(regular, size: 12, relativeTo: .footnote)
+    static let footnoteMedium = manrope(medium, size: 12, relativeTo: .footnote)
+    static let bodySmall = manrope(regular, size: 14, relativeTo: .subheadline)
+    static let bodySmallMedium = manrope(medium, size: 14, relativeTo: .subheadline)
+    static let bodySmallBold = manrope(bold, size: 14, relativeTo: .subheadline)
+    static let bodyMediumEditorial = manrope(regular, size: 14, relativeTo: .body)
+    static let numberInput = manrope(bold, size: 24, relativeTo: .title2)
+    static let numberInputLarge = manrope(bold, size: 32, relativeTo: .title)
+    static let button = manrope(medium, size: 16, relativeTo: .body)
+    static let buttonBold = manrope(bold, size: 16, relativeTo: .body)
+    static let buttonLarge = manrope(bold, size: 20, relativeTo: .title3)
+    static let exerciseTitle = manrope(bold, size: 28, relativeTo: .title)
+}
+
+// MARK: - Kinetic typography modifiers (DESIGN.md §3)
+extension View {
+    /// Display: −2% letter spacing (tight, “machined”).
+    func kineticDisplayTracking(for fontSize: CGFloat) -> some View {
+        kerning(-0.02 * fontSize)
+    }
     
-    // Exercise name header (28pt)
-    static let exerciseTitle = Font.custom(avenirBold, size: 28, relativeTo: .title)
+    /// Labels: +5% letter spacing; combine with `.textCase(.uppercase)` for metadata.
+    func kineticLabelTracking(for fontSize: CGFloat) -> some View {
+        kerning(0.05 * fontSize)
+    }
     
-    // MARK: - Fallback to System Fonts (if Avenir not loaded)
-    // If you see system fonts, it means Avenir didn't load properly.
-    // Check: 1) Font file is in project 2) Added to Info.plist 3) PostScript name is correct
+    /// Body: editorial line height ~1.5× for typical 17pt body.
+    func kineticBodyLineHeight() -> some View {
+        lineSpacing(6)
+    }
 }

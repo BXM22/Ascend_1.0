@@ -5,9 +5,15 @@ struct ColorTheme: Codable, Identifiable {
     var name: String
     var colors: [String] // Hex color strings
     
-    // Map colors to semantic roles
-    // Expected order: [background, card, primary, accent, textPrimary, textSecondary]
-    // Or we can use a more flexible approach with 5 colors from Coolors
+    /// After import, colors are **sorted darkest → lightest** (see `sortColorsByBrightness`).
+    /// **Stable slot mapping** (5 swatches):
+    /// - `[0]` background (darkest)
+    /// - `[1]` surface / elevated chrome
+    /// - `[2]` primary (brand action)
+    /// - `[3]` accent (secondary / analytical)
+    /// - `[4]` foreground on dark (lightest)
+    ///
+    /// `AppColors` maps these indices in `adaptiveColor`; gradients use fixed brand defaults + `customKey` overrides only.
     
     init(id: UUID = UUID(), name: String, colors: [String]) {
         self.id = id
@@ -15,16 +21,16 @@ struct ColorTheme: Codable, Identifiable {
         self.colors = colors
     }
     
-    // Default theme colors
+    /// Default palette — **darkest → lightest** (same order as sorted imports).
     static let `default` = ColorTheme(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID(),
         name: "Default",
         colors: [
-            "0d1b2a", // inkBlack - background
-            "1b263b", // prussianBlue - card
-            "415a77", // duskBlue - primary
-            "778da9", // dustyDenim - accent
-            "e0e1dd"  // alabasterGrey - text
+            "131313", // background
+            "1f1f1f", // surface / chrome
+            "3c6e71", // primary (deep)
+            "284b63", // accent / secondary analytical
+            "d9d9d9"  // foreground on dark
         ]
     )
 }

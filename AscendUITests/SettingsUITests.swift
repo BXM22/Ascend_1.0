@@ -61,9 +61,8 @@ final class SettingsUITests: XCTestCase {
             slider.adjust(toNormalizedSliderPosition: 0.5)
             sleep(1)
             
-            // Then - Duration should update
-            // Verify by checking displayed time
-            let timeDisplay = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'm' OR label CONTAINS 's'")).firstMatch
+            // Then - Duration should update (header shows clock like 1:30)
+            let timeDisplay = app.staticTexts.matching(NSPredicate(format: "label CONTAINS ':' OR label CONTAINS 'm' OR label CONTAINS 's'")).firstMatch
             XCTAssertTrue(timeDisplay.exists)
         }
     }

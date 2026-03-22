@@ -5,6 +5,11 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>Avenir Regular.ttf</string>
+		<string>Manrope-Regular.ttf</string>
+		<string>Manrope-Medium.ttf</string>
+		<string>Manrope-SemiBold.ttf</string>
+		<string>Manrope-Bold.ttf</string>
+		<string>Manrope-ExtraBold.ttf</string>
 	</array>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Ascend needs access to read your health data to sync your workout history and progress with Apple Health.</string>
