@@ -46,6 +46,7 @@ private enum ExampleProgramCardVisual {
 struct TemplatesView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.kineticPalette) private var kp
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     @ObservedObject var viewModel: TemplatesViewModel
     @ObservedObject var workoutViewModel: WorkoutViewModel
@@ -737,6 +738,7 @@ struct TemplatesView: View {
             .padding(.bottom, 100)
         }
         .background(kp.background.ignoresSafeArea())
+        .kineticDynamicTypeClamp()
         .id(AppColors.themeID)
         .safeAreaInset(edge: .top, spacing: 0) {
             if isMultiSelectMode {
@@ -877,7 +879,7 @@ struct TemplatesView: View {
             .presentationDragIndicator(.visible)
             .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
-        .animation(.easeInOut(duration: 0.3), value: selectedSegment)
+        .animation(KineticAccessibility.segmentAnimation(reduceMotion: accessibilityReduceMotion), value: selectedSegment)
         .onChange(of: debouncedSearchText) {
             invalidateTemplateCache()
         }
@@ -1112,6 +1114,26 @@ private struct TemplateBentoCard: View {
             if let onDelete {
                 Button("Delete", role: .destructive, action: onDelete)
             }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(template.name), \(template.exercises.count) exercises, \(template.estimatedDuration) minutes")
+        .accessibilityHint("Double tap to open details. Actions menu includes start, edit, duplicate.")
+        .accessibilityAction(named: Text("Start workout")) { onPlay() }
+        .accessibilityAction(named: Text("Edit template")) { onEdit() }
+        .accessibilityAction(named: Text("Duplicate template")) { onDuplicate() }
+        .modifier(TemplateBentoCardDeleteAccessibility(onDelete: onDelete))
+    }
+}
+
+/// VoiceOver: expose delete only for non-default templates (same as context menu).
+private struct TemplateBentoCardDeleteAccessibility: ViewModifier {
+    let onDelete: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        if let onDelete {
+            content.accessibilityAction(named: Text("Delete template")) { onDelete() }
+        } else {
+            content
         }
     }
 }

@@ -210,11 +210,13 @@ struct DashboardView: View {
                     }
                     .frame(height: 12)
 
-                    Text("\(weeklyWorkoutCount) OF \(weeklyGoalTarget) WORKOUTS")
-                        .font(HabitsFonts.bold(11))
-                        .foregroundStyle(kp.onSurface)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                    if weeklyWorkoutCount > 0 {
+                        Text("\(weeklyWorkoutCount) OF \(weeklyGoalTarget) WORKOUTS")
+                            .font(HabitsFonts.bold(11))
+                            .foregroundStyle(kp.onSurface)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
                 }
 
                 Button(action: handleDashboardActiveCardPrimaryAction) {

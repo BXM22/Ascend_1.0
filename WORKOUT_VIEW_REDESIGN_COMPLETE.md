@@ -293,12 +293,9 @@ These will be replaced with simplified versions in a future update.
 
 ## Known Limitations
 
-### **Temporarily Using Placeholders**
-1. **Stretch exercises** - Using placeholder text (needs SimplifiedStretchCard)
-2. **Cardio exercises** - Using placeholder text (needs SimplifiedCardioCard)
-3. **Calisthenics exercises** - Using placeholder text (needs SimplifiedCalisthenicsCard)
+### **Exercise cards (current implementation)**
 
-These will use legacy card implementations until simplified versions are created.
+The active workout UI uses dedicated SwiftUI cards: **`StretchExerciseCard`**, **`CardioExerciseCard`**, **`CalisthenicsExerciseCard`**, **`CalisthenicsHoldExerciseCard`**, and **`ExerciseCard`** in `WorkoutView.swift`. Older docs referred to “Simplified*Card” placeholders; those names are obsolete.
 
 ### **Future Enhancements**
 1. Dynamic Type support (fixed font sizes currently)

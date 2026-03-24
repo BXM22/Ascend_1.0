@@ -41,6 +41,7 @@ struct ProgressView: View {
     let onSettings: () -> Void
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.kineticPalette) private var kp
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     
     // State for redesign
     @State private var selectedTab: ProgressTab = .overview
@@ -109,9 +110,10 @@ struct ProgressView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .animation(.easeInOut(duration: 0.2), value: selectedTab)
+            .animation(KineticAccessibility.contentAnimation(reduceMotion: accessibilityReduceMotion), value: selectedTab)
         }
         .background(kp.surface)
+        .kineticDynamicTypeClamp()
         .id(AppColors.themeID)
         .sheet(isPresented: $showPRHistory) {
             PRHistoryView(progressViewModel: viewModel)
@@ -209,13 +211,14 @@ private struct KineticProgressTopBar: View {
 
 private struct KineticProgressSegmentedBar: View {
     @Environment(\.kineticPalette) private var kp
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Binding var selection: ProgressTab
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(ProgressTab.allCases, id: \.self) { tab in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(KineticAccessibility.contentAnimation(reduceMotion: accessibilityReduceMotion)) {
                         selection = tab
                         HapticManager.selection()
                     }
@@ -241,13 +244,14 @@ private struct KineticProgressSegmentedBar: View {
 
 private struct KineticExercisesSubSegmentedBar: View {
     @Environment(\.kineticPalette) private var kp
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Binding var selection: ExercisesProgressSubTab
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(ExercisesProgressSubTab.allCases, id: \.self) { tab in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(KineticAccessibility.contentAnimation(reduceMotion: accessibilityReduceMotion)) {
                         selection = tab
                         HapticManager.selection()
                     }

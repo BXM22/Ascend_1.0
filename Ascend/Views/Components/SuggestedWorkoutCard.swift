@@ -216,8 +216,7 @@ struct SuggestedWorkoutCard: View {
         }
         
         return Button(action: {
-            print("🔵 SuggestedWorkoutCard button tapped")
-            Logger.info("SuggestedWorkoutCard button tapped", category: .general)
+            Logger.debug("SuggestedWorkoutCard button tapped", category: .general)
             startSuggestedWorkout()
         }) {
             HStack(spacing: 16) {

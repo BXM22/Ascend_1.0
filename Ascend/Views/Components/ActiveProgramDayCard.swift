@@ -210,8 +210,7 @@ struct ActiveProgramDayCard: View {
     @ViewBuilder
     private func startButton(for info: (program: WorkoutProgram, currentDay: WorkoutDay, dayIndex: Int)) -> some View {
         Button(action: {
-            print("🔵 ActiveProgramDayCard button tapped")
-            Logger.info("ActiveProgramDayCard button tapped", category: .general)
+            Logger.debug("ActiveProgramDayCard button tapped", category: .general)
             handleStartButton(for: info)
         }) {
             HStack {

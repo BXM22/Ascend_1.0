@@ -153,6 +153,7 @@ struct WorkoutGenerationView: View {
         } message: {
             Text("Successfully generated: \(generatedWorkoutName)")
         }
+        .kineticDynamicTypeClamp()
     }
 
     // MARK: - Header
@@ -787,6 +788,7 @@ struct PhaseInfoRow: View {
 // MARK: - Goal Selection (shared with WorkoutGenerationSettingsView)
 
 struct GoalSelectionSection: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var trainingType: TrainingType
     @Binding var trainingGoal: TrainingGoal
 
@@ -796,13 +798,13 @@ struct GoalSelectionSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Select Your Goal")
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.textPrimary)
+                .font(WorkoutGenFonts.bold(22))
+                .foregroundStyle(kp.onSurface)
 
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Training Type")
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(WorkoutGenFonts.medium(15))
+                    .foregroundStyle(kp.onSurfaceVariant)
 
                 HStack(spacing: AppSpacing.sm) {
                     ForEach(TrainingType.allCases, id: \.self) { type in
@@ -815,21 +817,27 @@ struct GoalSelectionSection: View {
                                 Image(systemName: type == .strength ? "bolt.fill" : "flame.fill")
                                     .font(.system(size: 20))
                                 Text(type.rawValue)
-                                    .font(AppTypography.bodyMedium)
+                                    .font(WorkoutGenFonts.medium(15))
                             }
-                            .foregroundColor(trainingType == type ? AppColors.alabasterGrey : AppColors.textPrimary)
+                            .foregroundStyle(trainingType == type ? kp.onPrimary : kp.onSurface)
                             .frame(maxWidth: .infinity)
                             .padding(AppSpacing.md)
-                            .background(
-                                trainingType == type
-                                    ? LinearGradient.primaryGradient
-                                    : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom)
-                            )
+                            .background {
+                                if trainingType == type {
+                                    LinearGradient(
+                                        colors: [kp.primaryContainer, kp.primary],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    kp.surfaceContainerHighest
+                                }
+                            }
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(
-                                        trainingType == type ? Color.clear : AppColors.border,
+                                        trainingType == type ? Color.clear : kp.outlineVariant.opacity(0.35),
                                         lineWidth: 1
                                     )
                             )
@@ -841,8 +849,8 @@ struct GoalSelectionSection: View {
 
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Goal")
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(WorkoutGenFonts.medium(15))
+                    .foregroundStyle(kp.onSurfaceVariant)
 
                 HStack(spacing: AppSpacing.sm) {
                     ForEach(TrainingGoal.allCases, id: \.self) { goal in
@@ -855,21 +863,27 @@ struct GoalSelectionSection: View {
                                 Image(systemName: goal == .bulk ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                                     .font(.system(size: 20))
                                 Text(goal.rawValue)
-                                    .font(AppTypography.bodyMedium)
+                                    .font(WorkoutGenFonts.medium(15))
                             }
-                            .foregroundColor(trainingGoal == goal ? AppColors.alabasterGrey : AppColors.textPrimary)
+                            .foregroundStyle(trainingGoal == goal ? kp.onPrimary : kp.onSurface)
                             .frame(maxWidth: .infinity)
                             .padding(AppSpacing.md)
-                            .background(
-                                trainingGoal == goal
-                                    ? LinearGradient.primaryGradient
-                                    : LinearGradient(colors: [AppColors.secondary], startPoint: .top, endPoint: .bottom)
-                            )
+                            .background {
+                                if trainingGoal == goal {
+                                    LinearGradient(
+                                        colors: [kp.primaryContainer, kp.primary],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    kp.surfaceContainerHighest
+                                }
+                            }
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(
-                                        trainingGoal == goal ? Color.clear : AppColors.border,
+                                        trainingGoal == goal ? Color.clear : kp.outlineVariant.opacity(0.35),
                                         lineWidth: 1
                                     )
                             )
@@ -880,12 +894,12 @@ struct GoalSelectionSection: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.card)
+        .background(kp.surfaceContainerHigh)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(kp.outlineVariant.opacity(0.2), lineWidth: 1)
         )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
+        .shadow(color: kp.onSurface.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 }

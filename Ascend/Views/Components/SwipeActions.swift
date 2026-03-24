@@ -226,7 +226,7 @@ struct ExerciseCardSwipeActions {
             .background(AppColors.card)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .swipeToDelete {
-                print("Deleted!")
+                Logger.debug("Preview: swipe delete", category: .general)
             }
         
         Text("Swipe me either way!")
@@ -240,7 +240,7 @@ struct ExerciseCardSwipeActions {
                         icon: "star.fill",
                         title: "Favorite",
                         color: .yellow,
-                        action: { print("Favorited!") }
+                        action: { Logger.debug("Preview: favorited", category: .general) }
                     )
                 ],
                 trailing: [
@@ -248,7 +248,7 @@ struct ExerciseCardSwipeActions {
                         icon: "trash.fill",
                         title: "Delete",
                         color: .red,
-                        action: { print("Deleted!") },
+                        action: { Logger.debug("Preview: delete", category: .general) },
                         isDestructive: true
                     )
                 ]

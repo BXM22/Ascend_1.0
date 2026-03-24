@@ -216,7 +216,21 @@ class WorkoutProgramViewModel: ObservableObject {
     }
     
     func createCustomProgram(name: String, description: String, dayNames: [String]) -> WorkoutProgram {
-        let days = dayNames.enumerated().map { index, dayName in
+        let sanitizedDayNames = dayNames
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .map { $0.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression) }
+            .filter { !$0.isEmpty }
+        
+        let effectiveDayNames: [String]
+        if sanitizedDayNames.isEmpty {
+            assertionFailure("createCustomProgram called without valid day names.")
+            Logger.info("Custom program creation received empty dayNames; applying fallback day.", category: .general)
+            effectiveDayNames = ["Day 1"]
+        } else {
+            effectiveDayNames = sanitizedDayNames
+        }
+        
+        let days = effectiveDayNames.enumerated().map { index, dayName in
             WorkoutDay(
                 dayNumber: index + 1,
                 name: dayName,

@@ -15,10 +15,20 @@ class TemplatesViewModel: ObservableObject {
             rebuildSuggestionsIndex()
         }
     }
-    @Published var generationSettings = WorkoutGenerationSettings()
+    @Published var generationSettings: WorkoutGenerationSettings {
+        didSet {
+            PerformanceOptimizer.shared.debouncedSave { [weak self] in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.persistGenerationSettingsSnapshot(self.generationSettings)
+                }
+            }
+        }
+    }
     @Published var showGenerationSettings = false
     
     private let templatesKey = AppConstants.UserDefaultsKeys.savedWorkoutTemplates
+    private let generationSettingsKey = AppConstants.UserDefaultsKeys.workoutGenerationSettings
     
     // Performance optimizations
     private var cachedCalisthenicsTemplates: [WorkoutTemplate]?
@@ -29,6 +39,12 @@ class TemplatesViewModel: ObservableObject {
     private var indexLastUpdated: Date?
     
     init() {
+        if let data = UserDefaults.standard.data(forKey: AppConstants.UserDefaultsKeys.workoutGenerationSettings),
+           let decoded = try? JSONDecoder().decode(WorkoutGenerationSettings.self, from: data) {
+            self.generationSettings = decoded
+        } else {
+            self.generationSettings = WorkoutGenerationSettings()
+        }
         loadTemplates()
         // Pre-build suggestions index in background
         rebuildSuggestionsIndex()
@@ -172,6 +188,18 @@ class TemplatesViewModel: ObservableObject {
                 let existingProgressionNames = Set(self.templates.filter { $0.name.contains("Progression") }.map { $0.name })
                 let newCalisthenicsTemplates = calisthenicsTemplates.filter { !existingProgressionNames.contains($0.name) }
                 self.templates.append(contentsOf: newCalisthenicsTemplates)
+            }
+        }
+    }
+    
+    private func persistGenerationSettingsSnapshot(_ settings: WorkoutGenerationSettings) {
+        let key = generationSettingsKey
+        processingQueue.async {
+            do {
+                let encoded = try JSONEncoder().encode(settings)
+                UserDefaults.standard.set(encoded, forKey: key)
+            } catch {
+                Logger.error("Failed to save workout generation settings", error: error, category: .persistence)
             }
         }
     }

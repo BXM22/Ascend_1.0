@@ -54,6 +54,8 @@ enum AppConstants {
         static let weeklyWorkoutGoal = "weeklyWorkoutGoal"
         /// Last template name produced from the generate sheet (for UI hints).
         static let lastGeneratedTemplateLabel = "lastGeneratedTemplateLabel"
+        /// Persisted `WorkoutGenerationSettings` (template generator rules).
+        static let workoutGenerationSettings = "workoutGenerationSettings"
     }
     
     // MARK: - Timer Constants

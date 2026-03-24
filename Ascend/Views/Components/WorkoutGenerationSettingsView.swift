@@ -2,10 +2,19 @@ import SwiftUI
 
 // MARK: - Generation Settings (Kinetic Atelier)
 
+private enum GenSettingsFonts {
+    static func extraBold(_ size: CGFloat) -> Font { Font.custom("Manrope-ExtraBold", size: size, relativeTo: .body) }
+    static func bold(_ size: CGFloat) -> Font { Font.custom("Manrope-Bold", size: size, relativeTo: .body) }
+    static func semiBold(_ size: CGFloat) -> Font { Font.custom("Manrope-SemiBold", size: size, relativeTo: .body) }
+    static func medium(_ size: CGFloat) -> Font { Font.custom("Manrope-Medium", size: size, relativeTo: .body) }
+    static func regular(_ size: CGFloat) -> Font { Font.custom("Manrope-Regular", size: size, relativeTo: .body) }
+}
+
 struct WorkoutGenerationSettingsView: View {
     @Binding var settings: WorkoutGenerationSettings
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.kineticPalette) private var kp
     
     private let exerciseTotalBounds = 3...15
     private let restBounds = 30...300
@@ -39,31 +48,33 @@ struct WorkoutGenerationSettingsView: View {
                 .padding(.top, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.xl)
             }
-            .background(AppColors.background.ignoresSafeArea())
+            .background(kp.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("GENERATION SETTINGS")
-                        .font(AppTypography.labelSmallUppercase)
-                        .foregroundColor(AppColors.primary)
+                        .font(GenSettingsFonts.semiBold(11))
+                        .tracking(1.6)
+                        .foregroundStyle(kp.primary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(AppColors.primary)
+                    .foregroundStyle(kp.primary)
                 }
             }
-            .toolbarBackground(AppColors.surface.opacity(0.78), for: .navigationBar)
+            .toolbarBackground(kp.surface.opacity(0.78), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
+        .kineticDynamicTypeClamp()
     }
     
     private var headerIntro: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text("Training guidelines")
-                .font(AppTypography.body)
-                .foregroundColor(AppColors.textSecondary)
+                .font(GenSettingsFonts.regular(17))
+                .foregroundStyle(kp.onSurfaceVariant)
         }
     }
     
@@ -97,25 +108,25 @@ struct WorkoutGenerationSettingsView: View {
                 settings.applyPhasePreset()
             } label: {
                 Text("Apply recommended defaults")
-                    .font(AppTypography.heading3)
-                    .foregroundColor(AppColors.onPrimary)
+                    .font(GenSettingsFonts.bold(22))
+                    .foregroundStyle(kp.onPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
                     .background(
                         LinearGradient(
-                            colors: [AppColors.primaryContainer, AppColors.primary],
+                            colors: [kp.primaryContainer, kp.primary],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .clipShape(Capsule())
-                    .shadow(color: AppColors.primary.opacity(0.12), radius: 24, x: 0, y: 8)
+                    .shadow(color: kp.primary.opacity(0.12), radius: 24, x: 0, y: 8)
             }
             .buttonStyle(ScaleButtonStyle())
             
             Text("Applying Kinetic Atelier generation logic")
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .font(GenSettingsFonts.regular(13))
+                .foregroundStyle(kp.onSurfaceVariant)
                 .tracking(0.15)
                 .textCase(.uppercase)
                 .frame(maxWidth: .infinity)
@@ -134,30 +145,31 @@ struct WorkoutGenerationSettingsView: View {
             .padding(.top, AppSpacing.sm)
         } label: {
             Text("Phase & training reference")
-                .font(AppTypography.heading3)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.bold(22))
+                .foregroundStyle(kp.onSurface)
         }
-        .tint(AppColors.primary)
+        .tint(kp.primary)
     }
 }
 
 // MARK: - Hero
 
 private struct GenerationSettingsPhaseHero: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var settings: WorkoutGenerationSettings
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Current phase")
-                .font(AppTypography.caption)
+                .font(GenSettingsFonts.regular(13))
                 .fontWeight(.bold)
                 .tracking(2)
-                .foregroundColor(AppColors.primary)
+                .foregroundStyle(kp.primary)
                 .textCase(.uppercase)
             
             Text(settings.phaseDisplayTitle)
-                .font(AppTypography.largeTitleBold)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.extraBold(36))
+                .foregroundStyle(kp.onSurface)
             
             HStack(spacing: AppSpacing.sm) {
                 phasePill(icon: "dial.high", text: settings.phaseFocusLabel)
@@ -183,7 +195,7 @@ private struct GenerationSettingsPhaseHero: View {
         .padding(AppSpacing.cardPadding)
         .background(
             LinearGradient(
-                colors: [AppColors.secondaryContainer.opacity(0.45), AppColors.surfaceContainerHighest.opacity(0.9)],
+                colors: [kp.secondaryContainer.opacity(0.45), kp.surfaceContainerHighest.opacity(0.9)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -191,13 +203,13 @@ private struct GenerationSettingsPhaseHero: View {
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusXL, style: .continuous))
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: AppSpacing.radiusXL, style: .continuous)
-                .fill(AppColors.primary)
+                .fill(kp.primary)
                 .frame(width: 4)
         }
         .overlay(alignment: .topTrailing) {
             Image(systemName: "square.grid.3x3.topleft.filled")
                 .font(.system(size: 72))
-                .foregroundColor(AppColors.primary.opacity(0.08))
+                .foregroundStyle(kp.primary.opacity(0.08))
                 .padding()
         }
     }
@@ -217,15 +229,15 @@ private struct GenerationSettingsPhaseHero: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(AppColors.primary)
+                .foregroundStyle(kp.primary)
             Text(text)
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .font(GenSettingsFonts.regular(13))
+                .foregroundStyle(kp.onSurfaceVariant)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, AppSpacing.xs)
-        .background(AppColors.surfaceContainerHigh.opacity(0.55))
+        .background(kp.surfaceContainerHigh.opacity(0.55))
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
     }
 }
@@ -233,6 +245,7 @@ private struct GenerationSettingsPhaseHero: View {
 // MARK: - Volume
 
 private struct GenerationVolumeSection: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var settings: WorkoutGenerationSettings
     let exerciseTotalBounds: ClosedRange<Int>
     
@@ -246,11 +259,11 @@ private struct GenerationVolumeSection: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
                 Text("Volume tuning")
-                    .font(AppTypography.heading2)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.bold(26))
+                    .foregroundStyle(kp.onSurface)
                 Spacer()
                 Image(systemName: "chart.bar.xaxis")
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundStyle(kp.onSurfaceVariant)
             }
             
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
@@ -297,15 +310,15 @@ private struct GenerationVolumeSection: View {
                     in: 1...4,
                     step: 1
                 )
-                .tint(AppColors.primary)
+                .tint(kp.primary)
                 
                 Text("Scales every muscle group to the same count. Combine with presets below.")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.regular(13))
+                    .foregroundStyle(kp.onSurfaceVariant)
             }
         }
         .padding(AppSpacing.cardPadding)
-        .background(AppColors.surfaceContainerLow)
+        .background(kp.surfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
     }
     
@@ -313,12 +326,12 @@ private struct GenerationVolumeSection: View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack(alignment: .bottom) {
                 Text(title)
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.medium(17))
+                    .foregroundStyle(kp.onSurfaceVariant)
                 Spacer()
                 Text(value)
-                    .font(AppTypography.numberInput)
-                    .foregroundColor(AppColors.primary)
+                    .font(GenSettingsFonts.bold(24))
+                    .foregroundStyle(kp.primary)
             }
             bar()
         }
@@ -333,12 +346,12 @@ private struct GenerationVolumeSection: View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
                 Text("Min")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.regular(13))
+                    .foregroundStyle(kp.onSurfaceVariant)
                 Spacer()
                 Text("\(low.wrappedValue)")
-                    .font(AppTypography.bodyBold)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.bold(17))
+                    .foregroundStyle(kp.onSurface)
             }
             Slider(
                 value: Binding(
@@ -351,16 +364,16 @@ private struct GenerationVolumeSection: View {
                 in: Double(range.lowerBound)...Double(range.upperBound),
                 step: 1
             )
-            .tint(AppColors.primary)
+            .tint(kp.primary)
             
             HStack {
                 Text("Max")
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.regular(13))
+                    .foregroundStyle(kp.onSurfaceVariant)
                 Spacer()
                 Text("\(high.wrappedValue)")
-                    .font(AppTypography.bodyBold)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.bold(17))
+                    .foregroundStyle(kp.onSurface)
             }
             Slider(
                 value: Binding(
@@ -373,12 +386,13 @@ private struct GenerationVolumeSection: View {
                 in: Double(range.lowerBound)...Double(range.upperBound),
                 step: 1
             )
-            .tint(AppColors.primary)
+            .tint(kp.primary)
         }
     }
 }
 
 struct ExerciseCountRangeBar: View {
+    @Environment(\.kineticPalette) private var kp
     let min: Int
     let max: Int
     let `in`: ClosedRange<Int>
@@ -391,10 +405,10 @@ struct ExerciseCountRangeBar: View {
             let w = geo.size.width
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(AppColors.surfaceContainerHighest)
+                    .fill(kp.surfaceContainerHighest)
                 Capsule()
-                    .fill(AppColors.primary)
-                    .shadow(color: AppColors.primary.opacity(0.35), radius: 8, x: 0, y: 0)
+                    .fill(kp.primary)
+                    .shadow(color: kp.primary.opacity(0.35), radius: 8, x: 0, y: 0)
                     .frame(width: Swift.max(6, (end - start) * w))
                     .offset(x: start * w)
             }
@@ -406,13 +420,14 @@ struct ExerciseCountRangeBar: View {
 // MARK: - Content toggles
 
 private struct GenerationContentLogicSection: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var settings: WorkoutGenerationSettings
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Content logic")
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.bold(26))
+                .foregroundStyle(kp.onSurface)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.spacing3) {
                 kineticToggle("Include cardio", isOn: $settings.includeCardio)
@@ -437,15 +452,15 @@ private struct GenerationContentLogicSection: View {
             }
         }
         .padding(AppSpacing.cardPadding)
-        .background(AppColors.surfaceContainerLow)
+        .background(kp.surfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
     }
     
     private func kineticToggle(_ title: String, isOn: Binding<Bool>) -> some View {
         HStack {
             Text(title)
-                .font(AppTypography.bodyMedium)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.medium(17))
+                .foregroundStyle(kp.onSurface)
             Spacer()
             Toggle("", isOn: Binding(
                 get: { isOn.wrappedValue },
@@ -455,10 +470,10 @@ private struct GenerationContentLogicSection: View {
                 }
             ))
             .labelsHidden()
-            .tint(AppColors.primaryContainer)
+            .tint(kp.primaryContainer)
         }
         .padding(AppSpacing.md)
-        .background(AppColors.surfaceContainerHigh)
+        .background(kp.surfaceContainerHigh)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
     }
     
@@ -466,11 +481,11 @@ private struct GenerationContentLogicSection: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(AppTypography.bodyMedium)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.medium(17))
+                    .foregroundStyle(kp.onSurface)
                 Text(subtitle)
-                    .font(AppTypography.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.regular(13))
+                    .foregroundStyle(kp.onSurfaceVariant)
             }
             Spacer()
             Stepper(
@@ -484,13 +499,13 @@ private struct GenerationContentLogicSection: View {
                 in: range
             ) {
                 Text("\(value.wrappedValue)")
-                    .font(AppTypography.bodyBold)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.bold(17))
+                    .foregroundStyle(kp.onSurface)
                     .frame(minWidth: 24)
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.surfaceContainerHigh)
+        .background(kp.surfaceContainerHigh)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMD, style: .continuous))
     }
 }
@@ -498,6 +513,7 @@ private struct GenerationContentLogicSection: View {
 // MARK: - Equipment
 
 private struct GenerationEquipmentSection: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var settings: WorkoutGenerationSettings
     
     private let options: [(id: String, label: String)] = [
@@ -511,8 +527,8 @@ private struct GenerationEquipmentSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Equipment inventory")
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.bold(26))
+                .foregroundStyle(kp.onSurface)
             
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: AppSpacing.sm)], spacing: AppSpacing.sm) {
                 ForEach(options, id: \.id) { item in
@@ -533,17 +549,17 @@ private struct GenerationEquipmentSection: View {
                                     .font(.system(size: 14))
                             }
                             Text(item.label)
-                                .font(AppTypography.bodyMedium)
+                                .font(GenSettingsFonts.medium(17))
                         }
-                        .foregroundColor(isOn ? AppColors.primary : AppColors.textSecondary)
+                        .foregroundStyle(isOn ? kp.primary : kp.onSurfaceVariant)
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.sm)
                         .frame(maxWidth: .infinity)
-                        .background( isOn ? AppColors.primary.opacity(0.12) : AppColors.surfaceContainerHighest)
+                        .background(isOn ? kp.primary.opacity(0.12) : kp.surfaceContainerHighest)
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
-                                .stroke(isOn ? AppColors.primary : Color.clear, lineWidth: 1)
+                                .stroke(isOn ? kp.primary : Color.clear, lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -551,7 +567,7 @@ private struct GenerationEquipmentSection: View {
             }
         }
         .padding(AppSpacing.cardPadding)
-        .background(AppColors.surfaceContainerLow)
+        .background(kp.surfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
     }
 }
@@ -559,6 +575,7 @@ private struct GenerationEquipmentSection: View {
 // MARK: - Performance
 
 private struct GenerationPerformanceSection: View {
+    @Environment(\.kineticPalette) private var kp
     @Binding var settings: WorkoutGenerationSettings
     let restBounds: ClosedRange<Int>
     let rirBounds: ClosedRange<Int>
@@ -566,18 +583,18 @@ private struct GenerationPerformanceSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
             Text("Performance thresholds")
-                .font(AppTypography.heading2)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.bold(26))
+                .foregroundStyle(kp.onSurface)
             
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack {
                     Text("Rest duration")
-                        .font(AppTypography.bodyMedium)
-                        .foregroundColor(AppColors.textSecondary)
+                        .font(GenSettingsFonts.medium(17))
+                        .foregroundStyle(kp.onSurfaceVariant)
                     Spacer()
                     Text("\(settings.restTimeMin)s – \(settings.restTimeMax)s")
-                        .font(AppTypography.bodyBold)
-                        .foregroundColor(AppColors.accent)
+                        .font(GenSettingsFonts.bold(17))
+                        .foregroundStyle(kp.primary)
                 }
                 Slider(
                     value: Binding(
@@ -593,7 +610,7 @@ private struct GenerationPerformanceSection: View {
                     in: Double(restBounds.lowerBound)...Double(restBounds.upperBound),
                     step: 5
                 )
-                .tint(AppColors.accent)
+                .tint(kp.primary)
                 Slider(
                     value: Binding(
                         get: { Double(settings.restTimeMax) },
@@ -608,30 +625,30 @@ private struct GenerationPerformanceSection: View {
                     in: Double(restBounds.lowerBound)...Double(restBounds.upperBound),
                     step: 5
                 )
-                .tint(AppColors.accent)
+                .tint(kp.primary)
                 HStack {
                     Text("30s")
                     Spacer()
                     Text("300s")
                 }
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .font(GenSettingsFonts.regular(13))
+                .foregroundStyle(kp.onSurfaceVariant)
                 .textCase(.uppercase)
                 .tracking(1)
             }
             
             Divider()
-                .background(AppColors.surfaceContainerHighest.opacity(0.5))
+                .background(kp.surfaceContainerHighest.opacity(0.5))
             
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack {
                     Text("RIR range (effort)")
-                        .font(AppTypography.bodyMedium)
-                        .foregroundColor(AppColors.textSecondary)
+                        .font(GenSettingsFonts.medium(17))
+                        .foregroundStyle(kp.onSurfaceVariant)
                     Spacer()
                     Text("\(settings.rirMin) – \(settings.rirMax) RIR")
-                        .font(AppTypography.bodyBold)
-                        .foregroundColor(AppColors.accent)
+                        .font(GenSettingsFonts.bold(17))
+                        .foregroundStyle(kp.primary)
                 }
                 Slider(
                     value: Binding(
@@ -647,7 +664,7 @@ private struct GenerationPerformanceSection: View {
                     in: Double(rirBounds.lowerBound)...Double(rirBounds.upperBound),
                     step: 1
                 )
-                .tint(AppColors.accent)
+                .tint(kp.primary)
                 Slider(
                     value: Binding(
                         get: { Double(settings.rirMax) },
@@ -662,78 +679,88 @@ private struct GenerationPerformanceSection: View {
                     in: Double(rirBounds.lowerBound)...Double(rirBounds.upperBound),
                     step: 1
                 )
-                .tint(AppColors.accent)
+                .tint(kp.primary)
                 HStack {
                     Text("Max intensity")
                     Spacer()
                     Text("Recovery focus")
                 }
-                .font(AppTypography.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .font(GenSettingsFonts.regular(13))
+                .foregroundStyle(kp.onSurfaceVariant)
                 .textCase(.uppercase)
                 .tracking(1)
             }
         }
         .padding(AppSpacing.cardPadding)
-        .background(AppColors.surfaceContainerLow)
+        .background(kp.surfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusLG, style: .continuous))
     }
 }
 
-// MARK: - Legacy reference sections (unchanged behavior)
+// MARK: - Reference sections (Kinetic)
 
 struct CoreRulesSection: View {
+    @Environment(\.kineticPalette) private var kp
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
                 Text("FULL-BODY")
-                    .font(AppTypography.heading2)
-                    .foregroundStyle(LinearGradient.primaryGradient)
-                
+                    .font(GenSettingsFonts.bold(26))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [kp.primary, kp.primaryContainer],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+
                 Text("— CORE RULES")
-                    .font(AppTypography.heading2)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(GenSettingsFonts.bold(26))
+                    .foregroundStyle(kp.onSurface)
             }
-            
+
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 RuleItem(icon: "calendar", text: "Train 3–4× per week")
                 RuleItem(icon: "target", text: "Hit every major muscle each session")
                 RuleItem(icon: "arrow.triangle.2.circlepath", text: "Fewer exercises per muscle per workout, but higher weekly frequency")
             }
             .padding(AppSpacing.md)
-            .background(AppColors.secondary)
+            .background(kp.secondary)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(AppSpacing.md)
-        .background(AppColors.card)
+        .background(kp.surfaceContainerHigh)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(kp.outlineVariant.opacity(0.25), lineWidth: 1)
         )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
+        .shadow(color: kp.onSurface.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 }
 
 struct RuleItem: View {
+    @Environment(\.kineticPalette) private var kp
     let icon: String
     let text: String
-    
+
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundColor(AppColors.accent)
+                .foregroundStyle(kp.primary)
                 .frame(width: 20)
-            
+
             Text(text)
-                .font(AppTypography.body)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.regular(17))
+                .foregroundStyle(kp.onSurface)
         }
     }
 }
 
 struct PhaseGuidelinesSection: View {
+    @Environment(\.kineticPalette) private var kp
     let phase: TrainingPhase
     let settings: WorkoutGenerationSettings
     
@@ -780,24 +807,14 @@ struct PhaseGuidelinesSection: View {
             // Phase Header
             HStack {
                 Text(phase.rawValue.uppercased())
-                    .font(AppTypography.heading2)
+                    .font(GenSettingsFonts.bold(26))
                     .foregroundStyle(phaseColor)
-                
-                if phase == .bulking {
-                    Text("(Full-Body)")
-                        .font(AppTypography.heading2)
-                        .foregroundColor(AppColors.textPrimary)
-                } else if phase == .cutting {
-                    Text("(Full-Body)")
-                        .font(AppTypography.heading2)
-                        .foregroundColor(AppColors.textPrimary)
-                } else {
-                    Text("(Full-Body)")
-                        .font(AppTypography.heading2)
-                        .foregroundColor(AppColors.textPrimary)
-                }
+
+                Text("(Full-Body)")
+                    .font(GenSettingsFonts.bold(26))
+                    .foregroundStyle(kp.onSurface)
             }
-            
+
             // Goal and Recovery Info
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 InfoRow(label: "Goal", value: phaseGoal)
@@ -805,70 +822,70 @@ struct PhaseGuidelinesSection: View {
                 InfoRow(label: "Weekly sets/muscle", value: weeklySetsRange)
             }
             .padding(AppSpacing.md)
-            .background(AppColors.secondary)
+            .background(kp.secondary)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            
+
             // Per Workout Exercise Count
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Per Workout Exercise Count")
-                    .font(AppTypography.bodyBold)
-                    .foregroundColor(AppColors.textPrimary)
-                
+                    .font(GenSettingsFonts.bold(17))
+                    .foregroundStyle(kp.onSurface)
+
                 Text("\(totalExerciseCount) total exercises")
-                    .font(AppTypography.body)
-                    .foregroundColor(AppColors.textSecondary)
-                
+                    .font(GenSettingsFonts.regular(17))
+                    .foregroundStyle(kp.onSurfaceVariant)
+
                 // Muscle Group Table
                 VStack(spacing: AppSpacing.xs) {
                     ForEach(muscleGroupRows, id: \.muscle) { row in
                         HStack {
                             Text(row.muscle)
-                                .font(AppTypography.bodyMedium)
-                                .foregroundColor(AppColors.textPrimary)
+                                .font(GenSettingsFonts.medium(17))
+                                .foregroundStyle(kp.onSurface)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             Text(row.count)
-                                .font(AppTypography.bodyBold)
-                                .foregroundColor(AppColors.primary)
+                                .font(GenSettingsFonts.bold(17))
+                                .foregroundStyle(kp.primary)
                         }
                         .padding(.vertical, AppSpacing.xs)
-                        
+
                         if row.muscle != muscleGroupRows.last?.muscle {
                             Divider()
-                                .background(AppColors.border)
+                                .background(kp.outlineVariant.opacity(0.35))
                         }
                     }
                 }
                 .padding(AppSpacing.sm)
-                .background(AppColors.card)
+                .background(kp.surfaceContainerHigh)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .padding(AppSpacing.md)
-            .background(AppColors.secondary)
+            .background(kp.secondary)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            
+
             // Sets/Reps Guidelines
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Sets/Reps:")
-                    .font(AppTypography.bodyBold)
-                    .foregroundColor(AppColors.textPrimary)
-                
+                    .font(GenSettingsFonts.bold(17))
+                    .foregroundStyle(kp.onSurface)
+
                 Text(setsRepsGuideline)
-                    .font(AppTypography.body)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(GenSettingsFonts.regular(17))
+                    .foregroundStyle(kp.onSurfaceVariant)
             }
             .padding(AppSpacing.md)
-            .background(AppColors.secondary)
+            .background(kp.secondary)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(AppSpacing.md)
-        .background(AppColors.card)
+        .background(kp.surfaceContainerHigh)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(kp.outlineVariant.opacity(0.25), lineWidth: 1)
         )
-        .shadow(color: AppColors.foreground.opacity(0.06), radius: 4, x: 0, y: 2)
+        .shadow(color: kp.onSurface.opacity(0.06), radius: 4, x: 0, y: 2)
     }
     
     private var phaseGoal: String {
@@ -952,20 +969,21 @@ struct PhaseGuidelinesSection: View {
 }
 
 struct InfoRow: View {
+    @Environment(\.kineticPalette) private var kp
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label)
-                .font(AppTypography.bodyMedium)
-                .foregroundColor(AppColors.textSecondary)
-            
+                .font(GenSettingsFonts.medium(17))
+                .foregroundStyle(kp.onSurfaceVariant)
+
             Spacer()
-            
+
             Text(value)
-                .font(AppTypography.bodyBold)
-                .foregroundColor(AppColors.textPrimary)
+                .font(GenSettingsFonts.bold(17))
+                .foregroundStyle(kp.onSurface)
         }
     }
 }

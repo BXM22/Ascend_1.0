@@ -274,13 +274,13 @@ These are marked as "Legacy Components" and only used by TrendGraphsView and oth
 
 ---
 
-## Known Limitations
+## Known Limitations (updated vs. current app)
 
-1. **Dynamic Type** - Not yet implemented (fixed font sizes)
-2. **Reduce Motion** - Animations always play
-3. **Goal Setting** - Placeholder in detail sheet menu
-4. **Export Data** - Placeholder in header menu
-5. **Share Functionality** - Placeholder in detail sheet
+1. **Dynamic Type** — Progress uses **Manrope** at fixed sizes with a **`.kineticDynamicTypeClamp()`** cap (`xxxLarge`) on the main chrome; not every nested control uses scalable text styles yet.
+2. **Reduce Motion** — Tab/segment `withAnimation` and Templates segment animation respect **`accessibilityReduceMotion`** via `KineticAccessibility` helpers; other animations may still run.
+3. **Goal Setting** — Weekly workout goal lives under **Settings → Goals**; exercise detail is **history/charts** only (no per-exercise goal UI).
+4. **Export Data** — **Implemented**: Progress header menu → **Export Data** (`AppDataExportService` + share sheet).
+5. **Share from exercise detail** — No dedicated “share this exercise” action; use **Export** for a full JSON backup from Progress.
 
 ---
 

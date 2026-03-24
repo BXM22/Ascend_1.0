@@ -215,7 +215,8 @@ class SettingsManager: ObservableObject {
             AppConstants.UserDefaultsKeys.restTimerRemaining,
             AppConstants.UserDefaultsKeys.restTimerTotalDuration,
             AppConstants.UserDefaultsKeys.restTimerStartTime,
-            AppConstants.UserDefaultsKeys.weeklyWorkoutGoal
+            AppConstants.UserDefaultsKeys.weeklyWorkoutGoal,
+            AppConstants.UserDefaultsKeys.workoutGenerationSettings
         ]
         
         for key in keysToRemove {
@@ -252,6 +253,7 @@ class SettingsManager: ObservableObject {
         // Ensure all default templates are present
         templatesViewModel.loadDefaultTemplates()
         templatesViewModel.loadCalisthenicsTemplates()
+        templatesViewModel.generationSettings = WorkoutGenerationSettings()
         
         // Reset WorkoutProgramViewModel
         programViewModel.programs = []

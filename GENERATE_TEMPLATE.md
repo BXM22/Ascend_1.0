@@ -42,7 +42,7 @@ Both bind to the **same** `TemplatesViewModel.generationSettings` instance passe
 
 **`applyPhasePreset()`** updates rest, RIR, and (when a split type is passed) exercise counts from `TrainingPhase`. The generate sheet calls it when training type or goal changes.
 
-**Persistence:** `WorkoutGenerationSettings` is `Codable`, but **`TemplatesViewModel` holds a single in-memory `generationSettings`** (defaults from `init()`). It is **not** automatically persisted to `UserDefaults` in the current `TemplatesViewModel` implementation; changes last for the app session unless you add storage.
+**Persistence:** `WorkoutGenerationSettings` is `Codable`. **`TemplatesViewModel`** loads and saves it under **`UserDefaults`** key `workoutGenerationSettings` (`AppConstants.UserDefaultsKeys.workoutGenerationSettings`) with debounced writes when values change. **Reset all data** in Settings clears this key and restores defaults.
 
 ---
 
@@ -80,7 +80,7 @@ Anything that needs a generated template can call `WorkoutGenerator` with `templ
 
 ## 6. Visual notes
 
-`WorkoutGenerationView` and `WorkoutGenerationSettingsView` use **`AppColors`**, **`AppTypography`**, **`LinearGradient.primaryGradient`**, and **`CoreRulesSection`** / **`GoalSelectionSection`** / **`PhasePreviewCard`** patterns — aligned with legacy gradient chrome, not the full Kinetic Manrope bento system on `TemplatesView`. When migrating, treat [DESIGN.md](./DESIGN.md) as the target.
+`WorkoutGenerationView` and `WorkoutGenerationSettingsView` use the **Kinetic** environment (`@Environment(\.kineticPalette)`), **Manrope** (`WorkoutGenFonts` / `GenSettingsFonts`), and tonal surfaces consistent with [DESIGN.md](./DESIGN.md) and the Templates tab.
 
 ---
 
@@ -102,3 +102,4 @@ Anything that needs a generated template can call `WorkoutGenerator` with `templ
 | Date | Note |
 |------|------|
 | 2026-03 | Initial `GENERATE_TEMPLATE.md` — generate sheet, settings, model, generator, VM API, cross-feature usage. |
+| 2026-03 | Document `workoutGenerationSettings` persistence; Kinetic UI for generate flows. |
