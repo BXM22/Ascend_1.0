@@ -348,36 +348,35 @@ struct OverviewTab: View {
     
     private var streakColumn: some View {
         VStack(spacing: 16) {
-            ZStack(alignment: .bottomTrailing) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Active Momentum")
-                        .font(ProgressFonts.bold(10))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                        .foregroundStyle(kp.primary.opacity(0.6))
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(viewModel.currentStreak)")
-                            .font(ProgressFonts.extraBold(48))
-                            .foregroundStyle(kp.primary)
-                            .kineticDisplayTracking(for: 48)
-                        Text("days")
-                            .font(ProgressFonts.medium(18))
-                            .foregroundStyle(kp.tertiary)
-                    }
-                    Text("Current Day Streak")
-                        .font(ProgressFonts.medium(12))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Active Momentum")
+                    .font(ProgressFonts.bold(10))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(kp.primary.opacity(0.6))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(viewModel.currentStreak)")
+                        .font(ProgressFonts.extraBold(48))
+                        .foregroundStyle(kp.primary)
+                        .kineticDisplayTracking(for: 48)
+                    Text("days")
+                        .font(ProgressFonts.medium(18))
                         .foregroundStyle(kp.tertiary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-                .background(kp.surfaceContainerHighest)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(kp.primary.opacity(0.12))
-                    .offset(x: 16, y: 16)
+                Text("Current Day Streak")
+                    .font(ProgressFonts.medium(12))
+                    .foregroundStyle(kp.tertiary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .background(kp.surfaceContainerHighest)
+            .overlay(alignment: .trailing) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 56, weight: .regular))
+                    .foregroundStyle(kp.primary.opacity(0.12))
+                    .padding(.trailing, 12)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Personal Record")

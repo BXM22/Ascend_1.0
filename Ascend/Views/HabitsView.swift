@@ -258,34 +258,33 @@ struct HabitsView: View {
         value: String,
         watermark: String
     ) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(alignment: .leading, spacing: 0) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(iconColor)
-                    .padding(.bottom, 8)
+        VStack(alignment: .leading, spacing: 0) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(iconColor)
+                .padding(.bottom, 8)
 
-                Text(label)
-                    .font(HabitsFonts.bold(10))
-                    .tracking(2)
-                    .textCase(.uppercase)
-                    .foregroundStyle(kp.tertiary)
+            Text(label)
+                .font(HabitsFonts.bold(10))
+                .tracking(2)
+                .textCase(.uppercase)
+                .foregroundStyle(kp.tertiary)
 
-                Text(value)
-                    .font(HabitsFonts.extraBold(24))
-                    .foregroundStyle(kp.onSurface)
-                    .kineticDisplayTracking(for: 24)
-                    .padding(.top, 2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
+            Text(value)
+                .font(HabitsFonts.extraBold(24))
+                .foregroundStyle(kp.onSurface)
+                .kineticDisplayTracking(for: 24)
+                .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(kp.surfaceContainerHighest)
+        .overlay(alignment: .trailing) {
             Image(systemName: watermark)
                 .font(.system(size: 56, weight: .regular))
                 .foregroundStyle(kp.onSurface.opacity(0.05))
-                .offset(x: 12, y: 12)
+                .padding(.trailing, 8)
         }
-        .padding(20)
-        .background(kp.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)

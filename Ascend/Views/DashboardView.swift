@@ -239,15 +239,17 @@ struct DashboardView: View {
             }
             .padding(32)
             .background(
-                ZStack(alignment: .bottomTrailing) {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(kp.surfaceContainerHigh)
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 160))
-                        .foregroundStyle(kp.onSurface.opacity(0.05))
-                        .offset(x: 32, y: 32)
-                }
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(kp.surfaceContainerHigh)
             )
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 140, weight: .regular))
+                    .foregroundStyle(kp.onSurface.opacity(0.05))
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(kp.outlineVariant.opacity(0.2), lineWidth: 1)
